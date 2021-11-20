@@ -54,3 +54,47 @@ identity_act_func = DerivableFunction(identity, identity_deriv, 'identity')
 act_dict = {
     'identity': identity_act_func
 }
+
+
+# Weight initialisation functions (layer-wise)
+# TODO: add rand seed initialisation
+# TODO: add bias initialisation
+def std_weight_init(n_in, n_out, sparse_count=0):
+
+    init_mat = np.random.uniform(low=-1/np.sqrt(n_in),
+                                 high=1/np.sqrt(n_in),
+                                 size=(n_out, n_in))
+
+    if sparse_count > 0 and sparse_count < n_in:
+
+        zeroed_ind = np.arange(n_in)
+
+        for i in range(n_out):
+            np.random.shuffle(zeroed_ind)
+            init_mat[i][zeroed_ind[:sparse_count]] = 0
+
+    return init_mat
+
+# Xavier init
+def norm_weight_init(n_in, n_out, sparse_count=0):
+
+    init_mat = np.random.uniform(low=-np.sqrt(6)/np.sqrt(n_in+n_out),
+                                 high=np.sqrt(6)/np.sqrt(n_in+n_out),
+                                 size=(n_out, n_in))
+
+    if sparse_count > 0 and sparse_count < n_in:
+
+        zeroed_ind = np.arange(n_in)
+
+        for i in range(n_out):
+            np.random.shuffle(zeroed_ind)
+            init_mat[i][zeroed_ind[:sparse_count]] = 0
+
+    return init_mat
+
+
+# Weight initialisation dictionary
+init_dict = {
+    'std': std_weight_init,
+    'norm': norm_weight_init
+}

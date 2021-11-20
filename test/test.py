@@ -4,7 +4,7 @@ sys.path.append('../')
 
 from network import Network
 from layer import Layer
-from function import act_dict
+from function import act_dict, init_dict
 
 def forward_test(network, in_vec, exp_res):
 
@@ -12,6 +12,6 @@ def forward_test(network, in_vec, exp_res):
 
     return np.equal(out, exp_res)
 
-net = Network(np.array([2, 2, 2]), act_dict["identity"], act_dict["identity"])
+net = Network(np.array([2, 4, 2]), None, act_dict["identity"], act_dict["identity"])
 
 print(forward_test(net, np.array([3, 3]), np.array([12., 12.])))

@@ -2,16 +2,19 @@ import numpy as np
 
 class Layer:
 
-    def __init__(self, n_in, n_out, act_func=None): #Network may not pass an act_func to the last layer
+    # Network may not pass an act_func to the last layer
+    def __init__(self, n_in, n_out, init_func=None, act_func=None):
 
         self.n_in = n_in
         self.n_out = n_out
-        self.weights = np.zeros((n_out, n_in))  # Each row is composed of the weights of the unit
         self.bias = 0
         self.act_func = act_func
 
-        # TODO: implement weight init functions
-        self.weights = np.ones((n_out, n_in))
+        if init_func is None:
+            self.weights = np.ones((n_out, n_in))  # Each row is composed of the weights of the unit
+        else:
+            self.weights = init_func(n_in, n_out, 1)
+            print(self.weights)
 
     def forward(self, in_vec):
 
