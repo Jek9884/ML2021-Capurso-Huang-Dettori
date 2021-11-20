@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Function:
 
     def __init__(self, func, name):
@@ -27,12 +28,12 @@ class DerivableFunction(Function):
 
 
 # Loss functions
-def squared_loss(y, y1):
-    return np.square(np.subtract(y, y1))
+def squared_loss(exp_val, pred_val):
+    return np.square(np.subtract(exp_val, pred_val))
 
 
-def squared_loss_deriv(y, y1):
-    return np.subtract(y, y1)
+def squared_loss_deriv(exp_val, pred_val):
+    return np.subtract(exp_val, pred_val)
 
 
 # Loss function dictionary
@@ -41,9 +42,11 @@ loss_dict = {
     'squared': squared_loss_func
 }
 
+
 # Activation functions
 def identity(x):
     return x
+
 
 def identity_deriv(x):
     return np.ones(len(x))
@@ -57,15 +60,12 @@ act_dict = {
 
 
 # Weight initialisation functions (layer-wise)
-# TODO: add rand seed initialisation
-# TODO: add bias initialisation
-def std_weight_init(n_in, n_out, sparse_count=0):
-
-    init_mat = np.random.uniform(low=-1/np.sqrt(n_in),
-                                 high=1/np.sqrt(n_in),
+def std_weight_init(n_out, n_in, sparse_count=0):
+    init_mat = np.random.uniform(low=-1 / np.sqrt(n_in),
+                                 high=1 / np.sqrt(n_in),
                                  size=(n_out, n_in))
 
-    if sparse_count > 0 and sparse_count < n_in:
+    if 0 < sparse_count < n_in:
 
         zeroed_ind = np.arange(n_in)
 
@@ -75,14 +75,14 @@ def std_weight_init(n_in, n_out, sparse_count=0):
 
     return init_mat
 
-# Xavier init
-def norm_weight_init(n_in, n_out, sparse_count=0):
 
-    init_mat = np.random.uniform(low=-np.sqrt(6)/np.sqrt(n_in+n_out),
-                                 high=np.sqrt(6)/np.sqrt(n_in+n_out),
+# Xavier init
+def norm_weight_init(n_out, n_in, sparse_count=0):
+    init_mat = np.random.uniform(low=-np.sqrt(6) / np.sqrt(n_in + n_out),
+                                 high=np.sqrt(6) / np.sqrt(n_in + n_out),
                                  size=(n_out, n_in))
 
-    if sparse_count > 0 and sparse_count < n_in:
+    if 0 < sparse_count < n_in:
 
         zeroed_ind = np.arange(n_in)
 
