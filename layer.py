@@ -68,7 +68,7 @@ class Layer:
 
         # delta = deriv_err * f'(net_t)
         delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
-        # grad = delta * output of previous layer
+        # grad = delta_i * output of previous layer (o_u)
         self.grad = np.multiply(delta, self.in_val)
 
         return np.matmul(self.weights, delta)

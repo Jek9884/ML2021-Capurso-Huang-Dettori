@@ -33,7 +33,7 @@ def squared_loss(exp_val, pred_val):
 
 
 def squared_loss_deriv(exp_val, pred_val):
-    return np.subtract(exp_val, pred_val)
+    return np.multiply(-1, np.subtract(exp_val, pred_val))
 
 
 # Loss function dictionary
