@@ -1,5 +1,22 @@
 import numpy as np
 
+"""
+
+Layer class 
+
+Parameters:
+    -n_out: number of units of the layer
+    -n_in: number of input weights 
+    -init_func: weights init function
+    -act_func: activation function object (DerivableFunction)
+    -bias: starting value for bias
+
+Attributes:
+    -grad: gradient of error w.r.t. weights of the layer 
+    -in_val: input value for the layer
+    -net: Dot product btw weights (matrix) and input (vector)
+"""
+
 
 class Layer:
 
@@ -13,13 +30,21 @@ class Layer:
         self.grad = None
         self.in_val = None
         self.net = None
-        self.delta = None
 
         if init_func is None:
             self.weights = np.ones((n_out, n_in))  # Each row is composed of the weights of the unit
         else:
-            self.weights = init_func(n_out, n_in, 1)
-            print(self.weights)
+            self.weights = init_func(n_out, n_in, 1)  # TODO add parameter for sparse count
+
+    """
+        Computes layer forward pass
+
+        Parameters:
+            -in_vec: vector of input data
+
+        Returns:
+            -out: vector of layer's outputs
+    """
 
     def forward(self, in_vec):
 
@@ -29,13 +54,24 @@ class Layer:
 
         return self.act_func.func(self.net)
 
-    # sum_prod_delta: sum of the product of the deltas of the layer above with correspondent weights
+    """
+        Computes layer backward
+
+        Parameters:
+            -deriv_err: derivative of error w.r.t. weights of layer
+            
+        Returns:
+            -deriv_err for next layer's backward 
+    """
+
     def backward(self, deriv_err):
 
-        self.delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
-        self.grad = np.multiply(self.delta, self.in_val)
+        # delta = deriv_err * f'(net_t)
+        delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
+        # grad = delta * output of previous layer
+        self.grad = np.multiply(delta, self.in_val)
 
-        return np.matmul(self.weights, self.delta)
+        return np.matmul(self.weights, delta)
 
     def __str__(self):
 
