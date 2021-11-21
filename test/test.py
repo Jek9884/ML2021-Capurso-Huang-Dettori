@@ -5,6 +5,7 @@ sys.path.append('../')
 from network import Network
 from function import act_dict, init_dict, loss_dict
 from optimizer import GradientDescent
+import data_handler
 
 
 def forward_test():
@@ -42,7 +43,9 @@ net = Network(np.array([2, 2, 2]), init_dict["norm"], act_dict["sigm"], act_dict
 train_x = np.matrix('3 3; 3 3')
 train_y = np.matrix('6 6; 6 6')
 gd = GradientDescent(net, 0.1, 1, 500)
-gd.optimize(train_x, train_y)
-print("\n\n\n")
-print(net)
-print(net.forward(np.array([3, 3])))
+# gd.optimize(train_x, train_y)
+# print("\n\n\n")
+# print(net)
+# print(net.forward(np.array([3, 3])))
+
+data_handler.read_monk(r"C:\Users\Alessandro\Desktop\Progetto ML\ML2021-Capurso-Huang-Dettori\datasets\monks-1.test")
