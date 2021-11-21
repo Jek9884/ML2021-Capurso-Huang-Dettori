@@ -4,6 +4,7 @@ import sys
 sys.path.append('../')
 from network import Network
 from function import act_dict, init_dict, loss_dict
+from optimizer import GradientDescent
 
 
 def forward_test():
@@ -34,7 +35,14 @@ def backward_test():
     return bool_res
 
 
-print("Forward test:", forward_test())
-print("Backward test:", backward_test())
+# print("Forward test:", forward_test())
+# print("Backward test:", backward_test())
 
-
+net = Network(np.array([2, 2, 2]), init_dict["norm"], act_dict["sigm"], act_dict["identity"], loss_dict["squared"], 0.5)
+train_x = np.matrix('3 3; 3 3')
+train_y = np.matrix('6 6; 6 6')
+gd = GradientDescent(net, 0.1, 1, 500)
+gd.optimize(train_x, train_y)
+print("\n\n\n")
+print(net)
+print(net.forward(np.array([3, 3])))

@@ -13,7 +13,7 @@ Parameters:
 
 Attributes:
     -grad: gradient of error w.r.t. weights of the layer 
-    -in_val: input value for the layer
+    -in_val: input value for the layer (vector)
     -net: Dot product btw weights (matrix) and input (vector)
 """
 
@@ -27,14 +27,14 @@ class Layer:
         self.n_out = n_out
         self.bias = bias
         self.act_func = act_func
-        self.grad = None
+        self.grad = np.zeros((self.n_out, self.n_in))
         self.in_val = None
         self.net = None
 
         if init_func is None:
             self.weights = np.ones((n_out, n_in))  # Each row is composed of the weights of the unit
         else:
-            self.weights = init_func(n_out, n_in, 1)  # TODO add parameter for sparse count
+            self.weights = init_func(n_out, n_in, 0)  # TODO add parameter for sparse count
 
     """
         Computes layer forward pass
@@ -68,16 +68,19 @@ class Layer:
 
         # delta = deriv_err * f'(net_t)
         delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
-        # grad = delta_i * output of previous layer (o_u)
-        self.grad = np.multiply(delta, self.in_val)
+        # grad += delta_i * output of previous layer (o_u)
+        self.grad += np.matmul(delta, np.transpose(self.in_val))
 
         return np.matmul(self.weights, delta)
 
     def __str__(self):
 
         cur_str = f"\tnumber units: {self.n_out}, number weights: {self.n_in}"
-
-        if self.grad is not None:
-            cur_str += f"\n\tlayer gradient vector: {self.grad}\n"
+        cur_str += f"\n\tlayer weights matrix: {self.weights}\n"
+        cur_str += f"\n\tlayer gradient vector: {self.grad}\n"
 
         return cur_str
+
+    def null_grad(self):
+
+        self.grad = np.zeros((self.n_out, self.n_in))

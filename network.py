@@ -34,8 +34,11 @@ class Network:
         self.layers = []
 
         # layers init
-        for i in range(len(layer_unit_vec) - 1):
+        for i in range(len(layer_unit_vec) - 2):
             self.layers.append(Layer(layer_unit_vec[i + 1], layer_unit_vec[i], init_func, act_func, bias))
+
+        # init of output layer. Needed for different out_func
+        self.layers.append(Layer(layer_unit_vec[-1], layer_unit_vec[-2], init_func, out_func, bias))
 
     """
         Computes network forward pass
@@ -74,6 +77,11 @@ class Network:
         # compute derivative of error w.r.t the i-th layer
         for i in reversed(range(len(self.layers))):
             deriv_err = self.layers[i].backward(deriv_err)
+
+    def null_grad(self):
+
+        for layer in self.layers:
+            layer.null_grad()
 
     def __str__(self):
 

@@ -33,7 +33,7 @@ def squared_loss(exp_val, pred_val):
 
 
 def squared_loss_deriv(exp_val, pred_val):
-    return np.multiply(-1, np.subtract(exp_val, pred_val))
+    return np.subtract(exp_val, pred_val)
 
 
 # Loss function dictionary
@@ -52,10 +52,20 @@ def identity_deriv(x):
     return np.ones(len(x))
 
 
+def sigm(x):
+    return 1 / (1 + np.power(np.e, -x))
+
+
+def sigm_deriv(x):
+    return np.power(np.e, -x) / np.power(1 + np.power(np.e, -x), 2)
+
+
 # Activation function dictionary
 identity_act_func = DerivableFunction(identity, identity_deriv, 'identity')
+sigm_act_func = DerivableFunction(sigm, sigm_deriv, 'sigm')
 act_dict = {
-    'identity': identity_act_func
+    'identity': identity_act_func,
+    'sigm': sigm_act_func
 }
 
 
@@ -78,8 +88,8 @@ def std_weight_init(n_out, n_in, sparse_count=0):
 
 # Xavier init
 def norm_weight_init(n_out, n_in, sparse_count=0):
-    init_mat = np.random.uniform(low=-np.sqrt(6) / np.sqrt(n_in + n_out),
-                                 high=np.sqrt(6) / np.sqrt(n_in + n_out),
+    init_mat = np.random.uniform(low=-np.sqrt(6 / (n_in + n_out)),
+                                 high=np.sqrt(6 / (n_in + n_out)),
                                  size=(n_out, n_in))
 
     if 0 < sparse_count < n_in:
