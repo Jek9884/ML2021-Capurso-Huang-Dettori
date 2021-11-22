@@ -2,17 +2,17 @@ import numpy as np
 
 """
 
-Layer class 
+Layer class
 
 Parameters:
     -n_out: number of units of the layer
-    -n_in: number of input weights 
+    -n_in: number of input weights
     -init_func: weights init function
     -act_func: activation function object (DerivableFunction)
     -bias: starting value for bias
 
 Attributes:
-    -grad: gradient of error w.r.t. weights of the layer 
+    -grad: gradient of error w.r.t. weights of the layer
     -in_val: input value for the layer (vector)
     -net: Dot product btw weights (matrix) and input (vector)
 """
@@ -59,19 +59,21 @@ class Layer:
 
         Parameters:
             -deriv_err: derivative of error w.r.t. weights of layer
-            
+
         Returns:
-            -deriv_err for next layer's backward 
+            -deriv_err for next layer's backward
     """
 
     def backward(self, deriv_err):
 
         # delta = deriv_err * f'(net_t)
         delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
-        # grad += delta_i * output of previous layer (o_u)
-        self.grad += np.matmul(delta, np.transpose(self.in_val))
 
-        return np.matmul(self.weights, delta)
+        # grad += delta_i * output of previous layer (o_u)
+        self.grad += np.outer(delta, self.in_val)
+        new_deriv_err = np.matmul(self.weights, delta)
+
+        return new_deriv_err
 
     def __str__(self):
 

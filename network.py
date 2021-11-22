@@ -2,7 +2,7 @@ from layer import Layer
 
 """
 
-Network class 
+Network class
 
 Parameters:
     -layer_unit_vec: vector containing for each position the corresponding number of units in that layer.
@@ -16,7 +16,7 @@ Parameters:
 Attributes:
     -out: Output vector of network
     -layers: list of network's layers objects
-    
+
 """
 
 
@@ -42,10 +42,10 @@ class Network:
 
     """
         Computes network forward pass
-        
+
         Parameters:
             -in_vec: vector of input data
-            
+
         Returns:
             -out: vector of network's outputs
     """
@@ -64,7 +64,7 @@ class Network:
 
     """
         Computes network backward
-        
+
         Parameters:
             -res_vec: vector of expected results
     """

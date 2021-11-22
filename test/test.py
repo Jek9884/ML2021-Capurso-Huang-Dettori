@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+import os
 
 sys.path.append('../')
 from network import Network
@@ -39,13 +40,15 @@ def backward_test():
 # print("Forward test:", forward_test())
 # print("Backward test:", backward_test())
 
-net = Network(np.array([2, 2, 2]), init_dict["norm"], act_dict["sigm"], act_dict["identity"], loss_dict["squared"], 0.5)
-train_x = np.matrix('3 3; 3 3')
-train_y = np.matrix('6 6; 6 6')
-gd = GradientDescent(net, 0.1, 1, 500)
-# gd.optimize(train_x, train_y)
-# print("\n\n\n")
-# print(net)
-# print(net.forward(np.array([3, 3])))
+net = Network(np.array([6, 6, 6, 1]), init_dict["norm"], act_dict["sigm"], act_dict["identity"], loss_dict["squared"], 0.5)
+gd = GradientDescent(net, 0.1, 1, 100)
 
-data_handler.read_monk(r"C:\Users\Alessandro\Desktop\Progetto ML\ML2021-Capurso-Huang-Dettori\datasets\monks-1.test")
+path = os.path.join('..', 'datasets', 'monks-1.train')
+train_x, train_y = data_handler.read_monk(path)
+print(train_x)
+print(train_y)
+
+gd.optimize(train_x, train_y)
+print("\n\n\n")
+print(net)
+print(net.forward(np.array([1, 1, 1, 1, 1, 1])))  # Exp result = 1

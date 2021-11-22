@@ -13,7 +13,7 @@ class GradientDescent:
 
     def optimize(self, train_x, train_y):
 
-        if self.epochs is not None: #TODO check that train_x and train_y are matrix
+        if self.epochs is not None:  # TODO check that train_x and train_y are matrix
             l = len(train_x)
 
             for e in range(self.epochs):
@@ -22,11 +22,11 @@ class GradientDescent:
                 sub_train_y = []
 
                 if self.batch_size == 1:  # Online version
-                    for i, pattern in enumerate(train_x):
-                        self.__step(pattern, train_y[i])
+                    for i, _ in enumerate(train_x):
+                        self.__step(train_x[i], train_y[i])
                 elif 1 < self.batch_size < l:
                     pass
-                elif self.batch_size == l:
+                elif self.batch_size == l:  # Batch version
                     self.__step(train_x, train_y)
                 else:
                     raise ValueError("Batch size should be >= 1 and <= l")
@@ -34,9 +34,11 @@ class GradientDescent:
             raise ValueError('limit_step should be not None')
 
     def __step(self, sub_train_x, sub_train_y):
+
         self.network.null_grad()
-        for i, pattern in enumerate(sub_train_x):
-            self.network.forward(np.asarray(pattern).flatten())
+
+        for i, _ in enumerate(sub_train_x):
+            self.network.forward(np.asarray(sub_train_x[i]).flatten())
             self.network.backward(np.asarray(sub_train_y[i]).flatten())
 
         self.__update_weights()
