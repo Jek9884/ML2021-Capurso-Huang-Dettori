@@ -33,13 +33,31 @@ def squared_loss(exp_val, pred_val):
 
 
 def squared_loss_deriv(exp_val, pred_val):
-    return np.subtract(exp_val, pred_val)
+    return np.subtract(pred_val, exp_val)
+
+
+def nll_loss(exp_val, pred_val):  # Negative log-likelihood
+
+#    if exp_val != 0 or exp_val != 1:
+#        raise ValueError("NLL can only be used with binary classification")
+
+    return -(exp_val*np.log(pred_val) + (1-exp_val)*np.log(1-pred_val))
+
+
+def nll_loss_deriv(exp_val, pred_val):
+
+#    if exp_val != 0 or exp_val != 1:
+#        raise ValueError("NLL can only be used with binary classification")
+
+    return (pred_val - exp_val)/(pred_val - np.power(pred_val, 2))
 
 
 # Loss function dictionary
 squared_loss_func = DerivableFunction(squared_loss, squared_loss_deriv, 'squared')
+nll_loss_func = DerivableFunction(nll_loss, nll_loss_deriv, 'nll')
 loss_dict = {
-    'squared': squared_loss_func
+    'squared': squared_loss_func,
+    'nll': nll_loss_func
 }
 
 

@@ -46,7 +46,6 @@ class GradientDescent:
     def __update_weights(self):
 
         for layer in self.network.layers:
-            print(layer.weights)
-            layer.weights = layer.weights + (self.lr * layer.grad)
+            layer.weights = layer.weights - (self.lr * layer.grad)
 
 

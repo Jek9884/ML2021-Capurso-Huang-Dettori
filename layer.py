@@ -71,7 +71,7 @@ class Layer:
 
         # grad += delta_i * output of previous layer (o_u)
         self.grad += np.outer(delta, self.in_val)
-        new_deriv_err = np.matmul(self.weights, delta)
+        new_deriv_err = np.matmul(np.transpose(self.weights), delta)
 
         return new_deriv_err
 

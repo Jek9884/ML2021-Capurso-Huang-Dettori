@@ -37,18 +37,36 @@ def backward_test():
     return bool_res
 
 
-# print("Forward test:", forward_test())
-# print("Backward test:", backward_test())
+def simple_learning_test():
+    in_vec = np.array([3, 3])
+    exp_res = np.array([6, 6])
 
-net = Network(np.array([6, 6, 6, 1]), init_dict["norm"], act_dict["sigm"], act_dict["identity"], loss_dict["squared"], 0.5)
-gd = GradientDescent(net, 0.1, 1, 100)
+    net = Network(np.array([2, 2, 2]), init_dict["std"], act_dict["sigm"],
+                  act_dict["identity"], loss_dict["squared"])
+
+    gd = GradientDescent(net, 0.1, 1, 50)
+    gd.optimize(np.asmatrix(in_vec), np.asmatrix(exp_res))
+
+    return net.forward(in_vec)
+
+
+print("Forward test:", forward_test())
+print("Backward test:", backward_test())
+print(simple_learning_test())
 
 path = os.path.join('..', 'datasets', 'monks-1.train')
 train_x, train_y = data_handler.read_monk(path)
-print(train_x)
-print(train_y)
+
+net = Network(np.array([6, 2, 1]),
+              init_dict["norm"],
+              act_dict["sigm"],
+              act_dict["sigm"],
+              loss_dict["nll"], 0.5)
+
+gd = GradientDescent(net, 0.01, train_x.shape[0], 50)
 
 gd.optimize(train_x, train_y)
 print("\n\n\n")
 print(net)
-print(net.forward(np.array([1, 1, 1, 1, 1, 1])))  # Exp result = 1
+print(net.forward(np.asarray(train_x[0]).flatten()))
+print(train_y[0])
