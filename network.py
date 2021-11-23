@@ -12,7 +12,7 @@ Parameters:
     -act_func: activation function object (DerivableFunction)
     -out_func: output function object (DerivableFunction)
     -loss_func: loss function object (DerivableFunction)
-    -bias: starting value for bias
+    -bias: vector containing the starting values for each layer's bias
     -debug_bool: print debug information from network and layers
 
 Attributes:
@@ -24,7 +24,7 @@ Attributes:
 
 class Network:
 
-    def __init__(self, layer_unit_vec, init_func=None, act_func=None, out_func=None, loss_func=None, bias=0, debug_bool=False):
+    def __init__(self, layer_unit_vec, init_func=None, act_func=None, out_func=None, loss_func=None, bias=None, debug_bool=False):
 
         self.layer_unit_vec = layer_unit_vec
         self.init_func = init_func
@@ -36,12 +36,17 @@ class Network:
         self.layers = []
         self.debug_bool = debug_bool
 
+        if self.bias is None:
+            self.bias = np.zeros(len(layer_unit_vec)-1)
+
         # layers init
         for i in range(len(layer_unit_vec) - 2):
-            self.layers.append(Layer(layer_unit_vec[i + 1], layer_unit_vec[i], init_func, act_func, bias, debug_bool))
+            self.layers.append(Layer(layer_unit_vec[i + 1], layer_unit_vec[i],
+                                     init_func, act_func, self.bias[i], debug_bool))
 
         # init of output layer. Needed for different out_func
-        self.layers.append(Layer(layer_unit_vec[-1], layer_unit_vec[-2], init_func, out_func, bias, debug_bool))
+        self.layers.append(Layer(layer_unit_vec[-1], layer_unit_vec[-2],
+                                 init_func, out_func, self.bias[len(layer_unit_vec)-2], debug_bool))
 
     """
         Computes network forward pass
