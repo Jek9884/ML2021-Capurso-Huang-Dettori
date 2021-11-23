@@ -9,11 +9,28 @@ from optimizer import GradientDescent
 import data_handler
 
 
+def accuracy(net, x_set, y_set):
+
+    len_set = len(x_set)
+    corr_count = 0
+
+    for i, entry in enumerate(x_set):
+
+        res = net.forward(np.asarray(x_set[i]).flatten())
+        thresh_res = 1 if res.item() >= 0.5 else 0
+
+        if y_set[i].item() == thresh_res:
+            corr_count += 1
+
+    return corr_count, len_set
+
+
 def forward_test():
     in_vec = np.array([3, 3])
     exp_res = np.array([12, 12])
 
-    net = Network(np.array([2, 2, 2]), None, act_dict["identity"], act_dict["identity"], loss_dict["squared"])
+    net = Network(np.array([2, 2, 2]), None, act_dict["identity"],
+                  act_dict["identity"], loss_dict["squared"])
 
     out = net.forward(in_vec)
 
@@ -24,7 +41,8 @@ def backward_test():
     in_vec = np.array([3, 3])
     exp_res = np.array([6, 6])
 
-    net = Network(np.array([2, 2, 2]), None, act_dict["identity"], act_dict["identity"], loss_dict["squared"])
+    net = Network(np.array([2, 2, 2]), None, act_dict["identity"],
+                  act_dict["identity"], loss_dict["squared"])
 
     net.forward(in_vec)
     net.backward(exp_res)
@@ -37,7 +55,7 @@ def backward_test():
     return bool_res
 
 
-def simple_learning_test():
+def simple_learning_test_regression():
     in_vec = np.array([3, 3])
     exp_res = np.array([6, 6])
 
@@ -50,23 +68,38 @@ def simple_learning_test():
     return net.forward(in_vec)
 
 
-print("Forward test:", forward_test())
-print("Backward test:", backward_test())
-print(simple_learning_test())
+def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
+    train_x = np.matrix('0 0 0 0; 0 1 0 1; 0 0 0 1; 0 1 0 0; 1 0 0 0; 1 0 1 0; 1 1 1 1')
+    train_y = np.matrix('0; 0; 1; 1; 1; 0; 0')
+
+    net = Network(np.array([4, 4, 1]),
+                  init_dict["norm"],
+                  act_dict["tanh"],
+                  act_dict["sigm"],
+                  loss_dict["nll"], [0, 0, 0.5])
+
+    gd = GradientDescent(net, 0.1, 1, 500)
+    gd.optimize(train_x, train_y)
+
+    return accuracy(net, train_x, train_y)
+
+
+print("Forward test: ", forward_test())
+print("Backward test: ", backward_test())
+print("Simple regression test: ", simple_learning_test_regression())
+print("Simple classification test: ", simple_learning_test_classification())
+
 
 path = os.path.join('..', 'datasets', 'monks-1.train')
 train_x, train_y = data_handler.read_monk(path)
 
-net = Network(np.array([6, 2, 1]),
+net = Network(np.array([6, 6, 1]),
               init_dict["norm"],
+              act_dict["tanh"],
               act_dict["sigm"],
-              act_dict["sigm"],
-              loss_dict["nll"], 0.5)
+              loss_dict["nll"], [0, 0.5])
 
-gd = GradientDescent(net, 0.01, train_x.shape[0], 50)
+gd = GradientDescent(net, 0.1, train_x.shape[0], 500)
 
 gd.optimize(train_x, train_y)
-print("\n\n\n")
-print(net)
-print(net.forward(np.asarray(train_x[0]).flatten()))
-print(train_y[0])
+print(accuracy(net, train_x, train_y))
