@@ -10,6 +10,7 @@ Parameters:
     -init_func: weights init function
     -act_func: activation function object (DerivableFunction)
     -bias: starting value for bias
+    -debug_bool: print debug information from the layer
 
 Attributes:
     -grad: gradient of error w.r.t. weights of the layer
@@ -21,12 +22,13 @@ Attributes:
 class Layer:
 
     # Network may not pass an act_func to the last layer
-    def __init__(self, n_out, n_in, init_func=None, act_func=None, bias=0):
+    def __init__(self, n_out, n_in, init_func=None, act_func=None, bias=0, debug_bool=False):
 
         self.n_in = n_in
         self.n_out = n_out
         self.bias = bias
         self.act_func = act_func
+        self.debug_bool = debug_bool
         self.grad = np.zeros((self.n_out, self.n_in))
         self.in_val = None
         self.net = None
@@ -73,6 +75,14 @@ class Layer:
         self.grad += np.outer(delta, self.in_val)
         new_deriv_err = np.matmul(np.transpose(self.weights), delta)
 
+        if self.debug_bool:
+            print("\t", self.act_func.name)
+            print("Net: ", self.net)
+            print("Deriv_err: ", deriv_err)
+            print("Deriv act func: ", self.act_func.deriv(self.net))
+            print("Grad: ", self.grad)
+            print("Out: ", self.act_func.func(self.net))
+
         return new_deriv_err
 
     def __str__(self):
@@ -80,6 +90,7 @@ class Layer:
         cur_str = f"\tnumber units: {self.n_out}, number weights: {self.n_in}"
         cur_str += f"\n\tlayer weights matrix: {self.weights}\n"
         cur_str += f"\n\tlayer gradient vector: {self.grad}\n"
+        cur_str += f"\n\tactivation function: {self.act_func.name}"
 
         return cur_str
 

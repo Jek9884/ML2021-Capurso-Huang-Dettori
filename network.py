@@ -1,4 +1,5 @@
 from layer import Layer
+import numpy as np
 
 """
 
@@ -12,6 +13,7 @@ Parameters:
     -out_func: output function object (DerivableFunction)
     -loss_func: loss function object (DerivableFunction)
     -bias: starting value for bias
+    -debug_bool: print debug information from network and layers
 
 Attributes:
     -out: Output vector of network
@@ -22,7 +24,7 @@ Attributes:
 
 class Network:
 
-    def __init__(self, layer_unit_vec, init_func=None, act_func=None, out_func=None, loss_func=None, bias=0):
+    def __init__(self, layer_unit_vec, init_func=None, act_func=None, out_func=None, loss_func=None, bias=0, debug_bool=False):
 
         self.layer_unit_vec = layer_unit_vec
         self.init_func = init_func
@@ -32,13 +34,14 @@ class Network:
         self.bias = bias
         self.out = None
         self.layers = []
+        self.debug_bool = debug_bool
 
         # layers init
         for i in range(len(layer_unit_vec) - 2):
-            self.layers.append(Layer(layer_unit_vec[i + 1], layer_unit_vec[i], init_func, act_func, bias))
+            self.layers.append(Layer(layer_unit_vec[i + 1], layer_unit_vec[i], init_func, act_func, bias, debug_bool))
 
         # init of output layer. Needed for different out_func
-        self.layers.append(Layer(layer_unit_vec[-1], layer_unit_vec[-2], init_func, out_func, bias))
+        self.layers.append(Layer(layer_unit_vec[-1], layer_unit_vec[-2], init_func, out_func, bias, debug_bool))
 
     """
         Computes network forward pass
@@ -57,8 +60,7 @@ class Network:
         for i, layer in enumerate(self.layers):
             fw_vec = layer.forward(fw_vec)
 
-        # used for computing the gradient
-        self.out = self.out_func.func(fw_vec)
+        self.out = fw_vec  # The output function is applied in the last layer
 
         return self.out
 
@@ -78,6 +80,16 @@ class Network:
         for i in reversed(range(len(self.layers))):
             deriv_err = self.layers[i].backward(deriv_err)
 
+        if self.debug_bool:
+            print("Loss: ", self.loss_func.func(res_vec, self.out))
+            print("Deriv Loss: ", self.loss_func.deriv(res_vec, self.out))
+            print("Out: ", self.out)
+            print("Expected: ", res_vec)
+            print()
+
+    """
+        Zeros out the gradients stored in the network's layers
+    """
     def null_grad(self):
 
         for layer in self.layers:
