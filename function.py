@@ -38,18 +38,19 @@ def squared_loss_deriv(exp_val, pred_val):
 
 def nll_loss(exp_val, pred_val):  # Negative log-likelihood
 
-#    if exp_val != 0 or exp_val != 1:
-#        raise ValueError("NLL can only be used with binary classification")
-
-    return -(exp_val*np.log(pred_val) + (1-exp_val)*np.log(1-pred_val))
+    if exp_val == 0:
+        return -np.log(1-pred_val)
+    elif exp_val == 1:
+        return -np.log(pred_val)
+    else:
+        raise ValueError("Supports only binary classification")
 
 
 def nll_loss_deriv(exp_val, pred_val):
 
-#    if exp_val != 0 or exp_val != 1:
-#        raise ValueError("NLL can only be used with binary classification")
+    # Use only with sigmoid!!!
 
-    return (pred_val - exp_val)/(pred_val - np.power(pred_val, 2))
+    return pred_val - exp_val
 
 
 # Loss function dictionary
@@ -75,15 +76,24 @@ def sigm(x):
 
 
 def sigm_deriv(x):
-    return np.power(np.e, -x) / np.power(1 + np.power(np.e, -x), 2)
+    return sigm(x)*(1-sigm(x))
 
+
+def tanh(x):
+    return 2*sigm(2*x)-1
+
+
+def tanh_deriv(x):
+    return 4*sigm_deriv(2*x)
 
 # Activation function dictionary
 identity_act_func = DerivableFunction(identity, identity_deriv, 'identity')
 sigm_act_func = DerivableFunction(sigm, sigm_deriv, 'sigm')
+tanh_act_func = DerivableFunction(tanh, tanh_deriv, 'tanh')
 act_dict = {
     'identity': identity_act_func,
-    'sigm': sigm_act_func
+    'sigm': sigm_act_func,
+    'tanh': tanh_act_func
 }
 
 
