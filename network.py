@@ -21,6 +21,7 @@ Attributes:
 
 """
 
+#TODO add method for bias init
 
 class Network:
 

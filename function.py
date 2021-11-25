@@ -39,7 +39,7 @@ def squared_loss_deriv(exp_val, pred_val):
 def nll_loss(exp_val, pred_val):  # Negative log-likelihood
 
     if exp_val == 0:
-        return -np.log(1-pred_val)
+        return -np.log(1 - pred_val)
     elif exp_val == 1:
         return -np.log(pred_val)
     else:
@@ -47,7 +47,6 @@ def nll_loss(exp_val, pred_val):  # Negative log-likelihood
 
 
 def nll_loss_deriv(exp_val, pred_val):
-
     # Use only with sigmoid!!!
 
     return pred_val - exp_val
@@ -76,15 +75,16 @@ def sigm(x):
 
 
 def sigm_deriv(x):
-    return sigm(x)*(1-sigm(x))
+    return sigm(x) * (1 - sigm(x))
 
 
 def tanh(x):
-    return 2*sigm(2*x)-1
+    return 2 * sigm(2 * x) - 1
 
 
 def tanh_deriv(x):
-    return 4*sigm_deriv(2*x)
+    return 4 * sigm_deriv(2 * x)
+
 
 # Activation function dictionary
 identity_act_func = DerivableFunction(identity, identity_deriv, 'identity')

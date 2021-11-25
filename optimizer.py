@@ -27,7 +27,7 @@ class GradientDescent:
                 if self.batch_size == 1:  # Online version
                     for i, _ in enumerate(train_x):
                         self.__step(train_x[i], train_y[i])
-                elif 1 < self.batch_size < l:
+                elif 1 < self.batch_size < l: #TODO missing Stochastic batch and fix lr
                     pass
                 elif self.batch_size == l:  # Batch version
                     self.__step(train_x, train_y)

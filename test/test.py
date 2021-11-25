@@ -7,23 +7,7 @@ from network import Network
 from function import act_dict, init_dict, loss_dict
 from optimizer import GradientDescent
 import data_handler
-
-
-def accuracy(net, x_set, y_set):
-
-    len_set = len(x_set)
-    corr_count = 0
-
-    for i, entry in enumerate(x_set):
-
-        res = net.forward(np.asarray(x_set[i]).flatten())
-        thresh_res = 1 if res.item() >= 0.5 else 0
-
-        if y_set[i].item() == thresh_res:
-            corr_count += 1
-
-    return corr_count, len_set
-
+from hype_search import grid_search
 
 def forward_test():
     in_vec = np.array([3, 3])
@@ -105,18 +89,17 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     return accuracy(net, train_x, train_y)
 
 
+path_train = os.path.join('..', 'datasets', 'monks-1.train')
+path_test = os.path.join('..', 'datasets', 'monks-1.test')
+train_x, train_y = data_handler.read_monk(path_train)
+test_x, test_y = data_handler.read_monk(path_test)
+
+"""
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())
 print("Simple regression test: ", simple_learning_test_regression())
 print("Simple AND classification test: ", simple_and_learning_test_classification())
 print("Simple classification test: ", simple_learning_test_classification())
-
-
-path_train = os.path.join('..', 'datasets', 'monks-1.train')
-path_test = os.path.join('..', 'datasets', 'monks-1.test')
-
-train_x, train_y = data_handler.read_monk(path_train)
-test_x, test_y = data_handler.read_monk(path_test)
 
 net = Network(np.array([6, 6, 1]),
               init_dict["norm"],
@@ -129,3 +112,27 @@ gd = GradientDescent(net, 0.1, train_x.shape[0], epochs=500)
 gd.optimize(train_x, train_y)
 print(accuracy(net, train_x, train_y))
 print(accuracy(net, test_x, test_y))
+
+"""
+
+dict_param = {
+    'conf_layer_list': [[6, 2, 1], [6, 4, 1]],
+    'init_func_list': [init_dict["std"], init_dict["norm"]],
+    'act_func_list': [act_dict["sigm"], act_dict["identity"], act_dict["tanh"]],
+    'out_func_list': [act_dict["sigm"]],
+    'loss_func_list': [loss_dict["squared"], loss_dict["nll"]],
+    'bias_list': [[0, 0, 0], [0, 0.5, 0], [0.5, 0.5, 0.5]],
+    'lr_list': [0.001, 0.01, 0.2, 0.5],
+    'batch_size_list': [1, train_x.shape[0]],
+    'reg_val_list': [0.0001, 0.001, 0.01, 0.1, 1],
+    'reg_type_list': [2],
+    'epochs_list': [10, 20, 50]
+}
+
+print(grid_search(train_x, train_y, dict_param))
+
+"""
+    conf_layer_list, init_func_list, act_func_list,
+                out_func_list, loss_func_list, bias_list, lr_list, batch_size_list,
+                reg_val_list, reg_type_list, epochs_list
+"""

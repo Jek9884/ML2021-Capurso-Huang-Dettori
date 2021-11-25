@@ -38,6 +38,7 @@ class Layer:
             self.weights = np.ones((n_out, n_in))  # Each row is composed of the weights of the unit
         else:
             self.weights = init_func(n_out, n_in, 0)  # TODO add parameter for sparse count
+            #self.bias = init_func(n_out, 1, 0)
 
     """
         Computes layer forward pass
