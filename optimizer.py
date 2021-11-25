@@ -2,11 +2,14 @@ import numpy as np
 
 class GradientDescent:
 
-    def __init__(self, network, lr, batch_size, epochs=None):
+    def __init__(self, network, lr, batch_size, reg_val=0, reg_type=2, epochs=None):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
+
         self.lr = lr
+        self.reg_val = reg_val
+        self.reg_type = reg_type
         self.network = network
         self.batch_size = batch_size
         self.epochs = epochs
@@ -46,6 +49,14 @@ class GradientDescent:
     def __update_weights(self):
 
         for layer in self.network.layers:
-            layer.weights = layer.weights - (self.lr * layer.grad)
 
+            delta_w = self.lr * layer.grad_w
+            delta_b = self.lr * layer.grad_b
 
+            # TODO: take decision regarding norm-1 and reg_type parameter
+            if self.reg_val > 0 and self.reg_type == 2:
+                delta_w += 2*self.reg_val*layer.weights
+                delta_b += 2*self.reg_val*layer.bias
+
+            layer.weights = layer.weights - delta_w
+            layer.bias = layer.bias - delta_b

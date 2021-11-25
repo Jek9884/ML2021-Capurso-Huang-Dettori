@@ -78,19 +78,20 @@ class Network:
 
     def backward(self, res_vec):
 
+        if self.debug_bool:
+            print("Network-wise info:")
+            print("\tOut: ", self.out)
+            print("\tExpected: ", res_vec)
+            print("\tLoss: ", self.loss_func.func(res_vec, self.out))
+            print("\tDeriv Loss: ", self.loss_func.deriv(res_vec, self.out))
+            print()
+
         # derivative of error w.r.t. the output of the last layer
         deriv_err = self.loss_func.deriv(res_vec, self.out)
 
         # compute derivative of error w.r.t the i-th layer
         for i in reversed(range(len(self.layers))):
             deriv_err = self.layers[i].backward(deriv_err)
-
-        if self.debug_bool:
-            print("Loss: ", self.loss_func.func(res_vec, self.out))
-            print("Deriv Loss: ", self.loss_func.deriv(res_vec, self.out))
-            print("Out: ", self.out)
-            print("Expected: ", res_vec)
-            print()
 
     """
         Zeros out the gradients stored in the network's layers

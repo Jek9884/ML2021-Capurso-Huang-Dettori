@@ -49,8 +49,13 @@ def backward_test():
 
     bool_res = True
 
-    for layer in net.layers:
-        bool_res = bool_res and np.equal(layer.grad, np.array([36, 36])).all()
+    for i, layer in enumerate(net.layers):
+        bool_res = bool_res and np.equal(layer.grad_w, np.array([36, 36])).all()
+
+        if i == 0:
+            bool_res = bool_res and np.equal(layer.grad_b, np.array([12, 12])).all()
+        elif i == 1:
+            bool_res = bool_res and np.equal(layer.grad_b, np.array([6, 6])).all()
 
     return bool_res
 
@@ -59,29 +64,13 @@ def simple_learning_test_regression():
     in_vec = np.array([3, 3])
     exp_res = np.array([6, 6])
 
-    net = Network(np.array([2, 2, 2]), init_dict["std"], act_dict["sigm"],
+    net = Network(np.array([2, 2, 2]), init_dict["norm"], act_dict["sigm"],
                   act_dict["identity"], loss_dict["squared"])
 
-    gd = GradientDescent(net, 0.1, 1, 50)
+    gd = GradientDescent(net, 0.1, 1, epochs=20)
     gd.optimize(np.asmatrix(in_vec), np.asmatrix(exp_res))
 
     return net.forward(in_vec)
-
-
-def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
-    train_x = np.matrix('0 0 0 0; 0 1 0 1; 0 0 0 1; 0 1 0 0; 1 0 0 0; 1 0 1 0; 1 1 1 1')
-    train_y = np.matrix('0; 0; 1; 1; 1; 0; 0')
-
-    net = Network(np.array([4, 4, 1]),
-                  init_dict["norm"],
-                  act_dict["tanh"],
-                  act_dict["sigm"],
-                  loss_dict["nll"], [0.5, 0.5])
-
-    gd = GradientDescent(net, 0.1, 1, 500)
-    gd.optimize(train_x, train_y)
-
-    return accuracy(net, train_x, train_y)
 
 
 def simple_and_learning_test_classification():  # Func: A and D
@@ -94,7 +83,23 @@ def simple_and_learning_test_classification():  # Func: A and D
                   act_dict["sigm"],
                   loss_dict["nll"], [0, 0.5])
 
-    gd = GradientDescent(net, 1, 4, 100)
+    gd = GradientDescent(net, 1, 4, epochs=100)
+    gd.optimize(train_x, train_y)
+
+    return accuracy(net, train_x, train_y)
+
+
+def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
+    train_x = np.matrix('0 0 0 0; 0 1 0 1; 0 0 0 1; 0 1 0 0; 1 0 0 0; 1 0 1 0; 1 1 1 1')
+    train_y = np.matrix('0; 0; 1; 1; 1; 0; 0')
+
+    net = Network(np.array([4, 4, 1]),
+                  init_dict["norm"],
+                  act_dict["tanh"],
+                  act_dict["sigm"],
+                  loss_dict["nll"], [0, 0.5])
+
+    gd = GradientDescent(net, 0.1, 1, epochs=500)
     gd.optimize(train_x, train_y)
 
     return accuracy(net, train_x, train_y)
@@ -119,7 +124,7 @@ net = Network(np.array([6, 6, 1]),
               act_dict["sigm"],
               loss_dict["nll"], [0, 0.5])
 
-gd = GradientDescent(net, 0.1, train_x.shape[0], 1000)
+gd = GradientDescent(net, 0.1, train_x.shape[0], epochs=500)
 
 gd.optimize(train_x, train_y)
 print(accuracy(net, train_x, train_y))

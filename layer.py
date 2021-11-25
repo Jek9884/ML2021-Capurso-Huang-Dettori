@@ -29,7 +29,8 @@ class Layer:
         self.bias = bias
         self.act_func = act_func
         self.debug_bool = debug_bool
-        self.grad = np.zeros((self.n_out, self.n_in))
+        self.grad_w = np.zeros((self.n_out, self.n_in))
+        self.grad_b = np.zeros(self.n_out)
         self.in_val = None
         self.net = None
 
@@ -72,16 +73,22 @@ class Layer:
         delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
 
         # grad += delta_i * output of previous layer (o_u)
-        self.grad += np.outer(delta, self.in_val)
+        self.grad_w += np.outer(delta, self.in_val)
+        self.grad_b += delta
         new_deriv_err = np.matmul(np.transpose(self.weights), delta)
 
         if self.debug_bool:
-            print("\t", self.act_func.name)
-            print("Net: ", self.net)
-            print("Deriv_err: ", deriv_err)
-            print("Deriv act func: ", self.act_func.deriv(self.net))
-            print("Grad: ", self.grad)
-            print("Out: ", self.act_func.func(self.net))
+            print("Layer")
+            print("Activation function: ", self.act_func.name)
+            print("\tOut: ", self.act_func.func(self.net))
+            print("\tNet with bias: ", self.net)
+            print("\tBias: ", self.bias)
+            print("\tDelta: ", delta)
+            print("\tDeriv_err: ", deriv_err)
+            print("\tDeriv act(net): ", self.act_func.deriv(self.net))
+            print("\tGrad weights: \n", self.grad_w)
+            print("\tGrad bias: ", self.grad_b)
+            print()
 
         return new_deriv_err
 
@@ -96,4 +103,5 @@ class Layer:
 
     def null_grad(self):
 
-        self.grad = np.zeros((self.n_out, self.n_in))
+        self.grad_w = np.zeros((self.n_out, self.n_in))
+        self.grad_b = np.zeros(self.n_out)
