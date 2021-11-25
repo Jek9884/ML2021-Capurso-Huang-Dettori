@@ -76,9 +76,25 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
                   init_dict["norm"],
                   act_dict["tanh"],
                   act_dict["sigm"],
-                  loss_dict["nll"], [0, 0, 0.5])
+                  loss_dict["nll"], [0.5, 0.5])
 
     gd = GradientDescent(net, 0.1, 1, 500)
+    gd.optimize(train_x, train_y)
+
+    return accuracy(net, train_x, train_y)
+
+
+def simple_and_learning_test_classification():  # Func: A and D
+    train_x = np.matrix('0 0; 0 1; 1 0; 1 1')
+    train_y = np.matrix('0; 0; 0; 1')
+
+    net = Network(np.array([2, 1]),
+                  init_dict["norm"],
+                  act_dict["tanh"],
+                  act_dict["sigm"],
+                  loss_dict["nll"], [0, 0.5])
+
+    gd = GradientDescent(net, 1, 4, 100)
     gd.optimize(train_x, train_y)
 
     return accuracy(net, train_x, train_y)
@@ -87,11 +103,15 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())
 print("Simple regression test: ", simple_learning_test_regression())
+print("Simple AND classification test: ", simple_and_learning_test_classification())
 print("Simple classification test: ", simple_learning_test_classification())
 
 
-path = os.path.join('..', 'datasets', 'monks-1.train')
-train_x, train_y = data_handler.read_monk(path)
+path_train = os.path.join('..', 'datasets', 'monks-1.train')
+path_test = os.path.join('..', 'datasets', 'monks-1.test')
+
+train_x, train_y = data_handler.read_monk(path_train)
+test_x, test_y = data_handler.read_monk(path_test)
 
 net = Network(np.array([6, 6, 1]),
               init_dict["norm"],
@@ -99,7 +119,8 @@ net = Network(np.array([6, 6, 1]),
               act_dict["sigm"],
               loss_dict["nll"], [0, 0.5])
 
-gd = GradientDescent(net, 0.1, train_x.shape[0], 500)
+gd = GradientDescent(net, 0.1, train_x.shape[0], 1000)
 
 gd.optimize(train_x, train_y)
 print(accuracy(net, train_x, train_y))
+print(accuracy(net, test_x, test_y))
