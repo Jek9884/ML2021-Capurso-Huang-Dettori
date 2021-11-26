@@ -7,7 +7,8 @@ from network import Network
 from function import act_dict, init_dict, loss_dict
 from optimizer import GradientDescent
 import data_handler
-from hype_search import grid_search
+from hype_search import grid_search, accuracy
+
 
 def forward_test():
     in_vec = np.array([3, 3])
@@ -94,7 +95,6 @@ path_test = os.path.join('..', 'datasets', 'monks-1.test')
 train_x, train_y = data_handler.read_monk(path_train)
 test_x, test_y = data_handler.read_monk(path_test)
 
-"""
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())
 print("Simple regression test: ", simple_learning_test_regression())
@@ -113,8 +113,6 @@ gd.optimize(train_x, train_y)
 print(accuracy(net, train_x, train_y))
 print(accuracy(net, test_x, test_y))
 
-"""
-
 dict_param = {
     'conf_layer_list': [[6, 2, 1], [6, 4, 1]],
     'init_func_list': [init_dict["std"], init_dict["norm"]],
@@ -130,9 +128,3 @@ dict_param = {
 }
 
 print(grid_search(train_x, train_y, dict_param))
-
-"""
-    conf_layer_list, init_func_list, act_func_list,
-                out_func_list, loss_func_list, bias_list, lr_list, batch_size_list,
-                reg_val_list, reg_type_list, epochs_list
-"""

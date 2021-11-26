@@ -97,7 +97,8 @@ class Layer:
 
         cur_str = f"\tnumber units: {self.n_out}, number weights: {self.n_in}"
         cur_str += f"\n\tlayer weights matrix: {self.weights}\n"
-        cur_str += f"\n\tlayer gradient vector: {self.grad}\n"
+        cur_str += f"\n\tlayer gradient weights matrix: {self.grad_w}\n"
+        cur_str += f"\n\tlayer gradient bias vector: {self.grad_b}\n"
         cur_str += f"\n\tactivation function: {self.act_func.name}"
 
         return cur_str

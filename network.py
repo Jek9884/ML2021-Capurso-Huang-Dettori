@@ -21,11 +21,13 @@ Attributes:
 
 """
 
-#TODO add method for bias init
+
+# TODO add method for bias init
 
 class Network:
 
-    def __init__(self, layer_unit_vec, init_func=None, act_func=None, out_func=None, loss_func=None, bias=None, debug_bool=False):
+    def __init__(self, layer_unit_vec, init_func=None, act_func=None, out_func=None, loss_func=None, bias=None,
+                 debug_bool=False):
 
         self.layer_unit_vec = layer_unit_vec
         self.init_func = init_func
@@ -38,7 +40,7 @@ class Network:
         self.debug_bool = debug_bool
 
         if self.bias is None:
-            self.bias = np.zeros(len(layer_unit_vec)-1)
+            self.bias = np.zeros(len(layer_unit_vec) - 1)
 
         # layers init
         for i in range(len(layer_unit_vec) - 2):
@@ -47,7 +49,7 @@ class Network:
 
         # init of output layer. Needed for different out_func
         self.layers.append(Layer(layer_unit_vec[-1], layer_unit_vec[-2],
-                                 init_func, out_func, self.bias[len(layer_unit_vec)-2], debug_bool))
+                                 init_func, out_func, self.bias[len(layer_unit_vec) - 2], debug_bool))
 
     """
         Computes network forward pass
@@ -97,6 +99,7 @@ class Network:
     """
         Zeros out the gradients stored in the network's layers
     """
+
     def null_grad(self):
 
         for layer in self.layers:
