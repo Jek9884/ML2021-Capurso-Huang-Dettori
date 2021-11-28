@@ -118,17 +118,21 @@ print(accuracy(network, test_x_monk1, test_y_monk1))
 dict_param = {
     'conf_layer_list': [[6, 2, 1], [6, 4, 1], [6, 6, 1]],
     'init_func_list': [init_dict["std"], init_dict["norm"]],
-    'act_func_list': [act_dict["sigm"], act_dict["tanh"]],
+    'act_func_list': [act_dict["tanh"]],
     'out_func_list': [act_dict["sigm"]],
-    'loss_func_list': [loss_dict["squared"], loss_dict["nll"]],
-    'bias_list': [[0, 0, 0], [0, 0.5, 0], [0.5, 0.5, 0.5]],
+    'loss_func_list': [loss_dict["nll"]],
+    'bias_list': [[0, 0, 0.5]],
     'lr_list': [0.001, 0.01, 0.2, 0.5],
     'batch_size_list': [1, train_x_monk1.shape[0]],
-    'reg_val_list': [0.0001, 0.001, 0.01, 0.1, 1],
+    'reg_val_list': [0, 0.001, 0.01, 0.1, 1],
     'reg_type_list': [2],
-    'momentum_val_list': [0.1, 0.5],
+    'momentum_val_list': [0, 0.1, 0.5],
     'nesterov': [False, True],
     'epochs_list': [10]
 }
 
-print(grid_search(train_x_monk1, train_y_monk1, dict_param))
+best_result, best_combo = grid_search(train_x_monk1, train_y_monk1, dict_param)
+print("Best accuracy score: ", best_result)
+
+for val in best_combo:
+    print(val)
