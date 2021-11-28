@@ -6,7 +6,7 @@ sys.path.append('../')
 from network import Network
 from function import act_dict, init_dict, loss_dict
 from optimizer import GradientDescent
-import data_handler
+from data_handler import read_monk
 from hype_search import grid_search, accuracy
 
 
@@ -58,7 +58,7 @@ def simple_learning_test_regression():
     return net.forward(in_vec)
 
 
-def simple_and_learning_test_classification():  # Func: A and D
+def simple_and_learning_test_classification():  # Func: A and B
     train_x = np.matrix('0 0; 0 1; 1 0; 1 1')
     train_y = np.matrix('0; 0; 0; 1')
 
@@ -90,41 +90,45 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     return accuracy(net, train_x, train_y)
 
 
-path_train = os.path.join('..', 'datasets', 'monks-1.train')
-path_test = os.path.join('..', 'datasets', 'monks-1.test')
-train_x, train_y = data_handler.read_monk(path_train)
-test_x, test_y = data_handler.read_monk(path_test)
-
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())
 print("Simple regression test: ", simple_learning_test_regression())
 print("Simple AND classification test: ", simple_and_learning_test_classification())
 print("Simple classification test: ", simple_learning_test_classification())
 
-net = Network(np.array([6, 6, 1]),
-              init_dict["norm"],
-              act_dict["tanh"],
-              act_dict["sigm"],
-              loss_dict["nll"], [0, 0.5])
+# Tests on monk1
+path_train_monk1 = os.path.join('..', 'datasets', 'monks-1.train')
+path_test_monk1 = os.path.join('..', 'datasets', 'monks-1.test')
+train_x_monk1, train_y_monk1 = read_monk(path_train_monk1)
+test_x_monk1, test_y_monk1 = read_monk(path_test_monk1)
+"""
+network = Network(np.array([6, 6, 1]),
+                  init_dict["norm"],
+                  act_dict["tanh"],
+                  act_dict["sigm"],
+                  loss_dict["nll"], [0, 0.5])
 
-gd = GradientDescent(net, 0.1, train_x.shape[0], epochs=500)
+gradient_descent = GradientDescent(network, 0.5, (train_x_monk1.shape[0]//3), reg_val=0.01, momentum_val=0.5, epochs=3000)
 
-gd.optimize(train_x, train_y)
-print(accuracy(net, train_x, train_y))
-print(accuracy(net, test_x, test_y))
+gradient_descent.optimize(train_x_monk1, train_y_monk1)
+print(accuracy(network, train_x_monk1, train_y_monk1))
+print(accuracy(network, test_x_monk1, test_y_monk1))
+"""
 
 dict_param = {
-    'conf_layer_list': [[6, 2, 1], [6, 4, 1]],
+    'conf_layer_list': [[6, 2, 1], [6, 4, 1], [6, 6, 1]],
     'init_func_list': [init_dict["std"], init_dict["norm"]],
-    'act_func_list': [act_dict["sigm"], act_dict["identity"], act_dict["tanh"]],
+    'act_func_list': [act_dict["sigm"], act_dict["tanh"]],
     'out_func_list': [act_dict["sigm"]],
     'loss_func_list': [loss_dict["squared"], loss_dict["nll"]],
     'bias_list': [[0, 0, 0], [0, 0.5, 0], [0.5, 0.5, 0.5]],
     'lr_list': [0.001, 0.01, 0.2, 0.5],
-    'batch_size_list': [1, train_x.shape[0]],
+    'batch_size_list': [1, train_x_monk1.shape[0]],
     'reg_val_list': [0.0001, 0.001, 0.01, 0.1, 1],
     'reg_type_list': [2],
-    'epochs_list': [10, 20, 50]
+    'momentum_val_list': [0.1, 0.5],
+    'nesterov': [False, True],
+    'epochs_list': [10]
 }
 
-print(grid_search(train_x, train_y, dict_param))
+print(grid_search(train_x_monk1, train_y_monk1, dict_param))

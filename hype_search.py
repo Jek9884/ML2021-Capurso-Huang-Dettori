@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 
 key_names = ['conf_layer_list', 'init_func_list', 'act_func_list',
              'out_func_list', 'loss_func_list', 'bias_list', 'lr_list', 'batch_size_list',
-             'reg_val_list', 'reg_type_list', 'epochs_list']
+             'reg_val_list', 'reg_type_list', 'momentum_val_list', 'nesterov', 'epochs_list']
 key_names.sort()
 
 
@@ -44,7 +44,7 @@ def grid_search(train_x, train_y, parameters_dict):
 
     best_score = 0
     best_combo = None
-    for i, result in enumerate(results):
+    for result in results:
         if best_score < result[0]:
             best_score = result[0]
             best_combo = result[1]
@@ -67,6 +67,8 @@ def train(train_x, train_y, combo):
                                        combo[key_names.index('batch_size_list')],
                                        combo[key_names.index('reg_val_list')],
                                        combo[key_names.index('reg_type_list')],
+                                       combo[key_names.index('momentum_val_list')],
+                                       combo[key_names.index('nesterov')],
                                        combo[key_names.index('epochs_list')])
 
     gradient_descent.optimize(train_x, train_y)

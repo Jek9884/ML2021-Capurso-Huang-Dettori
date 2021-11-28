@@ -33,12 +33,13 @@ class Layer:
         self.grad_b = np.zeros(self.n_out)
         self.in_val = None
         self.net = None
+        self.delta_w_old = 0  # Used by optimizer with momentum
 
         if init_func is None:
             self.weights = np.ones((n_out, n_in))  # Each row is composed of the weights of the unit
         else:
             self.weights = init_func(n_out, n_in, 0)  # TODO add parameter for sparse count
-            #self.bias = init_func(n_out, 1, 0)
+            # self.bias = init_func(n_out, 1, 0)
 
     """
         Computes layer forward pass
