@@ -49,7 +49,7 @@ def nll_loss(exp_val, pred_val):  # Negative log-likelihood
 def nll_loss_deriv(exp_val, pred_val):
     # Use only with sigmoid!!!
 
-    return pred_val - exp_val
+    return np.subtract(pred_val, exp_val)
 
 
 # Loss function dictionary
@@ -75,7 +75,7 @@ def sigm(x):
 
 
 def sigm_deriv(x):
-    return sigm(x) * (1 - sigm(x))
+    return np.multiply(sigm(x), 1 - sigm(x))
 
 
 def tanh(x):

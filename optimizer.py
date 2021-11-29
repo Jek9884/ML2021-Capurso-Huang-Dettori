@@ -10,6 +10,7 @@ class GradientDescent:
 
         if momentum_val < 0 or momentum_val > 1:
             raise ValueError('momentum should be a value between 0 and 1')
+
         self.lr = lr
         self.reg_val = reg_val
         self.reg_type = reg_type
@@ -33,18 +34,17 @@ class GradientDescent:
                 if self.batch_size == 1:  # Online version
                     for i, _ in enumerate(train_x):
                         self.__step(train_x[i], train_y[i])
+
                 elif 1 < self.batch_size < n_patterns:  # Mini-batch version
                     index_list = np.arange(n_patterns)
                     np.random.shuffle(index_list)
                     n_mini_batch = n_patterns // self.batch_size
                     for i in range(n_mini_batch):
-                        if i == n_mini_batch - 1:
-                            mini_batch_x = train_x[index_list[i * n_mini_batch:]]
-                            mini_batch_y = train_y[index_list[i * n_mini_batch:]]
-                        else:
-                            mini_batch_x = train_x[index_list[i * n_mini_batch:(i + 1) * n_mini_batch]]
-                            mini_batch_y = train_y[index_list[i * n_mini_batch:(i + 1) * n_mini_batch]]
+                        #TODO: check for correct dimensions
+                        mini_batch_x = train_x[index_list[i * n_mini_batch:(i + 1) * n_mini_batch]]
+                        mini_batch_y = train_y[index_list[i * n_mini_batch:(i + 1) * n_mini_batch]]
                         self.__step(mini_batch_x, mini_batch_y)
+
                 elif self.batch_size == n_patterns:  # Batch version
                     self.__step(train_x, train_y)
                 else:
@@ -56,12 +56,12 @@ class GradientDescent:
 
         self.network.null_grad()
 
-        for i, _ in enumerate(sub_train_x):
-            if self.nesterov:
-                for layer in self.network.layers:
-                    layer.weights += self.momentum_val * layer.delta_w_old
-            self.network.forward(np.asarray(sub_train_x[i]).flatten())
-            self.network.backward(np.asarray(sub_train_y[i]).flatten())
+        if self.nesterov:
+            for layer in self.network.layers:
+                layer.weights += self.momentum_val * layer.delta_w_old
+
+        out = self.network.forward(sub_train_x)
+        self.network.backward(sub_train_y, out)
 
         self.__update_weights()
 
@@ -70,6 +70,7 @@ class GradientDescent:
         for layer in self.network.layers:
             delta_w = self.lr * layer.grad_w
             delta_b = self.lr * layer.grad_b
+
             if self.momentum_val != 0:
                 delta_w += self.momentum_val * layer.delta_w_old
 

@@ -26,8 +26,8 @@ Attributes:
 
 class Network:
 
-    def __init__(self, layer_unit_vec, init_func=None, act_func=None, out_func=None, loss_func=None, bias=None,
-                 debug_bool=False):
+    def __init__(self, layer_unit_vec, init_func=None, act_func=None, out_func=None,
+                 loss_func=None, bias=None, debug_bool=False):
 
         self.layer_unit_vec = layer_unit_vec
         self.init_func = init_func
@@ -35,7 +35,6 @@ class Network:
         self.out_func = out_func
         self.loss_func = loss_func
         self.bias = bias
-        self.out = None
         self.layers = []
         self.debug_bool = debug_bool
 
@@ -55,42 +54,46 @@ class Network:
         Computes network forward pass
 
         Parameters:
-            -in_vec: vector of input data
+            -in_mat: matrix of input data
 
         Returns:
-            -out: vector of network's outputs
+            -matrix of network's outputs
     """
 
-    def forward(self, in_vec):
+    def forward(self, in_mat):
+
+        if in_mat.ndim == 1:
+            in_mat = np.asmatrix(in_mat)
+
         # net and act functions
-        fw_vec = in_vec
+        fw_mat = in_mat
 
         for i, layer in enumerate(self.layers):
-            fw_vec = layer.forward(fw_vec)
+            fw_mat = layer.forward(fw_mat)
 
-        self.out = fw_vec  # The output function is applied in the last layer
+        return fw_mat
 
-        return self.out
 
     """
         Computes network backward
 
         Parameters:
-            -res_vec: vector of expected results
+            -cur_out: matrix of forward results
+            -exp_out: matrix of expected results
     """
 
-    def backward(self, res_vec):
+    def backward(self, exp_out, cur_out):
 
         if self.debug_bool:
             print("Network-wise info:")
-            print("\tOut: ", self.out)
-            print("\tExpected: ", res_vec)
-            print("\tLoss: ", self.loss_func.func(res_vec, self.out))
-            print("\tDeriv Loss: ", self.loss_func.deriv(res_vec, self.out))
+            print("\tOut: ", cur_out)
+            print("\tExpected: ", exp_out)
+            print("\tLoss: ", self.loss_func.func(exp_out, cur_out))
+            print("\tDeriv Loss: ", self.loss_func.deriv(exp_out, cur_out))
             print()
 
         # derivative of error w.r.t. the output of the last layer
-        deriv_err = self.loss_func.deriv(res_vec, self.out)
+        deriv_err = self.loss_func.deriv(exp_out, cur_out)
 
         # compute derivative of error w.r.t the i-th layer
         for i in reversed(range(len(self.layers))):

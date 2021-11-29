@@ -76,7 +76,7 @@ def grid_search(train_x, train_y, parameters_dict, k):
             best_score = cur_val_score
             best_combo = result[2]
 
-    best_combo = {key_names[i]:best_combo[i] for i in len(best_combo)}
+    best_combo = {key_names[i]:best_combo[i] for i in range(len(best_combo))}
 
     return best_score, best_combo
 

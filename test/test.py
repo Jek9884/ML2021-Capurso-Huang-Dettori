@@ -12,7 +12,7 @@ from hype_search import grid_search, accuracy
 
 def forward_test():
     in_vec = np.array([3, 3])
-    exp_res = np.array([12, 12])
+    exp_res = np.array([[12, 12]])
 
     net = Network(np.array([2, 2, 2]), None, act_dict["identity"],
                   act_dict["identity"], loss_dict["squared"])
@@ -29,8 +29,8 @@ def backward_test():
     net = Network(np.array([2, 2, 2]), None, act_dict["identity"],
                   act_dict["identity"], loss_dict["squared"])
 
-    net.forward(in_vec)
-    net.backward(exp_res)
+    out = net.forward(in_vec)
+    net.backward(out, exp_res)
 
     bool_res = True
 
@@ -66,7 +66,7 @@ def simple_and_learning_test_classification():  # Func: A and B
                   init_dict["norm"],
                   act_dict["tanh"],
                   act_dict["sigm"],
-                  loss_dict["nll"], [0, 0.5])
+                  loss_dict["nll"], [0.5])
 
     gd = GradientDescent(net, 1, 4, epochs=100)
     gd.train(train_x, train_y)
@@ -90,6 +90,34 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     return accuracy(net, train_x, train_y)
 
 
+def test_monk(path_train, path_test):
+
+    train_x, train_y = read_monk(path_train)
+    test_x, test_y = read_monk(path_test)
+
+    dict_param = {
+        'conf_layer_list': [[6, 6, 1]],
+        'init_func_list': [init_dict["norm"]],
+        'act_func_list': [act_dict["tanh"]],
+        'out_func_list': [act_dict["sigm"]],
+        'loss_func_list': [loss_dict["nll"]],
+        'bias_list': [[0, 0, 0.5]],
+        'lr_list': [0.01, 0.2, 0.5],
+        'batch_size_list': [1, train_x.shape[0]],
+        'reg_val_list': [0, 0.01, 0.1, 1],
+        'reg_type_list': [2],
+        'momentum_val_list': [0, 0.1, 0.5],
+        'nesterov': [False, True],
+        'epochs_list': [1]
+    }
+
+    best_result, best_combo = grid_search(train_x, train_y, dict_param, 10)
+    print("Best accuracy score: ", best_result)
+
+    print(best_combo)
+
+    #TODO: train on whole train dataset and print result
+
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())
 print("Simple regression test: ", simple_learning_test_regression())
@@ -99,40 +127,4 @@ print("Simple classification test: ", simple_learning_test_classification())
 # Tests on monk1
 path_train_monk1 = os.path.join('..', 'datasets', 'monks-1.train')
 path_test_monk1 = os.path.join('..', 'datasets', 'monks-1.test')
-train_x_monk1, train_y_monk1 = read_monk(path_train_monk1)
-test_x_monk1, test_y_monk1 = read_monk(path_test_monk1)
-"""
-network = Network(np.array([6, 6, 1]),
-                  init_dict["norm"],
-                  act_dict["tanh"],
-                  act_dict["sigm"],
-                  loss_dict["nll"], [0, 0.5])
-
-gradient_descent = GradientDescent(network, 0.5, (train_x_monk1.shape[0]//3), reg_val=0.01, momentum_val=0.5, epochs=3000)
-
-gradient_descent.train(train_x_monk1, train_y_monk1)
-print(accuracy(network, train_x_monk1, train_y_monk1))
-print(accuracy(network, test_x_monk1, test_y_monk1))
-"""
-
-dict_param = {
-    'conf_layer_list': [[6, 6, 1]],
-    'init_func_list': [init_dict["norm"]],
-    'act_func_list': [act_dict["tanh"]],
-    'out_func_list': [act_dict["sigm"]],
-    'loss_func_list': [loss_dict["nll"]],
-    'bias_list': [[0, 0, 0.5]],
-    'lr_list': [0.01, 0.2, 0.5],
-    'batch_size_list': [1, train_x_monk1.shape[0]],
-    'reg_val_list': [0, 0.01, 0.1, 1],
-    'reg_type_list': [2],
-    'momentum_val_list': [0, 0.1, 0.5],
-    'nesterov': [False, True],
-    'epochs_list': [10]
-}
-
-best_result, best_combo = grid_search(train_x_monk1, train_y_monk1, dict_param, 10)
-print("Best accuracy score: ", best_result)
-
-for val in best_combo:
-    print(val)
+test_monk(path_train_monk1, path_test_monk1)

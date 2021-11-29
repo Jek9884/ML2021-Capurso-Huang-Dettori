@@ -45,17 +45,17 @@ class Layer:
         Computes layer forward pass
 
         Parameters:
-            -in_vec: vector of input data
+            -in_mat: matrix of input data
 
         Returns:
-            -out: vector of layer's outputs
+            -matrix of layer's outputs
     """
 
-    def forward(self, in_vec):
+    def forward(self, in_mat):
 
-        self.in_val = in_vec
-        tmp_net = np.matmul(self.weights, self.in_val)
-        self.net = np.add(tmp_net, self.bias)
+        self.in_val = in_mat
+        net_wo_bias = np.matmul(self.in_val, np.transpose(self.weights))
+        self.net = np.add(net_wo_bias, self.bias)
 
         return self.act_func.func(self.net)
 
@@ -75,9 +75,10 @@ class Layer:
         delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
 
         # grad += delta_i * output of previous layer (o_u)
-        self.grad_w += np.outer(delta, self.in_val)
-        self.grad_b += delta
-        new_deriv_err = np.matmul(np.transpose(self.weights), delta)
+        self.grad_w = np.tensordot(np.transpose(delta), self.in_val, axes=1)
+        self.grad_b = np.sum(delta, axis=0)
+
+        new_deriv_err = np.matmul(delta, self.weights)
 
         if self.debug_bool:
             print("Layer")
