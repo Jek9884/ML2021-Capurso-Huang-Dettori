@@ -5,12 +5,6 @@ import numpy as np
 from joblib import Parallel, delayed
 from function import Function
 
-key_names = ['conf_layer_list', 'init_func_list', 'act_func_list',
-             'out_func_list', 'loss_func_list', 'bias_list', 'lr_list',
-             'batch_size_list', 'reg_val_list', 'reg_type_list',
-             'momentum_val_list', 'nesterov', 'epochs_list']
-key_names.sort()
-
 
 def accuracy(net, x_set, y_set):
     len_set = len(x_set)
@@ -27,7 +21,7 @@ def accuracy(net, x_set, y_set):
     return corr_count/len_set
 
 
-def cleanup_par_combo(combo_list):
+def cleanup_par_combo(combo_list, key_list):
 
     new_list = []
     reg_bool = False  # Used to ignore multiple combos when reg_val = 0
@@ -35,10 +29,10 @@ def cleanup_par_combo(combo_list):
 
     for combo in combo_list:
 
-        if combo[key_names.index('reg_val_list')] == 0 and reg_bool:
+        if combo[key_list.index('reg_val')] == 0 and reg_bool:
             continue
 
-        if combo[key_names.index('momentum_val_list')] == 0 and mom_bool:
+        if combo[key_list.index('momentum_val')] == 0 and mom_bool:
             continue
 
         new_list.append(combo)
@@ -46,20 +40,29 @@ def cleanup_par_combo(combo_list):
     return new_list
 
 
-def grid_search(train_x, train_y, parameters_dict, k):
+def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k):
 
-    # Sorting helps to check missing hyper-parameters
-    keys = list(parameters_dict.keys())
-    keys.sort()
-    if keys != key_names:
-        raise ValueError("Missing hyper parameters")
+    # Obtain a fixed order list of corresponding key-value pairs
+    net_keys, net_values = zip(*par_dict_net.items())
+    opt_keys, opt_values = zip(*par_dict_opt.items())
 
     # It makes a cartesian product between all hyper-parameters
-    combo_list = list(it.product(*(parameters_dict[k] for k in key_names)))
-    combo_list = cleanup_par_combo(combo_list)
+    combo_list = list(it.product(*(net_values+opt_values)))  # Join the two list of params
+    combo_list = cleanup_par_combo(combo_list, net_keys+opt_keys)
 
-    list_tasks = [delayed(kfold_cv)(
-        combo, train_x, train_y, k, accuracy) for i, combo in enumerate(combo_list)]
+    list_tasks = []
+
+    for i, combo in enumerate(combo_list):
+
+        combo_net = combo[0:len(net_keys)]
+        combo_opt = combo[len(net_keys):]
+
+        dict_net = {net_keys[i]: combo_net[i] for i in range(len(net_keys))}
+        dict_opt = {opt_keys[i]: combo_opt[i] for i in range(len(opt_keys))}
+
+        task = delayed(kfold_cv)(dict_net, dict_opt,
+                                 train_x, train_y, k, accuracy)
+        list_tasks.append(task)
 
     print(f"Number of tasks to execute: {len(list_tasks)}")
 
@@ -68,20 +71,20 @@ def grid_search(train_x, train_y, parameters_dict, k):
 
     best_score = 0
     best_combo = None
+
+    # This is a barrier for the parallel computation
     for result in results:
 
         cur_val_score = result[1]
 
         if best_score < cur_val_score:
             best_score = cur_val_score
-            best_combo = result[2]
-
-    best_combo = {key_names[i]:best_combo[i] for i in range(len(best_combo))}
+            best_combo = result[2:]  # Return both dicts
 
     return best_score, best_combo
 
 
-def kfold_cv(par_combo, x_mat, y_mat, k, metric):
+def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric):
 
     num_fold = x_mat.shape[0] // k
     tot_tr_score = 0
@@ -98,30 +101,19 @@ def kfold_cv(par_combo, x_mat, y_mat, k, metric):
         val_x = x_mat[i*k:(i+1)*k]
         val_y = y_mat[i*k:(i+1)*k]
 
-        cur_net = train(train_x, train_y, par_combo)
+        cur_net = train(train_x, train_y, par_combo_net, par_combo_opt)
 
         tot_tr_score += metric(cur_net, train_x, train_y)
         tot_val_score += metric(cur_net, val_x, val_y)
 
-    return tot_tr_score/num_fold, tot_val_score/num_fold, par_combo
+    return tot_tr_score/num_fold, tot_val_score/num_fold, par_combo_net, par_combo_opt
 
 
-def train(train_x, train_y, combo):
+def train(train_x, train_y, par_combo_net, par_combo_opt): # combo* are dicts
 
-    network = Network(combo[key_names.index('conf_layer_list')],
-                      combo[key_names.index('init_func_list')],
-                      combo[key_names.index('act_func_list')],
-                      combo[key_names.index('out_func_list')],
-                      combo[key_names.index('loss_func_list')],
-                      combo[key_names.index('bias_list')])
+    network = Network(**par_combo_net)
 
-    gradient_descent = GradientDescent(network, combo[key_names.index('lr_list')],
-                                       combo[key_names.index('batch_size_list')],
-                                       combo[key_names.index('reg_val_list')],
-                                       combo[key_names.index('reg_type_list')],
-                                       combo[key_names.index('momentum_val_list')],
-                                       combo[key_names.index('nesterov')],
-                                       combo[key_names.index('epochs_list')])
+    gradient_descent = GradientDescent(network, **par_combo_opt)
 
     gradient_descent.train(train_x, train_y)
 

@@ -75,6 +75,7 @@ class Layer:
         delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
 
         # grad += delta_i * output of previous layer (o_u)
+        # TODO: understand tensordot :)
         self.grad_w = np.tensordot(np.transpose(delta), self.in_val, axes=1)
         self.grad_b = np.sum(delta, axis=0)
 

@@ -6,7 +6,7 @@ import numpy as np
 Network class
 
 Parameters:
-    -layer_unit_vec: vector containing for each position the corresponding number of units in that layer.
+    -conf_layers: vector containing for each position the corresponding number of units in that layer.
             The first position contains the size of the input vectors.
     -init_func: weights init function
     -act_func: activation function object (DerivableFunction)
@@ -26,10 +26,10 @@ Attributes:
 
 class Network:
 
-    def __init__(self, layer_unit_vec, init_func=None, act_func=None, out_func=None,
+    def __init__(self, conf_layers, init_func=None, act_func=None, out_func=None,
                  loss_func=None, bias=None, debug_bool=False):
 
-        self.layer_unit_vec = layer_unit_vec
+        self.conf_layers = conf_layers
         self.init_func = init_func
         self.act_func = act_func
         self.out_func = out_func
@@ -39,16 +39,16 @@ class Network:
         self.debug_bool = debug_bool
 
         if self.bias is None:
-            self.bias = np.zeros(len(layer_unit_vec) - 1)
+            self.bias = np.zeros(len(conf_layers) - 1)
 
         # layers init
-        for i in range(len(layer_unit_vec) - 2):
-            self.layers.append(Layer(layer_unit_vec[i + 1], layer_unit_vec[i],
+        for i in range(len(conf_layers) - 2):
+            self.layers.append(Layer(conf_layers[i + 1], conf_layers[i],
                                      init_func, act_func, self.bias[i], debug_bool))
 
         # init of output layer. Needed for different out_func
-        self.layers.append(Layer(layer_unit_vec[-1], layer_unit_vec[-2],
-                                 init_func, out_func, self.bias[len(layer_unit_vec) - 2], debug_bool))
+        self.layers.append(Layer(conf_layers[-1], conf_layers[-2],
+                                 init_func, out_func, self.bias[len(conf_layers) - 2], debug_bool))
 
     """
         Computes network forward pass

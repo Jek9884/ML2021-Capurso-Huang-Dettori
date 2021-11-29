@@ -12,7 +12,7 @@ from hype_search import grid_search, accuracy
 
 def forward_test():
     in_vec = np.array([3, 3])
-    exp_res = np.array([[12, 12]])
+    exp_res = np.array([12, 12])
 
     net = Network(np.array([2, 2, 2]), None, act_dict["identity"],
                   act_dict["identity"], loss_dict["squared"])
@@ -30,17 +30,17 @@ def backward_test():
                   act_dict["identity"], loss_dict["squared"])
 
     out = net.forward(in_vec)
-    net.backward(out, exp_res)
+    net.backward(exp_res, out)
 
     bool_res = True
 
     for i, layer in enumerate(net.layers):
-        bool_res = bool_res and np.equal(layer.grad_w, np.array([36, 36])).all()
+        bool_res = bool_res and np.equal(layer.grad_w, np.array([[36, 36]])).all()
 
         if i == 0:
-            bool_res = bool_res and np.equal(layer.grad_b, np.array([12, 12])).all()
+            bool_res = bool_res and np.equal(layer.grad_b, np.array([[12, 12]])).all()
         elif i == 1:
-            bool_res = bool_res and np.equal(layer.grad_b, np.array([6, 6])).all()
+            bool_res = bool_res and np.equal(layer.grad_b, np.array([[6, 6]])).all()
 
     return bool_res
 
@@ -95,28 +95,33 @@ def test_monk(path_train, path_test):
     train_x, train_y = read_monk(path_train)
     test_x, test_y = read_monk(path_test)
 
-    dict_param = {
-        'conf_layer_list': [[6, 6, 1]],
-        'init_func_list': [init_dict["norm"]],
-        'act_func_list': [act_dict["tanh"]],
-        'out_func_list': [act_dict["sigm"]],
-        'loss_func_list': [loss_dict["nll"]],
-        'bias_list': [[0, 0, 0.5]],
-        'lr_list': [0.01, 0.2, 0.5],
-        'batch_size_list': [1, train_x.shape[0]],
-        'reg_val_list': [0, 0.01, 0.1, 1],
-        'reg_type_list': [2],
-        'momentum_val_list': [0, 0.1, 0.5],
-        'nesterov': [False, True],
-        'epochs_list': [1]
+    dict_param_net = {
+        'conf_layers': [[6, 6, 1]],
+        'init_func': [init_dict["norm"]],
+        'act_func': [act_dict["tanh"]],
+        'out_func': [act_dict["sigm"]],
+        'loss_func': [loss_dict["nll"]],
+        'bias': [[0, 0, 0.5]]
     }
 
-    best_result, best_combo = grid_search(train_x, train_y, dict_param, 10)
+    dict_param_sgd = {
+        'lr': [0.01, 0.2, 0.5],
+        'batch_size': [-1, 1],
+        'reg_val': [0, 0.01, 0.1, 1],
+        'reg_type': [2],
+        'momentum_val': [0, 0.1, 0.5],
+        'nesterov': [False, True],
+        'epochs': [10]
+    }
+
+    best_result, best_combo = grid_search(train_x, train_y,
+                                          dict_param_net, dict_param_sgd, 10)
     print("Best accuracy score: ", best_result)
 
     print(best_combo)
 
     #TODO: train on whole train dataset and print result
+
 
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())

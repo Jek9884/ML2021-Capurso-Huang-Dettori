@@ -25,10 +25,6 @@ class GradientDescent:
         if self.epochs is not None:
             n_patterns = train_x.shape[0]
 
-            # TODO: find better implementation for full batch flag
-            if self.batch_size > n_patterns:
-                self.batch_size = n_patterns
-
             for e in range(self.epochs):
 
                 if self.batch_size == 1:  # Online version
@@ -45,7 +41,7 @@ class GradientDescent:
                         mini_batch_y = train_y[index_list[i * n_mini_batch:(i + 1) * n_mini_batch]]
                         self.__step(mini_batch_x, mini_batch_y)
 
-                elif self.batch_size == n_patterns:  # Batch version
+                elif self.batch_size == -1:  # Batch version
                     self.__step(train_x, train_y)
                 else:
                     raise ValueError("Batch size should be >= 1 and <= l")
