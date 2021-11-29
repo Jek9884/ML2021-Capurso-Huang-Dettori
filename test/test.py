@@ -53,7 +53,7 @@ def simple_learning_test_regression():
                   act_dict["identity"], loss_dict["squared"])
 
     gd = GradientDescent(net, 0.1, 1, epochs=20)
-    gd.optimize(np.asmatrix(in_vec), np.asmatrix(exp_res))
+    gd.train(np.asmatrix(in_vec), np.asmatrix(exp_res))
 
     return net.forward(in_vec)
 
@@ -69,7 +69,7 @@ def simple_and_learning_test_classification():  # Func: A and B
                   loss_dict["nll"], [0, 0.5])
 
     gd = GradientDescent(net, 1, 4, epochs=100)
-    gd.optimize(train_x, train_y)
+    gd.train(train_x, train_y)
 
     return accuracy(net, train_x, train_y)
 
@@ -85,7 +85,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
                   loss_dict["nll"], [0, 0.5])
 
     gd = GradientDescent(net, 0.1, 1, epochs=500)
-    gd.optimize(train_x, train_y)
+    gd.train(train_x, train_y)
 
     return accuracy(net, train_x, train_y)
 
@@ -110,28 +110,28 @@ network = Network(np.array([6, 6, 1]),
 
 gradient_descent = GradientDescent(network, 0.5, (train_x_monk1.shape[0]//3), reg_val=0.01, momentum_val=0.5, epochs=3000)
 
-gradient_descent.optimize(train_x_monk1, train_y_monk1)
+gradient_descent.train(train_x_monk1, train_y_monk1)
 print(accuracy(network, train_x_monk1, train_y_monk1))
 print(accuracy(network, test_x_monk1, test_y_monk1))
 """
 
 dict_param = {
-    'conf_layer_list': [[6, 2, 1], [6, 4, 1], [6, 6, 1]],
-    'init_func_list': [init_dict["std"], init_dict["norm"]],
+    'conf_layer_list': [[6, 6, 1]],
+    'init_func_list': [init_dict["norm"]],
     'act_func_list': [act_dict["tanh"]],
     'out_func_list': [act_dict["sigm"]],
     'loss_func_list': [loss_dict["nll"]],
     'bias_list': [[0, 0, 0.5]],
-    'lr_list': [0.001, 0.01, 0.2, 0.5],
+    'lr_list': [0.01, 0.2, 0.5],
     'batch_size_list': [1, train_x_monk1.shape[0]],
-    'reg_val_list': [0, 0.001, 0.01, 0.1, 1],
+    'reg_val_list': [0, 0.01, 0.1, 1],
     'reg_type_list': [2],
     'momentum_val_list': [0, 0.1, 0.5],
     'nesterov': [False, True],
     'epochs_list': [10]
 }
 
-best_result, best_combo = grid_search(train_x_monk1, train_y_monk1, dict_param)
+best_result, best_combo = grid_search(train_x_monk1, train_y_monk1, dict_param, 10)
 print("Best accuracy score: ", best_result)
 
 for val in best_combo:

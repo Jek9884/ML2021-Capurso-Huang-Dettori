@@ -19,10 +19,14 @@ class GradientDescent:
         self.nesterov = nesterov
         self.epochs = epochs
 
-    def optimize(self, train_x, train_y):
+    def train(self, train_x, train_y):
 
         if self.epochs is not None:
             n_patterns = train_x.shape[0]
+
+            # TODO: find better implementation for full batch flag
+            if self.batch_size > n_patterns:
+                self.batch_size = n_patterns
 
             for e in range(self.epochs):
 

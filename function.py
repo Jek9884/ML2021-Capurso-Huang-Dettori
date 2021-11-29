@@ -132,7 +132,9 @@ def norm_weight_init(n_out, n_in, sparse_count=0):
 
 
 # Weight initialisation dictionary
+std_init_func = Function(std_weight_init, "std init")
+norm_init_func = Function(norm_weight_init, "norm init")
 init_dict = {
-    'std': std_weight_init,
-    'norm': norm_weight_init
+    'std': std_init_func,
+    'norm': norm_init_func
 }

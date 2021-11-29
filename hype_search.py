@@ -1,9 +1,9 @@
-import os
 from network import Network
 from optimizer import GradientDescent
 import itertools as it
 import numpy as np
 from joblib import Parallel, delayed
+from function import Function
 
 key_names = ['conf_layer_list', 'init_func_list', 'act_func_list',
              'out_func_list', 'loss_func_list', 'bias_list', 'lr_list',
@@ -24,7 +24,7 @@ def accuracy(net, x_set, y_set):
         if y_set[i].item() == thresh_res:
             corr_count += 1
 
-    return corr_count, len_set
+    return corr_count/len_set
 
 
 def cleanup_par_combo(combo_list):
@@ -46,8 +46,7 @@ def cleanup_par_combo(combo_list):
     return new_list
 
 
-def grid_search(train_x, train_y, parameters_dict):
-    # TODO add validation step
+def grid_search(train_x, train_y, parameters_dict, k):
 
     # Sorting helps to check missing hyper-parameters
     keys = list(parameters_dict.keys())
@@ -59,8 +58,8 @@ def grid_search(train_x, train_y, parameters_dict):
     combo_list = list(it.product(*(parameters_dict[k] for k in key_names)))
     combo_list = cleanup_par_combo(combo_list)
 
-    list_tasks = [delayed(train)(
-        train_x, train_y, combo) for i, combo in enumerate(combo_list)]
+    list_tasks = [delayed(kfold_cv)(
+        combo, train_x, train_y, k, accuracy) for i, combo in enumerate(combo_list)]
 
     print(f"Number of tasks to execute: {len(list_tasks)}")
 
@@ -70,18 +69,44 @@ def grid_search(train_x, train_y, parameters_dict):
     best_score = 0
     best_combo = None
     for result in results:
-        if best_score < result[0]:
-            best_score = result[0]
-            best_combo = result[1]
 
-    best_combo = zip(key_names, best_combo)
+        cur_val_score = result[1]
+
+        if best_score < cur_val_score:
+            best_score = cur_val_score
+            best_combo = result[2]
+
+    best_combo = {key_names[i]:best_combo[i] for i in len(best_combo)}
 
     return best_score, best_combo
 
 
+def kfold_cv(par_combo, x_mat, y_mat, k, metric):
+
+    num_fold = x_mat.shape[0] // k
+    tot_tr_score = 0
+    tot_val_score = 0
+
+    for i in range(num_fold):
+
+        train_idx = np.concatenate(
+            (np.arange(i*k), np.arange((i+1)*k, x_mat.shape[0])), axis=0)
+
+        train_x = x_mat[train_idx]
+        train_y = y_mat[train_idx]
+
+        val_x = x_mat[i*k:(i+1)*k]
+        val_y = y_mat[i*k:(i+1)*k]
+
+        cur_net = train(train_x, train_y, par_combo)
+
+        tot_tr_score += metric(cur_net, train_x, train_y)
+        tot_val_score += metric(cur_net, val_x, val_y)
+
+    return tot_tr_score/num_fold, tot_val_score/num_fold, par_combo
+
+
 def train(train_x, train_y, combo):
-    best_score = 0
-    best_combo = None
 
     network = Network(combo[key_names.index('conf_layer_list')],
                       combo[key_names.index('init_func_list')],
@@ -98,12 +123,6 @@ def train(train_x, train_y, combo):
                                        combo[key_names.index('nesterov')],
                                        combo[key_names.index('epochs_list')])
 
-    gradient_descent.optimize(train_x, train_y)
+    gradient_descent.train(train_x, train_y)
 
-    n_correct, len_y = accuracy(network, train_x, train_y)
-
-    if (n_correct / len_y) > best_score:
-        best_score = n_correct / len_y
-        best_combo = combo
-
-    return best_score, best_combo
+    return network
