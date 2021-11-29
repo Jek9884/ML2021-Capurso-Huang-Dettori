@@ -79,21 +79,27 @@ def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k):
 
         if best_score < cur_val_score:
             best_score = cur_val_score
-            best_combo = result[2:]  # Return both dicts
+            best_combo = [result[2], result[3]]  # Return both dicts
 
     return best_score, best_combo
 
 
-def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric):
+def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
 
     num_fold = x_mat.shape[0] // k
     tot_tr_score = 0
     tot_val_score = 0
+    pattern_idx = np.arange(x_mat.shape[0])
+
+    np.random.seed(seed)
+    np.random.shuffle(pattern_idx)
 
     for i in range(num_fold):
 
+        # Everything except i*k:(i+1)*k segment
         train_idx = np.concatenate(
-            (np.arange(i*k), np.arange((i+1)*k, x_mat.shape[0])), axis=0)
+            (pattern_idx[:i*k],
+             pattern_idx[(i+1)*k:]), axis=0)
 
         train_x = x_mat[train_idx]
         train_y = y_mat[train_idx]

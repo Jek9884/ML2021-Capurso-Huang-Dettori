@@ -68,7 +68,7 @@ def simple_and_learning_test_classification():  # Func: A and B
                   act_dict["sigm"],
                   loss_dict["nll"], [0.5])
 
-    gd = GradientDescent(net, 1, 4, epochs=100)
+    gd = GradientDescent(net, 1, -1, epochs=100)
     gd.train(train_x, train_y)
 
     return accuracy(net, train_x, train_y)
@@ -111,16 +111,20 @@ def test_monk(path_train, path_test):
         'reg_type': [2],
         'momentum_val': [0, 0.1, 0.5],
         'nesterov': [False, True],
-        'epochs': [10]
+        'epochs': [20]
     }
 
     best_result, best_combo = grid_search(train_x, train_y,
                                           dict_param_net, dict_param_sgd, 10)
     print("Best accuracy score: ", best_result)
-
     print(best_combo)
 
-    #TODO: train on whole train dataset and print result
+    net = Network(**best_combo[0])
+
+    gd = GradientDescent(net, **best_combo[1])
+    gd.train(train_x, train_y)
+
+    return accuracy(net, test_x, test_y)
 
 
 print("Forward test: ", forward_test())
@@ -132,4 +136,4 @@ print("Simple classification test: ", simple_learning_test_classification())
 # Tests on monk1
 path_train_monk1 = os.path.join('..', 'datasets', 'monks-1.train')
 path_test_monk1 = os.path.join('..', 'datasets', 'monks-1.test')
-test_monk(path_train_monk1, path_test_monk1)
+print("Monk 1 accuracy on test set:", test_monk(path_train_monk1, path_test_monk1))
