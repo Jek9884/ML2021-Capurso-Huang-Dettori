@@ -39,9 +39,9 @@ def squared_loss_deriv(exp_val, pred_val):
 def nll_loss(exp_val, pred_val):  # Negative log-likelihood
 
     if exp_val == 0:
-        return -np.log(1 - pred_val)
+        return np.negative(np.log(1 - pred_val))
     elif exp_val == 1:
-        return -np.log(pred_val)
+        return np.negative(np.log(pred_val))
     else:
         raise ValueError("Supports only binary classification")
 
@@ -67,23 +67,24 @@ def identity(x):
 
 
 def identity_deriv(x):
-    return np.ones(len(x))
+    return np.ones(x.shape)
 
 
 def sigm(x):
-    return 1 / (1 + np.power(np.e, -x))
+    return np.divide(1, np.add(1, np.power(np.e, np.negative(x))))
 
 
 def sigm_deriv(x):
-    return np.multiply(sigm(x), 1 - sigm(x))
+    return np.multiply(sigm(x), np.subtract(1, sigm(x)))
 
 
 def tanh(x):
-    return 2 * sigm(2 * x) - 1
+    prod = np.multiply(2, sigm(np.multiply(2, x)))
+    return np.subtract(prod, 1)
 
 
 def tanh_deriv(x):
-    return 4 * sigm_deriv(2 * x)
+    return np.multiply(4, sigm_deriv(np.multiply(2, x)))
 
 
 # Activation function dictionary
