@@ -148,8 +148,8 @@ def sparsify_weight_matrix(matrix, sparse_count):
 
 
 # Weight initialisation dictionary
-std_init_func = Function(std_weight_init, "std init")
-norm_init_func = Function(norm_weight_init, "norm init")
+std_init_func = Function(std_weight_init, "std")
+norm_init_func = Function(norm_weight_init, "norm")
 init_dict = {
     'std': std_init_func,
     'norm': norm_init_func

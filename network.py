@@ -39,7 +39,13 @@ class Network:
         self.debug_bool = debug_bool
 
         if self.bias is None:
-            self.bias = np.zeros(len(conf_layers) - 1)
+            # Init layer bias with heuristic value based on act/out func
+            bias_dict = {"identity": 0,
+                         "sigm": 0.5,
+                         "tanh": 0}
+            act_bias = [bias_dict[act_func.name]]*(len(conf_layers)-2)
+            out_bias = bias_dict[out_func.name]
+            self.bias = [*act_bias, out_bias]
 
         # layers init
         for i in range(len(conf_layers) - 2):

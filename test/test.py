@@ -66,7 +66,7 @@ def simple_and_learning_test_classification():  # Func: A and B
                   init_dict["norm"],
                   act_dict["tanh"],
                   act_dict["sigm"],
-                  loss_dict["nll"], [0.5])
+                  loss_dict["nll"])
 
     gd = GradientDescent(net, 1, -1, epochs=100)
     gd.train(train_x, train_y)
@@ -82,7 +82,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
                   init_dict["norm"],
                   act_dict["tanh"],
                   act_dict["sigm"],
-                  loss_dict["nll"], [0, 0.5])
+                  loss_dict["nll"])
 
     gd = GradientDescent(net, 0.1, 1, epochs=500)
     gd.train(train_x, train_y)
@@ -100,16 +100,15 @@ def test_monk(path_train, path_test):
         'init_func': [init_dict["norm"]],
         'act_func': [act_dict["tanh"]],
         'out_func': [act_dict["sigm"]],
-        'loss_func': [loss_dict["nll"]],
-        'bias': [[0, 0, 0.5]]
+        'loss_func': [loss_dict["nll"]]
     }
 
     dict_param_sgd = {
-        'lr': [0.01, 0.2, 0.5],
+        'lr': [0.01, 0.2, 0.5, 0.8],
         'batch_size': [-1, 1],
-        'reg_val': [0, 0.01, 0.1, 1],
+        'reg_val': [0, 0.001, 0.01, 0.1,],
         'reg_type': [2],
-        'momentum_val': [0, 0.1, 0.5],
+        'momentum_val': [0, 0.01, 0.1],
         'nesterov': [False, True],
         'epochs': [20]
     }
