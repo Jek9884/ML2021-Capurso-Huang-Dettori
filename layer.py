@@ -38,7 +38,7 @@ class Layer:
         if init_func is None:
             self.weights = np.ones((n_out, n_in))  # Each row is composed of the weights of the unit
         else:
-            self.weights = init_func.func(n_out, n_in, 0)  # TODO add parameter for sparse count
+            self.weights = init_func.func((n_out, n_in), 0)  # TODO add parameter for sparse count
             # self.bias = init_func(n_out, 1, 0)
 
     """
@@ -75,8 +75,7 @@ class Layer:
         delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
 
         # grad += delta_i * output of previous layer (o_u)
-        # TODO: understand tensordot :)
-        self.grad_w = np.tensordot(np.transpose(delta), self.in_val, axes=1)
+        self.grad_w = np.tensordot(delta, self.in_val, axes=(0, 0))
         self.grad_b = np.sum(delta, axis=0)
 
         new_deriv_err = np.matmul(delta, self.weights)

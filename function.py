@@ -97,38 +97,53 @@ act_dict = {
 }
 
 
-# Weight initialisation functions (layer-wise)
-def std_weight_init(n_out, n_in, sparse_count=0):
-    init_mat = np.random.uniform(low=-1 / np.sqrt(n_in),
-                                 high=1 / np.sqrt(n_in),
-                                 size=(n_out, n_in))
+# Weight initialisation functions (layer-wise, assume a shape (unit, feature))
+def std_weight_init(shape, sparse_count=0):
+    init_matrix = np.random.uniform(low=-1 / np.sqrt(shape[1]),
+                                    high=1 / np.sqrt(shape[1]),
+                                    size=shape)
 
-    if 0 < sparse_count < n_in:
+    if 0 < sparse_count < shape[1]:
 
-        zeroed_ind = np.arange(n_in)
+        init_matrix = sparsify_weight_matrix(init_matrix, sparse_count)
 
-        for i in range(n_out):
-            np.random.shuffle(zeroed_ind)
-            init_mat[i][zeroed_ind[:sparse_count]] = 0
+    elif sparse_count >= shape[1]:
+        raise ValueError("Invalid value for weight sparsification")
 
-    return init_mat
+    return init_matrix
 
 
 # Xavier init
-def norm_weight_init(n_out, n_in, sparse_count=0):
-    init_mat = np.random.uniform(low=-np.sqrt(6 / (n_in + n_out)),
-                                 high=np.sqrt(6 / (n_in + n_out)),
-                                 size=(n_out, n_in))
+def norm_weight_init(shape, sparse_count=0):
+    init_matrix = np.random.uniform(low=-np.sqrt(6 / (shape[0] + shape[1])),
+                                    high=np.sqrt(6 / (shape[0] + shape[1])),
+                                    size=shape)
 
-    if 0 < sparse_count < n_in:
+    if 0 < sparse_count < shape[1]:
 
-        zeroed_ind = np.arange(n_in)
+        init_matrix = sparsify_weight_matrix(init_matrix, sparse_count)
 
-        for i in range(n_out):
-            np.random.shuffle(zeroed_ind)
-            init_mat[i][zeroed_ind[:sparse_count]] = 0
+    elif sparse_count >= shape[1]:
+        raise ValueError("Invalid value for weight sparsification")
 
-    return init_mat
+    return init_matrix
+
+
+def sparsify_weight_matrix(matrix, sparse_count):
+
+    shape = matrix.shape
+    shape_ones_mat = (shape[0], shape[1]-sparse_count)
+    shape_zeros_mat = (shape[0], sparse_count)
+
+    mask_ones_mat = np.ones(shape=shape_ones_mat)
+    mask_zeros_mat = np.zeros(shape=shape_zeros_mat)
+
+    final_mask = np.concatenate((mask_ones_mat, mask_zeros_mat), axis=1)
+
+    rng = np.random.default_rng()
+    final_mask = rng.permuted(final_mask, axis=1)
+
+    return np.multiply(matrix, final_mask)
 
 
 # Weight initialisation dictionary
