@@ -4,6 +4,9 @@ class Function:
         self.__func = func
         self.__name = name
 
+    def __call__(self, *args):
+        return self.func(*args)
+
     @property
     def func(self):
         return self.__func

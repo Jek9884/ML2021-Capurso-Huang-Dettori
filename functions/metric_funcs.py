@@ -1,4 +1,5 @@
 import numpy as np
+from functions.Function import Function
 
 
 def compute_confusion_matrix_bin(exp_vec, pred_vec):
@@ -46,3 +47,17 @@ def recall(exp_mat, pred_mat):
     tp, tn, fp, fn = compute_confusion_matrix_bin(exp_mat, pred_mat)
 
     return tp/(tp+fn)
+
+
+# Metric function dictionary
+acc_func = Function(accuracy, 'accuracy')
+miscl_func = Function(miscl_error, 'miscl. error')
+prec_func = Function(precision, 'precision')
+rec_func = Function(recall, 'recall')
+
+metr_dict = {
+    'accuracy': acc_func,
+    'miscl. error': miscl_func,
+    'precision': prec_func,
+    'recall': rec_func
+}
