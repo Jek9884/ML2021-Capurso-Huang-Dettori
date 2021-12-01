@@ -22,8 +22,12 @@ class GradientDescent:
 
     def train(self, train_x, train_y):
 
+        n_patterns = train_x.shape[0]
+        index_list = np.arange(n_patterns)
+        np.random.shuffle(index_list)  # Bengio et al suggest that one shuffle is enough
+
+        #TODO: add alternative stop criterions
         if self.epochs is not None:
-            n_patterns = train_x.shape[0]
 
             for e in range(self.epochs):
 
@@ -31,14 +35,15 @@ class GradientDescent:
                     for i, _ in enumerate(train_x):
                         self.__step(train_x[i], train_y[i])
 
+                #TODO: parallelise mini-batch execution
                 elif 1 < self.batch_size < n_patterns:  # Mini-batch version
-                    index_list = np.arange(n_patterns)
-                    np.random.shuffle(index_list)
                     n_mini_batch = n_patterns // self.batch_size
                     for i in range(n_mini_batch):
                         #TODO: check for correct dimensions
-                        mini_batch_x = train_x[index_list[i * n_mini_batch:(i + 1) * n_mini_batch]]
-                        mini_batch_y = train_y[index_list[i * n_mini_batch:(i + 1) * n_mini_batch]]
+                        mini_batch_x = train_x[index_list[i * self.batch_size:
+                                                          (i + 1) * self.batch_size]]
+                        mini_batch_y = train_y[index_list[i * self.batch_size:
+                                                          (i + 1) * self.batch_size]]
                         self.__step(mini_batch_x, mini_batch_y)
 
                 elif self.batch_size == -1:  # Batch version

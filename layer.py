@@ -28,18 +28,15 @@ class Layer:
         self.n_out = n_out
         self.bias = bias
         self.act_func = act_func
+        self.init_func = init_func
         self.debug_bool = debug_bool
-        self.grad_w = np.zeros((self.n_out, self.n_in))
-        self.grad_b = np.zeros(self.n_out)
+        self.grad_w = None
+        self.grad_b = None
         self.in_val = None
         self.net = None
         self.delta_w_old = 0  # Used by optimizer with momentum
 
-        if init_func is None:
-            self.weights = np.ones((n_out, n_in))  # Each row is composed of the weights of the unit
-        else:
-            self.weights = init_func.func((n_out, n_in), 0)  # TODO add parameter for sparse count
-            # self.bias = init_func(n_out, 1, 0)
+        self.reset_parameters()
 
     """
         Computes layer forward pass
@@ -95,6 +92,30 @@ class Layer:
 
         return new_deriv_err
 
+    '''
+        Reset the parameters of the layer
+
+        Used instead of generating a new network
+    '''
+    def reset_parameters(self):
+
+        if self.init_func is None:
+            # Each row is composed of the weights of the unit
+            self.weights = np.ones((self.n_out, self.n_in))
+        # TODO add parameter for sparse count
+        else:
+            self.weights = self.init_func.func((self.n_out, self.n_in), 0)
+
+        self.null_grad()
+
+    '''
+        Zero out the gradient variables of the layer
+    '''
+    def null_grad(self):
+
+        self.grad_w = np.zeros((self.n_out, self.n_in))
+        self.grad_b = np.zeros(self.n_out)
+
     def __str__(self):
 
         cur_str = f"\tnumber units: {self.n_out}, number weights: {self.n_in}"
@@ -104,8 +125,3 @@ class Layer:
         cur_str += f"\n\tactivation function: {self.act_func.name}"
 
         return cur_str
-
-    def null_grad(self):
-
-        self.grad_w = np.zeros((self.n_out, self.n_in))
-        self.grad_b = np.zeros(self.n_out)

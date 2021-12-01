@@ -72,7 +72,6 @@ def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k, metric):
 
 def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
 
-    t1 = time.perf_counter()
     num_fold = x_mat.shape[0] // k
     tot_tr_score = 0
     tot_val_score = 0
@@ -97,16 +96,15 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
         cur_net = train(train_x, train_y, par_combo_net, par_combo_opt)
 
         net_pred_tr = cur_net.forward(train_x)
+        net_pred_tr[net_pred_tr < 0.5] = 0
+        net_pred_tr[net_pred_tr >= 0.5] = 1
+
         net_pred_val = cur_net.forward(val_x)
+        net_pred_val[net_pred_val < 0.5] = 0
+        net_pred_val[net_pred_val >= 0.5] = 1
 
         tot_tr_score += metric(train_y, net_pred_tr)
         tot_val_score += metric(val_y, net_pred_val)
-
-    t_res = time.perf_counter() - t1
-
-    print(par_combo_opt)
-    if t_res > 10.0:
-        exit()
 
     return tot_tr_score/num_fold, tot_val_score/num_fold, par_combo_net, par_combo_opt
 

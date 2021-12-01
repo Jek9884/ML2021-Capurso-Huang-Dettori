@@ -113,7 +113,7 @@ def test_monk(path_train, path_test):
 
     dict_param_sgd = {
         'lr': [0.01, 0.2, 0.5, 0.8],
-        'batch_size': [-1, 1],
+        'batch_size': [-1],
         'reg_val': [0, 0.001, 0.01, 0.1,],
         'reg_type': [2],
         'momentum_val': [0, 0.01, 0.1],
@@ -123,19 +123,10 @@ def test_monk(path_train, path_test):
 
     best_result, best_combo = grid_search(train_x, train_y,
                                           dict_param_net, dict_param_sgd, 10, accuracy)
-    print("Best accuracy score: ", best_result)
+    print("Best accuracy score (train): ", best_result)
     print(best_combo)
 
-    net = Network(**best_combo[0])
-
-    gd = GradientDescent(net, **best_combo[1])
-    gd.train(train_x, train_y)
-
-    net_pred = net.forward(train_x)
-    net_pred[net_pred < 0.5] = 0
-    net_pred[net_pred >= 0.5] = 1
-
-    return accuracy(train_y, net_pred)
+    return best_result
 
 
 print("Forward test: ", forward_test())
