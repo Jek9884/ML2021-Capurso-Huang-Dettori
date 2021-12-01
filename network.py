@@ -1,5 +1,6 @@
-from layer import Layer
 import numpy as np
+from layer import Layer
+from functions.act_funcs import identity_act_func
 
 """
 
@@ -50,9 +51,10 @@ class Network:
             self.layers.append(Layer(conf_layers[i + 1], conf_layers[i],
                                      init_func, act_func, self.bias[i], debug_bool))
 
-        # init of output layer. Needed for different out_func
+        # init of output layer is handled at the network level to avoid numerical problems
         self.layers.append(Layer(conf_layers[-1], conf_layers[-2],
-                                 init_func, out_func, self.bias[len(conf_layers) - 2], debug_bool))
+                                 init_func, out_func,
+                                 self.bias[len(conf_layers) - 2], debug_bool))
 
     """
         Computes network forward pass
@@ -64,7 +66,7 @@ class Network:
             -matrix of network's outputs
     """
 
-    def forward(self, in_mat):
+    def forward(self, in_mat, net_out=False):
 
         if in_mat.ndim == 1:
             in_mat = np.asmatrix(in_mat)
@@ -73,7 +75,11 @@ class Network:
         fw_mat = in_mat
 
         for i, layer in enumerate(self.layers):
-            fw_mat = layer.forward(fw_mat)
+
+            if i == (len(self.layers)-1) and net_out:
+                fw_mat = layer.forward(fw_mat, net_out)
+            else:
+                fw_mat = layer.forward(fw_mat)
 
         return fw_mat
 

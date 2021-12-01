@@ -6,31 +6,26 @@ from functions.Function import Function, DerivableFunction
 def squared_loss(exp_val, pred_val):
     return np.square(np.subtract(exp_val, pred_val))
 
-
 def squared_loss_deriv(exp_val, pred_val):
     return np.subtract(pred_val, exp_val)
 
 
-def nll_loss(exp_val, pred_val):  # Negative log-likelihood
+# Note: nll for now supports only a sigmoid output 
+# nll_loss assumes the network output net as input, the sigmoid is already factored in
+def nll_loss_bin(exp_val, pred_val_net):  # Negative log-likelihood
+    t1 = np.subtract(1, exp_val)
+    t2 = np.log(1+np.power(np.e, np.negative(pred_val_net)))
 
-    if exp_val == 0:
-        return np.negative(np.log(1 - pred_val))
-    elif exp_val == 1:
-        return np.negative(np.log(pred_val))
-    else:
-        raise ValueError("Supports only binary classification")
+    return np.add(t1, t2)
 
-
-def nll_loss_deriv(exp_val, pred_val):
-    # Use only with sigmoid!!!
-
+def nll_loss_bin_deriv(exp_val, pred_val):
     return np.subtract(pred_val, exp_val)
 
 
 # Loss function dictionary
 squared_loss_func = DerivableFunction(squared_loss, squared_loss_deriv, 'squared')
-nll_loss_func = DerivableFunction(nll_loss, nll_loss_deriv, 'nll')
+nll_loss_bin_func = DerivableFunction(nll_loss_bin, nll_loss_bin_deriv, 'nll')
 loss_dict = {
     'squared': squared_loss_func,
-    'nll': nll_loss_func
+    'nll': nll_loss_bin_func
 }

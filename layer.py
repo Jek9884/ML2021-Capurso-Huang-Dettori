@@ -48,13 +48,18 @@ class Layer:
             -matrix of layer's outputs
     """
 
-    def forward(self, in_mat):
+    def forward(self, in_mat, net_out=False):
 
         self.in_val = in_mat
         net_wo_bias = np.matmul(self.in_val, np.transpose(self.weights))
         self.net = np.add(net_wo_bias, self.bias)
 
-        return self.act_func.func(self.net)
+        if net_out:
+            out = self.net
+        else:
+            out = self.act_func.func(self.net)
+
+        return out
 
     """
         Computes layer backward

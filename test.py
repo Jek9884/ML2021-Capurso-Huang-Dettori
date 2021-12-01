@@ -130,7 +130,7 @@ def test_monk(path_train, path_test):
 
     net = Network(**best_combo[0])
     gd = GradientDescent(**best_combo[1])
-    plot_learning_curve(net, gd, train_x, train_y, 100, 1, miscl_error)
+    plot_learning_curve(net, gd, train_x, train_y, 100, 1, loss_dict["nll"])
 
     return best_result
 
