@@ -95,6 +95,7 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
 
         cur_net = train(train_x, train_y, par_combo_net, par_combo_opt)
 
+        # Evaluate the net
         net_pred_tr = cur_net.forward(train_x)
         net_pred_tr[net_pred_tr < 0.5] = 0
         net_pred_tr[net_pred_tr >= 0.5] = 1
@@ -113,8 +114,8 @@ def train(train_x, train_y, par_combo_net, par_combo_opt): # combo* are dicts
 
     network = Network(**par_combo_net)
 
-    gradient_descent = GradientDescent(network, **par_combo_opt)
+    gradient_descent = GradientDescent(**par_combo_opt)
 
-    gradient_descent.train(train_x, train_y)
+    gradient_descent.train(network, train_x, train_y)
 
     return network

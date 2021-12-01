@@ -52,8 +52,8 @@ def simple_learning_test_regression():
     net = Network(np.array([2, 2, 2]), init_dict["norm"], act_dict["sigm"],
                   act_dict["identity"], loss_dict["squared"])
 
-    gd = GradientDescent(net, 0.1, 1, epochs=20)
-    gd.train(np.asmatrix(in_vec), np.asmatrix(exp_res))
+    gd = GradientDescent(0.1, -1, epochs=20)
+    gd.train(net, np.asmatrix(in_vec), np.asmatrix(exp_res))
 
     return net.forward(in_vec)
 
@@ -68,8 +68,8 @@ def simple_and_learning_test_classification():  # Func: A and B
                   act_dict["sigm"],
                   loss_dict["nll"])
 
-    gd = GradientDescent(net, 1, -1, epochs=100)
-    gd.train(train_x, train_y)
+    gd = GradientDescent(1, -1, epochs=100)
+    gd.train(net, train_x, train_y)
 
     net_pred = net.forward(train_x)
     net_pred[net_pred < 0.5] = 0
@@ -88,8 +88,8 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
                   act_dict["sigm"],
                   loss_dict["nll"])
 
-    gd = GradientDescent(net, 0.1, 1, epochs=500)
-    gd.train(train_x, train_y)
+    gd = GradientDescent(0.1, -1, epochs=500)
+    gd.train(net, train_x, train_y)
 
     net_pred = net.forward(train_x)
     net_pred[net_pred < 0.5] = 0
