@@ -10,13 +10,12 @@ def accuracy(net, x_set, y_set):
     len_set = len(x_set)
     corr_count = 0
 
-    for i, entry in enumerate(x_set):
+    res = net.forward(x_set)
 
-        res = net.forward(np.asarray(x_set[i]).flatten())
-        thresh_res = 1 if res.item() >= 0.5 else 0
+    res[res >= 0.5] = 1
+    res[res < 0.5] = 0
 
-        if y_set[i].item() == thresh_res:
-            corr_count += 1
+    corr_count = np.sum(np.equal(res, y_set))
 
     return corr_count/len_set
 
