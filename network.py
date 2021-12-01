@@ -103,6 +103,14 @@ class Network:
         for i in reversed(range(len(self.layers))):
             deriv_err = self.layers[i].backward(deriv_err)
 
+    '''
+        Reset network parameters dependent on training
+    '''
+    def reset_parameters(self):
+
+        for layer in self.layers:
+            layer.reset_parameters()
+
     """
         Zeros out the gradients stored in the network's layers
     """

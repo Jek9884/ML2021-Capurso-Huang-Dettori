@@ -3,7 +3,8 @@ import numpy as np
 
 class GradientDescent:
 
-    def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0, nesterov=False, epochs=None):
+    def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
+                 nesterov=False, epochs=None):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
@@ -19,16 +20,20 @@ class GradientDescent:
         self.nesterov = nesterov
         self.epochs = epochs
 
-    def train(self, net, train_x, train_y):
+    def train(self, net, train_x, train_y, epochs=None):
+
+        # Allow for more flexibility in using the optimizer with different epochs
+        if epochs is None:
+            epochs = self.epochs
 
         n_patterns = train_x.shape[0]
         index_list = np.arange(n_patterns)
         np.random.shuffle(index_list)  # Bengio et al suggest that one shuffle is enough
 
         #TODO: add alternative stop criterions
-        if self.epochs is not None:
+        if epochs is not None:
 
-            for e in range(self.epochs):
+            for e in range(epochs):
 
                 if self.batch_size == -1:  # Batch version
                     self.__step(net, train_x, train_y)

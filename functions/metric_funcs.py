@@ -31,6 +31,10 @@ def accuracy(exp_mat, pred_mat):
 
     return (tp+tn)/(tp+tn+fp+fn)
 
+def miscl_error(exp_mat, pred_mat):
+
+    return 1 - accuracy(exp_mat, pred_mat)
+
 def precision(exp_mat, pred_mat):
 
     tp, tn, fp, fn = compute_confusion_matrix_bin(exp_mat, pred_mat)

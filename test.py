@@ -1,13 +1,15 @@
 import os
 import numpy as np
+
 from network import Network
 from functions.loss_funcs import loss_dict
 from functions.act_funcs import act_dict
 from functions.init_funcs import init_dict
-from functions.metric_funcs import accuracy
+from functions.metric_funcs import accuracy, miscl_error
 from optimizer import GradientDescent
 from data_handler import read_monk
 from hype_search import grid_search
+from debug_tools import plot_learning_curve
 
 
 def forward_test():
@@ -88,7 +90,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
                   act_dict["sigm"],
                   loss_dict["nll"])
 
-    gd = GradientDescent(0.1, -1, epochs=500)
+    gd = GradientDescent(0.1, -1, epochs=100)
     gd.train(net, train_x, train_y)
 
     net_pred = net.forward(train_x)
@@ -125,6 +127,10 @@ def test_monk(path_train, path_test):
                                           dict_param_net, dict_param_sgd, 10, accuracy)
     print("Best accuracy score (train): ", best_result)
     print(best_combo)
+
+    net = Network(**best_combo[0])
+    gd = GradientDescent(**best_combo[1])
+    plot_learning_curve(net, gd, train_x, train_y, 100, 1, miscl_error)
 
     return best_result
 
