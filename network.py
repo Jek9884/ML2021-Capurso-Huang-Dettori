@@ -22,8 +22,6 @@ Attributes:
 """
 
 
-# TODO add method for bias init
-
 class Network:
 
     def __init__(self, conf_layers, init_func=None, act_func=None, out_func=None,

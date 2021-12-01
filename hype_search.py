@@ -1,23 +1,10 @@
+import itertools as it
+import time
+from joblib import Parallel, delayed
+import numpy as np
+
 from network import Network
 from optimizer import GradientDescent
-import itertools as it
-import numpy as np
-from joblib import Parallel, delayed
-from function import Function
-
-
-def accuracy(net, x_set, y_set):
-    len_set = len(x_set)
-    corr_count = 0
-
-    res = net.forward(x_set)
-
-    res[res >= 0.5] = 1
-    res[res < 0.5] = 0
-
-    corr_count = np.sum(np.equal(res, y_set))
-
-    return corr_count/len_set
 
 
 def cleanup_par_combo(combo_list, key_list):
@@ -39,7 +26,7 @@ def cleanup_par_combo(combo_list, key_list):
     return new_list
 
 
-def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k):
+def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k, metric):
 
     # Obtain a fixed order list of corresponding key-value pairs
     net_keys, net_values = zip(*par_dict_net.items())
@@ -60,13 +47,13 @@ def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k):
         dict_opt = {opt_keys[i]: combo_opt[i] for i in range(len(opt_keys))}
 
         task = delayed(kfold_cv)(dict_net, dict_opt,
-                                 train_x, train_y, k, accuracy)
+                                 train_x, train_y, k, metric)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {len(list_tasks)}")
 
     # -2: Leave one core free
-    results = Parallel(n_jobs=-2, verbose=50)(list_tasks)
+    results = Parallel(n_jobs=-2, verbose=0)(list_tasks)
 
     best_score = 0
     best_combo = None
@@ -85,6 +72,7 @@ def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k):
 
 def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
 
+    t1 = time.perf_counter()
     num_fold = x_mat.shape[0] // k
     tot_tr_score = 0
     tot_val_score = 0
@@ -108,8 +96,17 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
 
         cur_net = train(train_x, train_y, par_combo_net, par_combo_opt)
 
-        tot_tr_score += metric(cur_net, train_x, train_y)
-        tot_val_score += metric(cur_net, val_x, val_y)
+        net_pred_tr = cur_net.forward(train_x)
+        net_pred_val = cur_net.forward(val_x)
+
+        tot_tr_score += metric(train_y, net_pred_tr)
+        tot_val_score += metric(val_y, net_pred_val)
+
+    t_res = time.perf_counter() - t1
+
+    print(par_combo_opt)
+    if t_res > 10.0:
+        exit()
 
     return tot_tr_score/num_fold, tot_val_score/num_fold, par_combo_net, par_combo_opt
 
