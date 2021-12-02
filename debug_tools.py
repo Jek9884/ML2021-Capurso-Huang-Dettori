@@ -12,18 +12,15 @@ def plot_learning_curve(network, optimizer, train_x, train_y, tot_epochs, inter_
         optimizer.train(network, train_x, train_y, epochs=inter_epochs)
 
         if metric.name == "nll":
-            out_vec = network.forward(train_x, net_out=True)
-            metric_res = metric(train_y, out_vec)
-            metric_res = np.average(metric_res, axis=0)
+            pred_vec = network.forward(train_x, net_out=True)
         elif metric.name == "squared":
             pred_vec = network.forward(train_x)
-            metric_res = metric(train_y, pred_vec)
         else:
             pred_vec = network.forward(train_x)
             pred_vec[pred_vec < 0.5] = 0
             pred_vec[pred_vec >= 0.5] = 1
 
-            metric_res = metric(train_y, pred_vec)
+        metric_res = metric(train_y, pred_vec)
 
         results_tr.append(metric_res)
 

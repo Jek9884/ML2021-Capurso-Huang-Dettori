@@ -75,9 +75,6 @@ def compare_results_metric(results, metric):
 
         cur_val_score = result[1]
 
-        if metric.name in ["nll"]:
-            cur_val_score = np.average(cur_val_score, axis=0)
-
         c1 = best_score < cur_val_score and sign == 1
         c2 = best_score > cur_val_score and sign == -1
 
@@ -89,7 +86,7 @@ def compare_results_metric(results, metric):
 
 def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
 
-    num_fold = x_mat.shape[0] // k
+    fold_size = int(np.ceil(x_mat.shape[0] / k))
     tot_tr_score = 0
     tot_val_score = 0
     pattern_idx = np.arange(x_mat.shape[0])
@@ -97,18 +94,18 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
     np.random.seed(seed)
     np.random.shuffle(pattern_idx)
 
-    for i in range(num_fold):
+    for i in range(k):
 
-        # Everything except i*k:(i+1)*k segment
+        # Everything except i*fold_size:(i+1)*fold_size segment
         train_idx = np.concatenate(
-            (pattern_idx[:i*k],
-             pattern_idx[(i+1)*k:]), axis=0)
+            (pattern_idx[:i*fold_size],
+             pattern_idx[(i+1)*fold_size:]), axis=0)
 
         train_x = x_mat[train_idx]
         train_y = y_mat[train_idx]
 
-        val_x = x_mat[i*k:(i+1)*k]
-        val_y = y_mat[i*k:(i+1)*k]
+        val_x = x_mat[i*fold_size:(i+1)*fold_size]
+        val_y = y_mat[i*fold_size:(i+1)*fold_size]
 
         cur_net = train(train_x, train_y, par_combo_net, par_combo_opt)
 
@@ -124,7 +121,7 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
         tot_tr_score += metric(train_y, net_pred_tr)
         tot_val_score += metric(val_y, net_pred_val)
 
-    return tot_tr_score/num_fold, tot_val_score/num_fold, par_combo_net, par_combo_opt
+    return tot_tr_score/k, tot_val_score/k, par_combo_net, par_combo_opt
 
 
 def train(train_x, train_y, par_combo_net, par_combo_opt): # combo* are dicts

@@ -29,3 +29,20 @@ loss_dict = {
     'squared': squared_loss_func,
     'nll': nll_loss_bin_func
 }
+
+
+# Error functions
+def squared_error(exp_val, pred_val):
+    res = np.multiply(1/2, squared_loss(exp_val, pred_val))
+    return np.average(res, axis=0)
+
+def nll_error(exp_val, pred_val):
+    return np.average(nll_loss_bin(exp_val, pred_val), axis=0)
+
+# Error function dictionary
+squared_error_func = Function(squared_error, 'squared')
+nll_error_func = Function(nll_error, 'nll')
+error_dict = {
+    'squared': squared_error_func,
+    'nll': nll_error_func
+}

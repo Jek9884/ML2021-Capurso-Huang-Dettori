@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from network import Network
-from functions.loss_funcs import loss_dict
+from functions.loss_funcs import loss_dict, error_dict
 from functions.act_funcs import act_dict
 from functions.init_funcs import init_dict
 from functions.metric_funcs import metr_dict
@@ -119,7 +119,7 @@ def test_monk(path_train, path_test):
 
     dict_param_sgd = {
         'lr': [0.01, 0.2, 0.5, 0.8],
-        'batch_size': [1],
+        'batch_size': [96],
         'reg_val': [0, 0.001, 0.01, 0.1,],
         'reg_type': [2],
         'momentum_val': [0, 0.01, 0.1],
@@ -127,9 +127,9 @@ def test_monk(path_train, path_test):
         'epochs': [20, 100]
     }
 
-    metric = loss_dict["nll"]
+    metric = error_dict["nll"]
     best_result, best_combo = grid_search(train_x, train_y,
-                                          dict_param_net, dict_param_sgd, 10, metric)
+                                          dict_param_net, dict_param_sgd, 5, metric)
     print(f"Best {metric.name} score (train): ", best_result)
     print(best_combo)
 
@@ -150,4 +150,4 @@ print("Simple classification test: ", simple_learning_test_classification())
 # Tests on monk1
 path_train_monk1 = os.path.join('datasets', 'monks-1.train')
 path_test_monk1 = os.path.join('datasets', 'monks-1.test')
-print("Monk 1 accuracy on train set:", test_monk(path_train_monk1, path_test_monk1))
+print("Monk 1 score on train set:", test_monk(path_train_monk1, path_test_monk1))

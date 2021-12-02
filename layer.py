@@ -1,7 +1,6 @@
 import numpy as np
 
 """
-
 Layer class
 
 Parameters:
