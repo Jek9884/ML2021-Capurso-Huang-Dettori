@@ -13,7 +13,7 @@ def squared_loss_deriv(exp_val, pred_val):
 # Note: nll for now supports only a sigmoid output 
 # nll_loss assumes the network output net as input, the sigmoid is already factored in
 def nll_loss_bin(exp_val, pred_val_net):  # Negative log-likelihood
-    t1 = np.subtract(1, exp_val)
+    t1 = np.multiply(np.subtract(1, exp_val), pred_val_net)
     t2 = np.log(1+np.power(np.e, np.negative(pred_val_net)))
 
     return np.add(t1, t2)

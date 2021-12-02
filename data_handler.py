@@ -14,8 +14,8 @@ def read_monk(path):
             elem = elem[1:]
             patterns.append(elem)
 
-        patterns = np.matrix(patterns, dtype=int)
-        targets = np.matrix(targets, dtype=int)
+        patterns = np.array(patterns, dtype=int)
+        targets = np.array(targets, dtype=int, ndmin=2)
         patterns = normalise_data(patterns)
 
         if targets.shape[0] == 1:

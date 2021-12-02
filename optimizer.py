@@ -66,13 +66,15 @@ class GradientDescent:
         out = net.forward(sub_train_x)
         net.backward(sub_train_y, out)
 
-        self.__update_weights(net)
+        self.__update_weights(net, sub_train_x.shape[0])
 
-    def __update_weights(self, net):
+    def __update_weights(self, net, num_patt):
 
         for layer in net.layers:
-            delta_w = self.lr * layer.grad_w
-            delta_b = self.lr * layer.grad_b
+            avg_grad_w = np.divide(layer.grad_w, num_patt)
+            avg_grad_b = np.divide(layer.grad_b, num_patt)
+            delta_w = self.lr * avg_grad_w
+            delta_b = self.lr * avg_grad_b
 
             if self.momentum_val != 0:
                 delta_w += self.momentum_val * layer.delta_w_old

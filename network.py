@@ -68,9 +68,6 @@ class Network:
 
     def forward(self, in_mat, net_out=False):
 
-        if in_mat.ndim == 1:
-            in_mat = np.asmatrix(in_mat)
-
         # net and act functions
         fw_mat = in_mat
 
