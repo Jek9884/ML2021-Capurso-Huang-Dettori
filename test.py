@@ -71,14 +71,14 @@ def simple_and_learning_test_classification():  # Func: A and B
                   act_dict["sigm"],
                   loss_dict["nll"])
 
-    gd = GradientDescent(0.5, -1, epochs=100)
+    gd = GradientDescent(0.5, -1, epochs=500)
     gd.train(net, train_x, train_y)
 
     net_pred = net.forward(train_x)
     net_pred[net_pred < 0.5] = 0
     net_pred[net_pred >= 0.5] = 1
 
-#    plot_learning_curve(net, gd, train_x, train_y, 100, 1, loss_dict["nll"])
+#    plot_learning_curve(net, gd, train_x, train_y, 500, 1, error_dict["nll"])
     return metr_dict["accuracy"](train_y, net_pred)
 
 
@@ -93,14 +93,14 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
                   act_dict["sigm"],
                   loss_dict["nll"])
 
-    gd = GradientDescent(0.5, -1, epochs=100)
+    gd = GradientDescent(0.5, -1, epochs=500)
     gd.train(net, train_x, train_y)
 
     net_pred = net.forward(train_x)
     net_pred[net_pred < 0.5] = 0
     net_pred[net_pred >= 0.5] = 1
 
-#    plot_learning_curve(net, gd, train_x, train_y, 500, 1, loss_dict["nll"])
+#    plot_learning_curve(net, gd, train_x, train_y, 500, 1, metr_dict["accuracy"])
     return metr_dict["accuracy"](train_y, net_pred)
 
 
@@ -119,7 +119,7 @@ def test_monk(path_train, path_test):
 
     dict_param_sgd = {
         'lr': [0.01, 0.2, 0.5, 0.8],
-        'batch_size': [96],
+        'batch_size': [-1],
         'reg_val': [0, 0.001, 0.01, 0.1,],
         'reg_type': [2],
         'momentum_val': [0, 0.01, 0.1],
@@ -136,7 +136,7 @@ def test_monk(path_train, path_test):
     net = Network(**best_combo[0])
     gd = GradientDescent(**best_combo[1])
 #    plot_gradient_norm(net, gd, train_x, train_y, 100, 20)
-    plot_learning_curve(net, gd, train_x, train_y, 100, 5, metric)
+#    plot_learning_curve(net, gd, train_x, train_y, 100, 1, metric)
 
     return best_result
 

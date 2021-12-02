@@ -31,7 +31,14 @@ def plot_learning_curve(network, optimizer, train_x, train_y, tot_epochs, inter_
     plt.show()
 
 
-def plot_gradient_norm(network, optimizer, train_x, train_y, tot_epochs, inter_epochs, norm="fro"):
+# TODO: decide how to handle different norms for bias and weights
+def plot_gradient_norm(network, optimizer, train_x, train_y, tot_epochs, inter_epochs):
+
+    net_size = len(network.layers)
+    fig, axs = plt.subplots(net_size, 2)
+
+    results_w = {i: [] for i in range(net_size)}
+    results_b = {i: [] for i in range(net_size)}
 
     for i in range(tot_epochs//inter_epochs):
 
@@ -39,13 +46,22 @@ def plot_gradient_norm(network, optimizer, train_x, train_y, tot_epochs, inter_e
 
         for j, layer in enumerate(network.layers):
 
-            norm_grad_w = np.linalg.norm(layer.grad_w, ord=norm)
-            norm_grad_b = np.linalg.norm(layer.grad_w, ord=norm)
+            norm_grad_w = np.linalg.norm(layer.grad_w)
+            norm_grad_b = np.linalg.norm(layer.grad_b)
 
-            plt.scatter(i*inter_epochs, norm_grad_w, label=f"grad_w ({j})")
-            plt.scatter(i*inter_epochs, norm_grad_b, label=f"grad_b ({j})")
+            results_w[j].append(norm_grad_w)
+            results_b[j].append(norm_grad_b)
 
-    plt.legend()
-    plt.xlabel("Epochs")
-    plt.ylabel(f"Norm value ({norm})")
+    for i in range(net_size):
+        axs[i][0].plot(range(0, tot_epochs, inter_epochs), results_w[i])
+        axs[i][0].set_title(f"grad w (Layer {i})")
+        axs[i][0].set_xlabel("Epochs")
+        axs[i][0].set_ylabel("Norm value")
+
+        axs[i][1].plot(range(0, tot_epochs, inter_epochs), results_b[i],
+                       label=f"grad b (Layer {i})")
+        axs[i][1].set_title(f"grad b (Layer {i})")
+        axs[i][1].set_ylabel("Norm value")
+        axs[i][1].set_xlabel("Epochs")
+
     plt.show()
