@@ -38,10 +38,10 @@ class GradientDescent:
                 if self.batch_size == -1:  # Batch version
                     self.__step(net, train_x, train_y)
 
-                #TODO: parallelise mini-batch execution
                 elif 1 <= self.batch_size < n_patterns:  # Online/mini-batch version
 
-                    n_mini_batch = n_patterns // self.batch_size
+                    n_mini_batch = int(np.ceil(n_patterns / self.batch_size))
+
                     for i in range(n_mini_batch):
                         #TODO: check for correct dimensions
                         mini_batch_x = train_x[index_list[i * self.batch_size:
