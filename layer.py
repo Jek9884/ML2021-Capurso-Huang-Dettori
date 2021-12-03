@@ -76,7 +76,7 @@ class Layer:
         delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
 
         # grad += delta_i * output of previous layer (o_u)
-        self.grad_w = np.tensordot(delta, self.in_val, axes=(0, 0))
+        self.grad_w = np.dot(np.transpose(delta), self.in_val)
         self.grad_b = np.sum(delta, axis=0)
 
         new_deriv_err = np.matmul(delta, self.weights)
