@@ -4,7 +4,8 @@ import numpy as np
 class GradientDescent:
 
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
-                 nesterov=False, epochs=None, lr_decay=False, lr_decay_tau=None):
+                 nesterov=False, epochs=None, lr_decay=False, lr_decay_tau=None, stop_crit_type='fixed',
+                 epsilon=None, patient=None):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
@@ -21,6 +22,12 @@ class GradientDescent:
         self.epochs = epochs
         self.lr_decay = lr_decay
         self.lr_decay_tau = lr_decay_tau
+        self.stop_crit_type = stop_crit_type
+        self.epsilon = epsilon
+        self.patient = patient
+
+        if self.stop_crit_type == 'weights_change':
+            self.count_patient = 0
 
     def train(self, net, train_x, train_y, epochs=None):
 
@@ -32,38 +39,77 @@ class GradientDescent:
         index_list = np.arange(n_patterns)
         np.random.shuffle(index_list)  # Bengio et al suggest that one shuffle is enough
 
-        #TODO: add alternative stop criterions
-        if epochs is not None:
+        if self.lr_decay:
+            eta_0 = self.lr
+            eta_tau = eta_0 / 100
+
+        n_epochs = 0
+
+        delta_weights = np.inf
+
+        if epochs is None:
+            raise ValueError('epochs should not be None')
+
+        while self.check_stop_crit(delta_weights) and n_epochs < epochs:
+
+            old_weights = []
+
+            if self.stop_crit_type == 'weights_change':
+                for layer in net.layers:
+                    old_weights.append(layer.weights)
 
             if self.lr_decay:
-                eta_0 = self.lr
-                eta_tau = eta_0/100
+                alpha = n_epochs / self.lr_decay_tau
+                self.lr = eta_0 * (1 - alpha) + alpha * eta_tau
 
-            for e in range(epochs):
+            if self.batch_size == -1:  # Batch version
+                self.__step(net, train_x, train_y)
 
-                if self.lr_decay:
-                    alpha = e/self.lr_decay_tau
-                    self.lr = eta_0*(1-alpha)+alpha*eta_tau
+            elif 1 <= self.batch_size < n_patterns:  # Online/mini-batch version
 
-                if self.batch_size == -1:  # Batch version
-                    self.__step(net, train_x, train_y)
+                n_mini_batch = int(np.ceil(n_patterns / self.batch_size))
 
-                elif 1 <= self.batch_size < n_patterns:  # Online/mini-batch version
+                for i in range(n_mini_batch):
+                    idx_list = index_list[i * self.batch_size: (i + 1) * self.batch_size]
+                    mini_batch_x = train_x[idx_list]
+                    mini_batch_y = train_y[idx_list]
+                    self.__step(net, mini_batch_x, mini_batch_y)
 
-                    n_mini_batch = int(np.ceil(n_patterns / self.batch_size))
+            else:
+                raise ValueError("Mini-batch size should be >= 1 and < l.\
+                                 If you want to use the batch version use -1.")
 
-                    for i in range(n_mini_batch):
-                        #TODO: check for correct dimensions
-                        mini_batch_x = train_x[index_list[i * self.batch_size:
-                                                          (i + 1) * self.batch_size]]
-                        mini_batch_y = train_y[index_list[i * self.batch_size:
-                                                          (i + 1) * self.batch_size]]
-                        self.__step(net, mini_batch_x, mini_batch_y)
+            if self.stop_crit_type == 'weights_change':
+                norm_weights = []
+
+                for i, layer in enumerate(net.layers):
+                    norm_weights.append(np.linalg.norm(np.subtract(layer.weights, old_weights[i])))
+
+                delta_weights = np.average(norm_weights)
+                print('delta weights: ' + str(delta_weights))
+                print('epoch: ' + str(n_epochs))
+            n_epochs += 1
+
+    def check_stop_crit(self, delta_w=None):
+
+        if self.stop_crit_type == 'fixed':
+            result = True
+        elif self.stop_crit_type == 'weights_change':
+            epsilon = self.epsilon
+
+            if delta_w > epsilon:
+                self.count_patient = 0
+                result = True
+            else:
+                self.count_patient += 1
+                if self.count_patient >= self.patient:
+                    result = False
                 else:
-                    raise ValueError("Mini-batch size should be >= 1 and < l.\
-                                     If you want to use the batch version use -1.")
+                    result = True
         else:
-            raise ValueError('epochs should not be None')
+            raise ValueError('Invalid stop criteria')
+
+        return result
 
     def __step(self, net, sub_train_x, sub_train_y):
 

@@ -57,7 +57,7 @@ def simple_learning_test_regression():
     gd = GradientDescent(0.5, -1, epochs=20)
     gd.train(net, train_x, train_y)
 
-#    plot_learning_curve(net, gd, train_x, train_y, 100, 1, loss_dict["squared"])
+    #    plot_learning_curve(net, gd, train_x, train_y, 100, 1, loss_dict["squared"])
     return net.forward(train_x)
 
 
@@ -78,7 +78,7 @@ def simple_and_learning_test_classification():  # Func: A and B
     net_pred[net_pred < 0.5] = 0
     net_pred[net_pred >= 0.5] = 1
 
-#    plot_learning_curve(net, gd, train_x, train_y, 500, 1, error_dict["nll"])
+    #    plot_learning_curve(net, gd, train_x, train_y, 500, 1, error_dict["nll"])
     return metr_dict["accuracy"](train_y, net_pred)
 
 
@@ -100,12 +100,11 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     net_pred[net_pred < 0.5] = 0
     net_pred[net_pred >= 0.5] = 1
 
-#    plot_learning_curve(net, gd, train_x, train_y, 500, 1, metr_dict["accuracy"])
+    #    plot_learning_curve(net, gd, train_x, train_y, 500, 1, metr_dict["accuracy"])
     return metr_dict["accuracy"](train_y, net_pred)
 
 
 def test_monk(path_train, path_test):
-
     train_x, train_y = read_monk(path_train)
     test_x, test_y = read_monk(path_test)
 
@@ -119,24 +118,36 @@ def test_monk(path_train, path_test):
 
     dict_param_sgd = {
         'lr': [0.01, 0.2, 0.5, 0.8],
-        'batch_size': [-1],
-        'reg_val': [0, 0.001, 0.01, 0.1],
+        'batch_size': [-1, 20, 50, 60],
+        'reg_val': [0, 0.01, 0.1, 0.5, 0.9],
         'reg_type': [2],
         'momentum_val': [0, 0.01, 0.1],
         'nesterov': [False, True],
-        'epochs': [20, 100]
+        'epochs': [100, 200, 500, 1000, 2000],
+        'lr_decay': [True, False],
+        'lr_decay_tau': [100, 200, 300, 400],
+        'stop_crit_type': ['fixed', 'weights_change'],
+        'epsilon': [0.1, 0.01, 0.001, 0.0001],
+        'patient': [3, 5]
     }
 
-    metric = error_dict["nll"]
+    metric = metr_dict["miscl. error"]
     best_result, best_combo = grid_search(train_x, train_y,
                                           dict_param_net, dict_param_sgd, 5, metric)
     print(f"Best {metric.name} score (train): ", best_result)
-    print(best_combo)
+
+    print('init_func: ' + best_combo[0]['init_func'].name)
+    print('act_func: ' + best_combo[0]['act_func'].name)
+    print('out_func: ' + best_combo[0]['out_func'].name)
+    print('loss_func: ' + best_combo[0]['loss_func'].name)
+    print(best_combo[1])
 
     net = Network(**best_combo[0])
     gd = GradientDescent(**best_combo[1])
-    plot_gradient_norm(net, gd, train_x, train_y, 100, 20)
-#    plot_learning_curve(net, gd, train_x, train_y, 100, 1, metric)
+
+    gd.train(net, train_x, train_y)
+    #plot_gradient_norm(net, gd, train_x, train_y, 1200, 1)
+    # plot_learning_curve(net, gd, train_x, train_y, 100, 1, metric)
 
     return best_result
 
@@ -151,3 +162,4 @@ print("Simple classification test: ", simple_learning_test_classification())
 path_train_monk1 = os.path.join('datasets', 'monks-1.train')
 path_test_monk1 = os.path.join('datasets', 'monks-1.test')
 print("Monk 1 score on train set:", test_monk(path_train_monk1, path_test_monk1))
+

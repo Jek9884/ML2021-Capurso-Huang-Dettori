@@ -21,6 +21,7 @@ def cleanup_par_combo(combo_list, key_list):
         if combo[key_list.index('momentum_val')] == 0 and mom_bool:
             continue
 
+
         new_list.append(combo)
 
     return new_list
