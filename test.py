@@ -120,7 +120,7 @@ def test_monk(path_train, path_test):
     dict_param_sgd = {
         'lr': [0.01, 0.2, 0.5, 0.8],
         'batch_size': [-1],
-        'reg_val': [0, 0.001, 0.01, 0.1,],
+        'reg_val': [0, 0.001, 0.01, 0.1],
         'reg_type': [2],
         'momentum_val': [0, 0.01, 0.1],
         'nesterov': [False, True],
@@ -135,7 +135,7 @@ def test_monk(path_train, path_test):
 
     net = Network(**best_combo[0])
     gd = GradientDescent(**best_combo[1])
-#    plot_gradient_norm(net, gd, train_x, train_y, 100, 20)
+    plot_gradient_norm(net, gd, train_x, train_y, 100, 20)
 #    plot_learning_curve(net, gd, train_x, train_y, 100, 1, metric)
 
     return best_result

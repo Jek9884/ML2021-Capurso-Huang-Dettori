@@ -4,7 +4,7 @@ import numpy as np
 class GradientDescent:
 
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
-                 nesterov=False, epochs=None):
+                 nesterov=False, epochs=None, lr_decay=False, lr_decay_tau=None):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
@@ -19,6 +19,8 @@ class GradientDescent:
         self.momentum_val = momentum_val
         self.nesterov = nesterov
         self.epochs = epochs
+        self.lr_decay = lr_decay
+        self.lr_decay_tau = lr_decay_tau
 
     def train(self, net, train_x, train_y, epochs=None):
 
@@ -33,7 +35,15 @@ class GradientDescent:
         #TODO: add alternative stop criterions
         if epochs is not None:
 
+            if self.lr_decay:
+                eta_0 = self.lr
+                eta_tau = eta_0/100
+
             for e in range(epochs):
+
+                if self.lr_decay:
+                    alpha = e/self.lr_decay_tau
+                    self.lr = eta_0*(1-alpha)+alpha*eta_tau
 
                 if self.batch_size == -1:  # Batch version
                     self.__step(net, train_x, train_y)
