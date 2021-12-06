@@ -4,8 +4,8 @@ import numpy as np
 class GradientDescent:
 
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
-                 nesterov=False, epochs=None, lr_decay=False, lr_decay_tau=None, stop_crit_type='fixed',
-                 epsilon=None, patient=None):
+                 nesterov=False, epochs=None, lr_decay=False, lr_decay_tau=None,
+                 stop_crit_type='fixed', epsilon=None, patient=None):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
@@ -29,7 +29,7 @@ class GradientDescent:
         if self.stop_crit_type == 'weights_change':
             self.count_patient = 0
 
-    def train(self, net, train_x, train_y, epochs=None):
+    def train(self, net, train_x, train_y, epochs=None, plotter=None):
 
         # Allow for more flexibility in using the optimizer with different epochs
         if epochs is None:
@@ -86,9 +86,14 @@ class GradientDescent:
                     norm_weights.append(np.linalg.norm(np.subtract(layer.weights, old_weights[i])))
 
                 delta_weights = np.average(norm_weights)
-                print('delta weights: ' + str(delta_weights))
-                print('epoch: ' + str(n_epochs))
+
+            if plotter is not None:
+                plotter.build_plot(net, self, train_x, train_y, n_epochs)
+
             n_epochs += 1
+
+        if plotter is not None:
+            plotter.plot()
 
     def check_stop_crit(self, delta_w=None):
 
