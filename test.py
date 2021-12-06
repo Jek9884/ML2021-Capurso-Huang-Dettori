@@ -7,9 +7,9 @@ from functions.act_funcs import act_dict
 from functions.init_funcs import init_dict
 from functions.metric_funcs import metr_dict
 from optimizer import GradientDescent
-from data_handler import read_monk
-from hype_search import grid_search
-from debug_tools import Plotter
+from utils.data_handler import read_monk
+from utils.hype_search import grid_search
+from utils.debug_tools import Plotter
 
 
 def forward_test():

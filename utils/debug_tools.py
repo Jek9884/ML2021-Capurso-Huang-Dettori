@@ -16,7 +16,7 @@ class Plotter:
         self.n_cols = n_cols
         self.results_dict = None
 
-        if "lr_curve" in self.type_plots and lr_metric_list is None:
+        if "lr_curve" in self.type_plots and self.lr_metric_list is None:
             raise ValueError("To print the learning curve a metric is needed")
 
     def reset_result_dict(self):

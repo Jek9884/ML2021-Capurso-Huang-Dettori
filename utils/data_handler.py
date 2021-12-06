@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def read_monk(path):
+def read_monk(path, norm_data=True):
     with open(path) as f:
         data = f.readlines()
         targets = []
@@ -16,7 +16,9 @@ def read_monk(path):
 
         patterns = np.array(patterns, dtype=int)
         targets = np.array(targets, dtype=int, ndmin=2)
-        patterns = normalise_data(patterns)
+
+        if norm_data:
+            patterns = normalise_data(patterns)
 
         if targets.shape[0] == 1:
             targets = targets.transpose()
