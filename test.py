@@ -120,7 +120,7 @@ def test_monk(path_train, path_test):
         'reg_type': [2],
         'momentum_val': [0, 0.9],
         'nesterov': [False, True],
-        'epochs': [20],
+        'epochs': [200],
         'lr_decay': [True, False],
         'lr_decay_tau': [50, 100],
         'stop_crit_type': ['fixed', 'weights_change'],
@@ -128,7 +128,7 @@ def test_monk(path_train, path_test):
         'patient': [5]
     }
 
-    metric = metr_dict["miscl. error"]
+    metric = error_dict["nll"]
     best_result, best_combo = grid_search(train_x, train_y,
                                           dict_param_net, dict_param_sgd, 5, metric)
 
@@ -143,7 +143,8 @@ def test_monk(path_train, path_test):
     net = Network(**best_combo[0])
     gd = GradientDescent(**best_combo[1])
 
-    plotter = Plotter(1, ["lr_curve", "lr", "act_val", "grad_norm"], metric, 2)
+    plotter = Plotter(1, ["lr_curve", "lr", "act_val", "grad_norm"],
+                      [metric, metr_dict["miscl. error"]], 2)
     gd.train(net, train_x, train_y, plotter=plotter)
 
     return best_result

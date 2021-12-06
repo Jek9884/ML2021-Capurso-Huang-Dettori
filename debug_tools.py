@@ -7,23 +7,37 @@ import numpy as np
 
 class Plotter:
 
-    def __init__(self, epoch_interval, type_plots=[], lr_metric=None, n_cols=1):
+    def __init__(self, epoch_interval, type_plots=[], lr_metric_list=None, n_cols=1):
 
         self.epoch_interval = epoch_interval
-        self.lr_metric = lr_metric
+        self.num_intervals = 0
+        self.lr_metric_list = lr_metric_list
         self.type_plots = type_plots
         self.n_cols = n_cols
-        self.plot_dims = (len(self.type_plots)//n_cols, n_cols)
+        self.results_dict = None
+
+        if "lr_curve" in self.type_plots and lr_metric_list is None:
+            raise ValueError("To print the learning curve a metric is needed")
+
+    def reset_result_dict(self):
+
         self.results_dict = {}
 
-        if "lr_curve" in self.type_plots and lr_metric is None:
-            raise ValueError("To print the learning curve a metric is needed")
+        for plt_type in self.type_plots:
+
+            if plt_type == "lr_curve":
+
+                for metric in self.lr_metric_list:
+                    self.results_dict[f"lr_curve ({metric.name})"] = []
+            else:
+                self.results_dict[plt_type] = []
+
 
     def build_plot(self, network, optimizer, train_x, train_y, cur_epoch):
 
         # If this is the first epoch, reset the dictionary
         if cur_epoch == 0:
-            self.results_dict = {type_plt: [] for type_plt in self.type_plots}
+            self.reset_result_dict()
 
         # The results are updated only every epoch_interval
         if cur_epoch % self.epoch_interval != 0:
@@ -40,14 +54,16 @@ class Plotter:
             elif plt_type == "act_val":
                 self.plot_activ_func_out(network, train_x)
 
+        self.num_intervals += 1
+
     def plot(self):
 
-        fig, axs = plt.subplots(*self.plot_dims, squeeze=False)
-        num_intervals = len(self.results_dict[self.type_plots[0]])
-        tot_epochs = num_intervals * self.epoch_interval
+        plot_dims = ((len(self.results_dict)+1)//self.n_cols, self.n_cols)
+        fig, axs = plt.subplots(*plot_dims, squeeze=False)
+        tot_epochs = self.num_intervals * self.epoch_interval
 
         # TODO: add more info in label and titles
-        for i, plt_type in enumerate(self.type_plots):
+        for i, plt_type in enumerate(self.results_dict):
 
             cur_row = i // self.n_cols
             cur_col = i % self.n_cols
@@ -59,32 +75,35 @@ class Plotter:
 
                 for j in range(len(mat_val)):
                     cur_ax.plot(range(0, tot_epochs, self.epoch_interval),
-                                   mat_val[j], label=f"Layer {j}")
+                                mat_val[j], label=f"Layer {j}")
+
+                cur_ax.legend()
             else:
                 cur_ax.plot(range(0, tot_epochs, self.epoch_interval),
-                               self.results_dict[plt_type])
+                            self.results_dict[plt_type])
 
             cur_ax.set_xlabel("Epochs")
             cur_ax.set_ylabel(f"{plt_type}")
-            cur_ax.legend()
 
         plt.show()
 
 
     def plot_learning_curve(self, network, train_x, train_y):
 
-        if self.lr_metric.name == "nll":
-            pred_vec = network.forward(train_x, net_out=True)
-        elif self.lr_metric.name == "squared":
-            pred_vec = network.forward(train_x)
-        else:
-            pred_vec = network.forward(train_x)
-            pred_vec[pred_vec < 0.5] = 0
-            pred_vec[pred_vec >= 0.5] = 1
+        for metric in self.lr_metric_list:
 
-        metric_res = self.lr_metric(train_y, pred_vec)
+            if metric.name == "nll":
+                pred_vec = network.forward(train_x, net_out=True)
+            elif metric.name == "squared":
+                pred_vec = network.forward(train_x)
+            else:
+                pred_vec = network.forward(train_x)
+                pred_vec[pred_vec < 0.5] = 0
+                pred_vec[pred_vec >= 0.5] = 1
 
-        self.results_dict["lr_curve"].append(metric_res)
+            metric_res = metric(train_y, pred_vec)
+
+            self.results_dict[f"lr_curve ({metric.name})"].append(metric_res)
 
     # Note: needs to be used after a backward pass
     # TODO: check if there are problems with optimizer op order
