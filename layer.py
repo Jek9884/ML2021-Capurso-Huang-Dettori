@@ -21,19 +21,28 @@ Attributes:
 class Layer:
 
     # Network may not pass an act_func to the last layer
-    def __init__(self, n_out, n_in, init_func=None, act_func=None, bias=0, debug_bool=False):
+    def __init__(self, n_out, n_in, init_func=None, act_func=None, bias=None, debug_bool=False):
 
-        self.n_in = n_in
-        self.n_out = n_out
+        self.n_in = n_in  # Number of units in previous layer
+        self.n_out = n_out  # Number of units in this layer
         self.bias = bias
         self.act_func = act_func
         self.init_func = init_func
-        self.debug_bool = debug_bool
+
+        # Variables used to implement backpropagation
         self.grad_w = None
         self.grad_b = None
         self.in_val = None
         self.net = None
-        self.delta_w_old = 0  # Used by optimizer with momentum
+
+        # Variable used to keep track of the layer's last output
+        self.out = None
+
+        # Varibale used by the optimizer to implement momentum
+        self.delta_w_old = 0
+
+        # Variable used to print some debug information
+        self.debug_bool = debug_bool
 
         self.reset_parameters()
 
@@ -42,6 +51,7 @@ class Layer:
 
         Parameters:
             -in_mat: matrix of input data
+            -net_out: boolean used to return the net() result w/o activ func
 
         Returns:
             -matrix of layer's outputs
@@ -54,11 +64,11 @@ class Layer:
         self.net = np.add(net_wo_bias, self.bias)
 
         if net_out:
-            out = self.net
+            self.out = self.net
         else:
-            out = self.act_func.func(self.net)
+            self.out = self.act_func.func(self.net)
 
-        return out
+        return self.out
 
     """
         Computes layer backward
