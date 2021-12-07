@@ -4,8 +4,9 @@ import numpy as np
 class GradientDescent:
 
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
-                 nesterov=False, lim_epochs=None, lr_decay=False, lr_decay_tau=None,
-                 stop_crit_type='fixed', epsilon=None, patient=None):
+                 nesterov=False, lim_epochs=None, lr_decay=False,
+                 lr_decay_tau=None, stop_crit_type='fixed', epsilon=None,
+                 patient=None):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
@@ -43,6 +44,7 @@ class GradientDescent:
         self.epoch_count = 0
 
         if self.stop_crit_type == 'weights_change':
+            self.delta_weights = np.inf
             self.count_patient = 0
 
     def train(self, net, train_x, train_y, step_epochs=None, plotter=None):
@@ -53,14 +55,12 @@ class GradientDescent:
         else:
             lim_epochs = self.epoch_count + step_epochs
 
-
         n_patterns = train_x.shape[0]
         index_list = np.arange(n_patterns)
-        np.random.shuffle(index_list)  # Bengio et al suggest that one shuffle is enough
+        # Bengio et al suggest that one shuffle is enough
+        np.random.shuffle(index_list)
 
-        delta_weights = np.inf
-
-        while self.check_stop_crit(delta_weights) and self.epoch_count < lim_epochs:
+        while self.check_stop_crit() and self.epoch_count < lim_epochs:
 
             old_weights = []
 
@@ -72,10 +72,12 @@ class GradientDescent:
                 alpha = self.epoch_count / self.lr_decay_tau
                 self.lr = self.eta_0*(1-alpha) + alpha*self.eta_tau
 
-            if self.batch_size == -1:  # Batch version
+            # Batch version
+            if self.batch_size == -1:
                 self.__step(net, train_x, train_y)
 
-            elif 1 <= self.batch_size < n_patterns:  # Online/mini-batch version
+            # Online/mini-batch version
+            elif 1 <= self.batch_size < n_patterns:
 
                 n_mini_batch = int(np.ceil(n_patterns / self.batch_size))
 
@@ -95,21 +97,24 @@ class GradientDescent:
                 for i, layer in enumerate(net.layers):
                     norm_weights.append(np.linalg.norm(np.subtract(layer.weights, old_weights[i])))
 
-                delta_weights = np.average(norm_weights)
+                self.delta_weights = np.average(norm_weights)
 
             if plotter is not None:
                 plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
 
             self.epoch_count += 1
 
-    def check_stop_crit(self, delta_w=None):
+        # Used to determine if there needs to be further training
+        return self.check_stop_crit() and self.epoch_count < lim_epochs
+
+    def check_stop_crit(self):
 
         if self.stop_crit_type == 'fixed':
             result = True
         elif self.stop_crit_type == 'weights_change':
             epsilon = self.epsilon
 
-            if delta_w > epsilon:
+            if self.delta_weights > epsilon:
                 self.count_patient = 0
                 result = True
             else:
