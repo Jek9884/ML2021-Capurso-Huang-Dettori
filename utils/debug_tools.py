@@ -19,25 +19,11 @@ class Plotter:
         if "lr_curve" in self.type_plots and self.lr_metric_list is None:
             raise ValueError("To print the learning curve a metric is needed")
 
-    def reset_result_dict(self):
-
-        self.results_dict = {}
-
-        for plt_type in self.type_plots:
-
-            if plt_type == "lr_curve":
-
-                for metric in self.lr_metric_list:
-                    self.results_dict[f"lr_curve ({metric.name})"] = []
-            else:
-                self.results_dict[plt_type] = []
-
-
-    def build_plot(self, network, optimizer, train_x, train_y, cur_epoch):
+    def build_plot(self, network, optimizer, data_x, data_y, cur_epoch):
 
         # If this is the first epoch, reset the dictionary
         if cur_epoch == 0:
-            self.reset_result_dict()
+            self.results_dict = {}
 
         # The results are updated only every epoch_interval
         if cur_epoch % self.epoch_interval != 0:
@@ -46,13 +32,13 @@ class Plotter:
         for plt_type in self.type_plots:
 
             if plt_type == "lr_curve":
-                self.plot_learning_curve(network, train_x, train_y)
+                self.plot_learning_curve(network, data_x, data_y)
             elif plt_type == "lr":
-                self.results_dict["lr"].append(optimizer.lr)
+                self.plot_learning_rate(optimizer)
             elif plt_type == "grad_norm":
-                self.plot_gradient_norm(network, train_x)
+                self.plot_gradient_norm(network, data_x)
             elif plt_type == "act_val":
-                self.plot_activ_func_out(network, train_x)
+                self.plot_activ_func_out(network, data_x)
 
         self.num_intervals += 1
 
@@ -69,6 +55,7 @@ class Plotter:
             cur_col = i % self.n_cols
             cur_ax = axs[cur_row][cur_col]
 
+            # Needed to handle matrix of values in these plots
             if plt_type in ["grad_norm", "act_val"]:
 
                 mat_val = np.transpose(self.results_dict[plt_type])
@@ -78,6 +65,15 @@ class Plotter:
                                 mat_val[j], label=f"Layer {j}")
 
                 cur_ax.legend()
+
+            elif "lr_curve" in plt_type:
+
+                for data_label in self.results_dict[plt_type]:
+                    cur_ax.plot(range(0, tot_epochs, self.epoch_interval),
+                                self.results_dict[plt_type][data_label],
+                                label=data_label)
+                cur_ax.legend()
+
             else:
                 cur_ax.plot(range(0, tot_epochs, self.epoch_interval),
                             self.results_dict[plt_type])
@@ -88,26 +84,41 @@ class Plotter:
         plt.show()
 
 
-    def plot_learning_curve(self, network, train_x, train_y):
+    def plot_learning_curve(self, network, data_x, data_y, data_label="tr"):
 
         for metric in self.lr_metric_list:
 
             if metric.name == "nll":
-                pred_vec = network.forward(train_x, net_out=True)
+                pred_vec = network.forward(data_x, net_out=True)
             elif metric.name == "squared":
-                pred_vec = network.forward(train_x)
+                pred_vec = network.forward(data_x)
             else:
-                pred_vec = network.forward(train_x)
+                pred_vec = network.forward(data_x)
                 pred_vec[pred_vec < 0.5] = 0
                 pred_vec[pred_vec >= 0.5] = 1
 
-            metric_res = metric(train_y, pred_vec)
+            metric_res = metric(data_y, pred_vec)
 
-            self.results_dict[f"lr_curve ({metric.name})"].append(metric_res)
+            plot_name = f"lr_curve ({metric.name})"
+
+            if plot_name not in self.results_dict:
+                self.results_dict[plot_name] = {}
+
+            if data_label not in self.results_dict[plot_name]:
+                self.results_dict[plot_name][data_label] = []
+
+            self.results_dict[plot_name][data_label].append(metric_res)
+
+    def plot_learning_rate(self, optimizer):
+
+        if "lr" not in self.results_dict:
+            self.results_dict["lr"] = []
+
+        self.results_dict["lr"].append(optimizer.lr)
 
     # Note: needs to be used after a backward pass
     # TODO: check if there are problems with optimizer op order
-    def plot_gradient_norm(self, network, train_x):
+    def plot_gradient_norm(self, network, data_x):
 
         norm_grad_list = []
 
@@ -121,13 +132,19 @@ class Plotter:
 
             norm_grad_list.append(norm_grad)
 
+        if "grad_norm" not in self.results_dict:
+            self.results_dict["grad_norm"] = []
+
         self.results_dict["grad_norm"].append(norm_grad_list)
 
-    def plot_activ_func_out(self, network, train_x):
+    def plot_activ_func_out(self, network, data_x):
 
         act_list = []
 
         for layer in network.layers:
             act_list.append(np.average(layer.out))
+
+        if "act_val" not in self.results_dict:
+            self.results_dict["act_val"] = []
 
         self.results_dict["act_val"].append(act_list)

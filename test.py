@@ -146,6 +146,7 @@ def test_monk(path_train, path_test):
     plotter = Plotter(1, ["lr_curve", "lr", "act_val", "grad_norm"],
                       [metric, metr_dict["miscl. error"]], 2)
     gd.train(net, train_x, train_y, plotter=plotter)
+    plotter.plot()
 
     return best_result
 
