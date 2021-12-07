@@ -7,6 +7,26 @@ from network import Network
 from optimizer import GradientDescent
 
 
+def cleanup_par_combo(combo_list, key_list):
+
+    new_list = []
+    reg_bool = False  # Used to ignore multiple combos when reg_val = 0
+    mom_bool = False  # Used to ignore multiple combos when momentum_val = 0
+
+    for combo in combo_list:
+
+        if combo[key_list.index('reg_val')] == 0 and reg_bool:
+            continue
+
+        if combo[key_list.index('momentum_val')] == 0 and mom_bool:
+            continue
+
+
+        new_list.append(combo)
+
+    return new_list
+
+
 def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k, metric):
 
     # Obtain a fixed order list of corresponding key-value pairs
@@ -15,6 +35,7 @@ def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k, metric):
 
     # It makes a cartesian product between all hyper-parameters
     combo_list = list(it.product(*(net_values+opt_values)))  # Join the two list of params
+    combo_list = cleanup_par_combo(combo_list, net_keys+opt_keys)
 
     list_tasks = []
 
