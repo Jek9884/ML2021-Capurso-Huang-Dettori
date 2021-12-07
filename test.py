@@ -54,7 +54,7 @@ def simple_learning_test_regression():
     net = Network([2, 2, 2], init_dict["norm"], act_dict["sigm"],
                   act_dict["identity"], loss_dict["squared"])
 
-    gd = GradientDescent(0.5, -1, epochs=50)
+    gd = GradientDescent(0.5, -1, lim_epochs=50)
     gd.train(net, train_x, train_y)
 
     return net.forward(train_x)
@@ -70,7 +70,7 @@ def simple_and_learning_test_classification():  # Func: A and B
                   act_dict["sigm"],
                   loss_dict["nll"])
 
-    gd = GradientDescent(0.5, -1, epochs=500)
+    gd = GradientDescent(0.5, -1, lim_epochs=500)
     gd.train(net, train_x, train_y)
 
     net_pred = net.forward(train_x)
@@ -91,7 +91,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
                   act_dict["sigm"],
                   loss_dict["nll"])
 
-    gd = GradientDescent(0.5, -1, epochs=500)
+    gd = GradientDescent(0.5, -1, lim_epochs=500)
     gd.train(net, train_x, train_y)
 
     net_pred = net.forward(train_x)
@@ -120,7 +120,7 @@ def test_monk(path_train, path_test):
         'reg_type': [2],
         'momentum_val': [0, 0.9],
         'nesterov': [False, True],
-        'epochs': [200],
+        'lim_epochs': [200],
         'lr_decay': [True, False],
         'lr_decay_tau': [50, 100],
         'stop_crit_type': ['fixed', 'weights_change'],

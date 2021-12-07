@@ -4,7 +4,7 @@ import numpy as np
 class GradientDescent:
 
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
-                 nesterov=False, epochs=None, lr_decay=False, lr_decay_tau=None,
+                 nesterov=False, lim_epochs=None, lr_decay=False, lr_decay_tau=None,
                  stop_crit_type='fixed', epsilon=None, patient=None):
 
         if lr <= 0 or lr > 1:
@@ -19,38 +19,48 @@ class GradientDescent:
         self.batch_size = batch_size
         self.momentum_val = momentum_val
         self.nesterov = nesterov
-        self.epochs = epochs
+        self.lim_epochs = lim_epochs
         self.lr_decay = lr_decay
         self.lr_decay_tau = lr_decay_tau
         self.stop_crit_type = stop_crit_type
         self.epsilon = epsilon
         self.patient = patient
 
+        # linear decay heuristic
+        if self.lr_decay:
+            self.eta_0 = self.lr
+            self.eta_tau = self.eta_0 / 100
+
+        self.reset_optimizer()
+
+    # Reset "moving parts" of the optimizer
+    # To use after completing the whole training on the model
+    # Or when switching models
+    def reset_optimizer(self):
+
+        # Used to keep track of cumulative amount of epochs trained
+        # Useful to know when to reset lr_decay's alpha
+        self.epoch_count = 0
+
         if self.stop_crit_type == 'weights_change':
             self.count_patient = 0
 
-    def train(self, net, train_x, train_y, epochs=None, plotter=None):
+    def train(self, net, train_x, train_y, step_epochs=None, plotter=None):
 
         # Allow for more flexibility in using the optimizer with different epochs
-        if epochs is None:
-            epochs = self.epochs
+        if step_epochs is None:
+            lim_epochs = self.lim_epochs
+        else:
+            lim_epochs = self.epoch_count + step_epochs
+
 
         n_patterns = train_x.shape[0]
         index_list = np.arange(n_patterns)
         np.random.shuffle(index_list)  # Bengio et al suggest that one shuffle is enough
 
-        if self.lr_decay:
-            eta_0 = self.lr
-            eta_tau = eta_0 / 100
-
-        n_epochs = 0
-
         delta_weights = np.inf
 
-        if epochs is None:
-            raise ValueError('epochs should not be None')
-
-        while self.check_stop_crit(delta_weights) and n_epochs < epochs:
+        while self.check_stop_crit(delta_weights) and self.epoch_count < lim_epochs:
 
             old_weights = []
 
@@ -59,8 +69,8 @@ class GradientDescent:
                     old_weights.append(layer.weights)
 
             if self.lr_decay:
-                alpha = n_epochs / self.lr_decay_tau
-                self.lr = eta_0 * (1 - alpha) + alpha * eta_tau
+                alpha = self.epoch_count / self.lr_decay_tau
+                self.lr = self.eta_0*(1-alpha) + alpha*self.eta_tau
 
             if self.batch_size == -1:  # Batch version
                 self.__step(net, train_x, train_y)
@@ -88,12 +98,9 @@ class GradientDescent:
                 delta_weights = np.average(norm_weights)
 
             if plotter is not None:
-                plotter.build_plot(net, self, train_x, train_y, n_epochs)
+                plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
 
-            n_epochs += 1
-
-        if plotter is not None:
-            plotter.plot()
+            self.epoch_count += 1
 
     def check_stop_crit(self, delta_w=None):
 
