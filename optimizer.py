@@ -120,7 +120,7 @@ class GradientDescent:
 
         net.null_grad()
 
-        if self.nesterov:
+        if self.momentum_val != 0 and self.nesterov:
             for layer in net.layers:
                 layer.weights += self.momentum_val * layer.delta_w_old
 
