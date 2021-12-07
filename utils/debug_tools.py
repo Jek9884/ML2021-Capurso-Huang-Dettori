@@ -36,9 +36,9 @@ class Plotter:
             elif plt_type == "lr":
                 self.plot_learning_rate(optimizer)
             elif plt_type == "grad_norm":
-                self.plot_gradient_norm(network, data_x)
+                self.plot_gradient_norm(network)
             elif plt_type == "act_val":
-                self.plot_activ_func_out(network, data_x)
+                self.plot_activ_func_out(network)
 
         self.num_intervals += 1
 
@@ -118,7 +118,7 @@ class Plotter:
 
     # Note: needs to be used after a backward pass
     # TODO: check if there are problems with optimizer op order
-    def plot_gradient_norm(self, network, data_x):
+    def plot_gradient_norm(self, network):
 
         norm_grad_list = []
 
@@ -137,7 +137,7 @@ class Plotter:
 
         self.results_dict["grad_norm"].append(norm_grad_list)
 
-    def plot_activ_func_out(self, network, data_x):
+    def plot_activ_func_out(self, network):
 
         act_list = []
 

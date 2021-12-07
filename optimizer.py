@@ -51,16 +51,21 @@ class GradientDescent:
 
         # Allow for more flexibility in using the optimizer with different epochs
         if step_epochs is None:
-            lim_epochs = self.lim_epochs
+            lim_step = self.lim_epochs
         else:
-            lim_epochs = self.epoch_count + step_epochs
+            lim_step = self.epoch_count + step_epochs
 
         n_patterns = train_x.shape[0]
         index_list = np.arange(n_patterns)
         # Bengio et al suggest that one shuffle is enough
         np.random.shuffle(index_list)
 
-        while self.check_stop_crit() and self.epoch_count < lim_epochs:
+        train_cond = self.check_stop_crit() and self.epoch_count < self.lim_epochs
+
+        while train_cond:
+
+            if self.epoch_count >= lim_step:
+                break
 
             old_weights = []
 
@@ -103,9 +108,10 @@ class GradientDescent:
                 plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
 
             self.epoch_count += 1
+            train_cond = self.check_stop_crit() and self.epoch_count < self.lim_epochs
 
         # Used to determine if there needs to be further training
-        return self.check_stop_crit() and self.epoch_count < lim_epochs
+        return train_cond
 
     def check_stop_crit(self):
 

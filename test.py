@@ -8,7 +8,7 @@ from functions.init_funcs import init_dict
 from functions.metric_funcs import metr_dict
 from optimizer import GradientDescent
 from utils.data_handler import read_monk
-from utils.hype_search import grid_search
+from utils.hype_search import grid_search, kfold_cv
 from utils.debug_tools import Plotter
 
 
@@ -142,6 +142,9 @@ def test_monk(path_train, path_test):
 
     net = Network(**best_combo[0])
     gd = GradientDescent(**best_combo[1])
+
+    kfold_cv(best_combo[0], best_combo[1], train_x, train_y, 5, metric, plot_bool=True)
+
 
     plotter = Plotter(1, ["lr_curve", "lr", "act_val", "grad_norm"],
                       [metric, metr_dict["miscl. error"]], 2)

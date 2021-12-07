@@ -2,6 +2,7 @@ import itertools as it
 import time
 from joblib import Parallel, delayed
 import numpy as np
+import matplotlib.pyplot as plt
 
 from network import Network
 from optimizer import GradientDescent
@@ -64,12 +65,14 @@ def compare_results_metric(results, metric):
 
     return best_score, best_combo
 
-def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
+def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric,
+             seed=42, plot_bool=False):
 
     fold_size = int(np.ceil(x_mat.shape[0] / k))
-    tot_tr_score = 0
-    tot_val_score = 0
+    # Store all epochs results for all folds for both tr set and val set
+    score_dict = {"tr": [], "val": []}
     pattern_idx = np.arange(x_mat.shape[0])
+    lim_epochs = par_combo_opt["lim_epochs"]
 
     np.random.seed(seed)
     np.random.shuffle(pattern_idx)
@@ -87,29 +90,65 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, seed=42):
         val_x = x_mat[i*fold_size:(i+1)*fold_size]
         val_y = y_mat[i*fold_size:(i+1)*fold_size]
 
-        cur_net = train(train_x, train_y, par_combo_net, par_combo_opt)
+        tr_score_list, val_score_list = train_eval_fold(par_combo_net,
+                                                        par_combo_opt, train_x,
+                                                        train_y, val_x, val_y,
+                                                        metric)
+        score_dict["tr"].append(tr_score_list)
+        score_dict["val"].append(val_score_list)
 
-        # Evaluate the net
-        net_pred_tr = cur_net.forward(train_x)
-        net_pred_tr[net_pred_tr < 0.5] = 0
-        net_pred_tr[net_pred_tr >= 0.5] = 1
+    avg_tr_score = np.average(score_dict["tr"], axis=0)
+    avg_val_score = np.average(score_dict["val"], axis=0)
 
-        net_pred_val = cur_net.forward(val_x)
-        net_pred_val[net_pred_val < 0.5] = 0
-        net_pred_val[net_pred_val >= 0.5] = 1
+    if plot_bool:
 
-        tot_tr_score += metric(train_y, net_pred_tr)
-        tot_val_score += metric(val_y, net_pred_val)
+        plt.plot(range(0, lim_epochs), avg_tr_score, label="tr")
+        plt.plot(range(0, lim_epochs), avg_val_score, label="val")
 
-    return tot_tr_score/k, tot_val_score/k, par_combo_net, par_combo_opt
+        plt.xlabel("Epochs")
+        plt.ylabel(f"Metric ({metric.name})")
+        plt.legend()
+        plt.show()
 
 
-def train(train_x, train_y, par_combo_net, par_combo_opt): # combo* are dicts
+    return avg_tr_score[-1], avg_val_score[-1], par_combo_net, par_combo_opt
 
-    network = Network(**par_combo_net)
+def train_eval_fold(par_combo_net, par_combo_opt, train_x, train_y,
+                    val_x, val_y, metric):
 
+    cur_net = Network(**par_combo_net)
     gradient_descent = GradientDescent(**par_combo_opt)
+    lim_epochs = par_combo_opt["lim_epochs"]
 
-    gradient_descent.train(network, train_x, train_y)
+    results_tr_list = []
+    results_val_list = []
 
-    return network
+    count = 0
+    train_bool = True
+
+    while train_bool:
+
+        train_bool = gradient_descent.train(cur_net, train_x, train_y, 1)
+        count += 1
+
+        results_tr_list.append(eval_dataset(cur_net, train_x, train_y, metric))
+        results_val_list.append(eval_dataset(cur_net, val_x, val_y, metric))
+
+    # Increase length by repeating last result in order to 
+    # have the same number of epochs in each output
+    for i in range(lim_epochs - len(results_tr_list)):
+        results_tr_list.append(results_tr_list[-1])
+        results_val_list.append(results_val_list[-1])
+
+    return results_tr_list, results_val_list
+
+
+def eval_dataset(net, data_x, data_y, metric):
+
+    net_pred = net.forward(data_x)
+
+    # Note: it works only with classification
+    net_pred[net_pred < 0.5] = 0
+    net_pred[net_pred >= 0.5] = 1
+
+    return metric(data_y, net_pred)[0]
