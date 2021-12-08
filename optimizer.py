@@ -68,7 +68,8 @@ class GradientDescent:
                 break
 
             if self.lr_decay:
-                alpha = self.epoch_count / self.lr_decay_tau
+                # Avoid having an alpha > 1 due to difference in lim_epochs/tau
+                alpha = min(self.epoch_count / self.lr_decay_tau, 1)
                 self.lr = self.eta_0*(1-alpha) + alpha*self.eta_tau
 
             # Batch version
