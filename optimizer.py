@@ -44,7 +44,7 @@ class GradientDescent:
         self.epoch_count = 0
 
         if self.stop_crit_type == 'weights_change':
-            self.delta_weights = np.inf
+            self.delta_w_norm = np.inf
             self.count_patient = 0
 
     def train(self, net, train_x, train_y, step_epochs=None, plotter=None):
@@ -66,12 +66,6 @@ class GradientDescent:
 
             if self.epoch_count >= lim_step:
                 break
-
-            old_weights = []
-
-            if self.stop_crit_type == 'weights_change':
-                for layer in net.layers:
-                    old_weights.append(layer.weights)
 
             if self.lr_decay:
                 alpha = self.epoch_count / self.lr_decay_tau
@@ -100,10 +94,10 @@ class GradientDescent:
                 norm_weights = []
 
                 for i, layer in enumerate(net.layers):
-                    norm_weights.append(np.linalg.norm(np.subtract(layer.weights, old_weights[i])))
+                    norm_weights.append(np.linalg.norm(layer.delta_w_old))
 
                 # Take the biggest change in weights to determine stop cond
-                self.delta_weights = np.max(norm_weights)
+                self.delta_w_norm = np.max(norm_weights)
 
             if plotter is not None:
                 plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
@@ -121,7 +115,7 @@ class GradientDescent:
         elif self.stop_crit_type == 'weights_change':
             epsilon = self.epsilon
 
-            if self.delta_weights > epsilon:
+            if self.delta_w_norm > epsilon:
                 self.count_patient = 0
                 result = True
             else:

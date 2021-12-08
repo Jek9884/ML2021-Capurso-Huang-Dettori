@@ -112,7 +112,7 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
         plt.plot(range(0, lim_epochs), avg_tr_score, label="tr")
         plt.plot(range(0, lim_epochs), avg_val_score, label="val")
 
-        plt.title("Results of kfold")
+        plt.title(f"Results of kfold ({n_runs} runs)")
         plt.xlabel("Epochs")
         plt.ylabel(f"Metric ({metric.name})")
         plt.legend()
@@ -155,8 +155,15 @@ def eval_dataset(net, data_x, data_y, metric):
 
     net_pred = net.forward(data_x)
 
-    # Note: it works only with classification
-    net_pred[net_pred < 0.5] = 0
-    net_pred[net_pred >= 0.5] = 1
+    if metric.name == "nll":
+        res = np.squeeze(metric(data_y, net_pred))
+    elif metric.name in ["miscl. error"]:
+        # Note: it works only with classification
+        net_pred[net_pred < 0.5] = 0
+        net_pred[net_pred >= 0.5] = 1
 
-    return np.squeeze(metric(data_y, net_pred))
+        res = metric(data_y, net_pred)
+    else:
+        raise ValueError(f"Metric not supported in kfold ({metric.name})")
+
+    return res
