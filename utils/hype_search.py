@@ -65,8 +65,8 @@ def compare_results_metric(results, metric):
 
     return best_score, best_combo
 
-def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric,
-             seed=42, plot_bool=False):
+def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
+             plot_bool=False):
 
     fold_size = int(np.ceil(x_mat.shape[0] / k))
     # Store all epochs results for all folds for both tr set and val set
@@ -74,28 +74,35 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric,
     pattern_idx = np.arange(x_mat.shape[0])
     lim_epochs = par_combo_opt["lim_epochs"]
 
-    np.random.seed(seed)
     np.random.shuffle(pattern_idx)
 
-    for i in range(k):
+    for _ in range(n_runs):
 
-        # Everything except i*fold_size:(i+1)*fold_size segment
-        train_idx = np.concatenate(
-            (pattern_idx[:i*fold_size],
-             pattern_idx[(i+1)*fold_size:]), axis=0)
+        tmp_tr_scores = []
+        tmp_val_scores = []
 
-        train_x = x_mat[train_idx]
-        train_y = y_mat[train_idx]
+        for i in range(k):
 
-        val_x = x_mat[i*fold_size:(i+1)*fold_size]
-        val_y = y_mat[i*fold_size:(i+1)*fold_size]
+            # Everything except i*fold_size:(i+1)*fold_size segment
+            train_idx = np.concatenate(
+                (pattern_idx[:i*fold_size],
+                 pattern_idx[(i+1)*fold_size:]), axis=0)
 
-        tr_score_list, val_score_list = train_eval_fold(par_combo_net,
-                                                        par_combo_opt, train_x,
-                                                        train_y, val_x, val_y,
-                                                        metric)
-        score_dict["tr"].append(tr_score_list)
-        score_dict["val"].append(val_score_list)
+            train_x = x_mat[train_idx]
+            train_y = y_mat[train_idx]
+
+            val_x = x_mat[i*fold_size:(i+1)*fold_size]
+            val_y = y_mat[i*fold_size:(i+1)*fold_size]
+
+            tr_score_list, val_score_list =\
+                train_eval_fold(par_combo_net, par_combo_opt, train_x,
+                                train_y, val_x, val_y, metric)
+
+            tmp_tr_scores.append(tr_score_list)
+            tmp_val_scores.append(val_score_list)
+
+        score_dict["tr"].append(np.average(tmp_tr_scores, axis=0))
+        score_dict["val"].append(np.average(tmp_val_scores, axis=0))
 
     avg_tr_score = np.average(score_dict["tr"], axis=0)
     avg_val_score = np.average(score_dict["val"], axis=0)
@@ -105,10 +112,11 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric,
         plt.plot(range(0, lim_epochs), avg_tr_score, label="tr")
         plt.plot(range(0, lim_epochs), avg_val_score, label="val")
 
+        plt.title("Results of kfold")
         plt.xlabel("Epochs")
         plt.ylabel(f"Metric ({metric.name})")
         plt.legend()
-        plt.show()
+        plt.show(block=False)
 
 
     return avg_tr_score[-1], avg_val_score[-1], par_combo_net, par_combo_opt
@@ -151,4 +159,4 @@ def eval_dataset(net, data_x, data_y, metric):
     net_pred[net_pred < 0.5] = 0
     net_pred[net_pred >= 0.5] = 1
 
-    return metric(data_y, net_pred)[0]
+    return np.squeeze(metric(data_y, net_pred))

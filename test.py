@@ -101,7 +101,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     return metr_dict["accuracy"](train_y, net_pred)
 
 
-def test_monk(path_train, path_test):
+def test_monk_grid_search(path_train, path_test):
     train_x, train_y = read_monk(path_train)
     test_x, test_y = read_monk(path_test)
 
@@ -140,18 +140,50 @@ def test_monk(path_train, path_test):
     print('loss_func: ' + best_combo[0]['loss_func'].name)
     print(best_combo[1])
 
-    net = Network(**best_combo[0])
-    gd = GradientDescent(**best_combo[1])
+    return best_result
 
-    kfold_cv(best_combo[0], best_combo[1], train_x, train_y, 5, metric, plot_bool=True)
+def test_monk(path_train, path_test):
+    train_x, train_y = read_monk(path_train, norm_data=False)
+    test_x, test_y = read_monk(path_test, norm_data=False)
 
+    dict_param_net = {
+        'conf_layers': [6, 2, 1],
+        'init_func': init_dict["norm"],
+        'act_func': act_dict["tanh"],
+        'out_func': act_dict["sigm"],
+        'loss_func': loss_dict["nll"]
+    }
 
-    plotter = Plotter(1, ["lr_curve", "lr", "act_val", "grad_norm"],
-                      [metric, metr_dict["miscl. error"]], 2)
+    dict_param_sgd = {
+        'lr': 0.5,
+        'batch_size': -1,
+        'reg_val': 0,
+        'reg_type': 2,
+        'momentum_val': 0,
+        'nesterov': False,
+        'lim_epochs': 200,
+        'lr_decay': True,
+        'lr_decay_tau': 200,
+        'stop_crit_type': 'weights_change',
+        'epsilon': 0.005,
+        'patient': 10
+    }
+
+    metric1 = error_dict["nll"]
+    metric2 = metr_dict["miscl. error"]
+
+    net = Network(**dict_param_net)
+    gd = GradientDescent(**dict_param_sgd)
+
+    res = kfold_cv(dict_param_net, dict_param_sgd, train_x, train_y, 5,
+                   metric2, plot_bool=True, n_runs=10)
+
+    plotter = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
+                      [metric1, metric2], 2)
     gd.train(net, train_x, train_y, plotter=plotter)
     plotter.plot()
 
-    return best_result
+    return res[1]
 
 
 print("Forward test: ", forward_test())
@@ -163,4 +195,4 @@ print("Simple classification test: ", simple_learning_test_classification())
 # Tests on monk1
 path_train_monk1 = os.path.join('datasets', 'monks-1.train')
 path_test_monk1 = os.path.join('datasets', 'monks-1.test')
-print("Monk 1 score on train set:", test_monk(path_train_monk1, path_test_monk1))
+print("Monk 1 score on validation set:", test_monk(path_train_monk1, path_test_monk1))

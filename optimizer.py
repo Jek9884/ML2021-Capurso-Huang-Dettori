@@ -102,7 +102,8 @@ class GradientDescent:
                 for i, layer in enumerate(net.layers):
                     norm_weights.append(np.linalg.norm(np.subtract(layer.weights, old_weights[i])))
 
-                self.delta_weights = np.average(norm_weights)
+                # Take the biggest change in weights to determine stop cond
+                self.delta_weights = np.max(norm_weights)
 
             if plotter is not None:
                 plotter.build_plot(net, self, train_x, train_y, self.epoch_count)

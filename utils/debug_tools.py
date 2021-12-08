@@ -7,7 +7,7 @@ import numpy as np
 
 class Plotter:
 
-    def __init__(self, epoch_interval, type_plots=[], lr_metric_list=None, n_cols=1):
+    def __init__(self, type_plots=[], lr_metric_list=None, n_cols=1, epoch_interval=1):
 
         self.epoch_interval = epoch_interval
         self.num_intervals = 0
@@ -38,7 +38,7 @@ class Plotter:
             elif plt_type == "grad_norm":
                 self.plot_gradient_norm(network)
             elif plt_type == "act_val":
-                self.plot_activ_func_out(network)
+                self.plot_activ_func_out(network, data_x)
 
         self.num_intervals += 1
 
@@ -137,9 +137,11 @@ class Plotter:
 
         self.results_dict["grad_norm"].append(norm_grad_list)
 
-    def plot_activ_func_out(self, network):
+    def plot_activ_func_out(self, network, data_x):
 
         act_list = []
+
+        network.forward(data_x)
 
         for layer in network.layers:
             act_list.append(np.average(layer.out))
