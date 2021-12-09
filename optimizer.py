@@ -60,6 +60,8 @@ class GradientDescent:
         # Bengio et al suggest that one shuffle is enough
         np.random.shuffle(index_list)
 
+        # Note: train() can also be called on a partially trained model
+        # Since the check has side effects we need to store the result
         train_cond = self.check_stop_crit() and self.epoch_count < self.lim_epochs
 
         while train_cond:
@@ -74,37 +76,35 @@ class GradientDescent:
 
             # Batch version
             if self.batch_size == -1:
-                self.__step(net, train_x, train_y)
+                train_cond = self.__step(net, train_x, train_y)
 
             # Online/mini-batch version
             elif 1 <= self.batch_size < n_patterns:
 
-                n_mini_batch = int(np.ceil(n_patterns / self.batch_size))
+                n_minibatch = int(np.ceil(n_patterns / self.batch_size))
+                i = 0
 
-                for i in range(n_mini_batch):
+                while i < n_minibatch and train_cond:
                     idx_list = index_list[i * self.batch_size: (i + 1) * self.batch_size]
                     mini_batch_x = train_x[idx_list]
                     mini_batch_y = train_y[idx_list]
-                    self.__step(net, mini_batch_x, mini_batch_y)
+
+                    train_cond = self.__step(net, mini_batch_x, mini_batch_y)
+                    i += 1
 
             else:
                 raise ValueError("Mini-batch size should be >= 1 and < l.\
                                  If you want to use the batch version use -1.")
 
-            if self.stop_crit_type == 'delta_w':
-                norm_weights = []
-
-                for i, layer in enumerate(net.layers):
-                    norm_weights.append(np.linalg.norm(layer.delta_w_old))
-
-                # Take the biggest change in weights to determine stop cond
-                self.delta_w_norm = np.max(norm_weights)
-
             if plotter is not None:
                 plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
 
-            self.epoch_count += 1
-            train_cond = self.check_stop_crit() and self.epoch_count < self.lim_epochs
+            # If training is already over do not increase epochs
+            if train_cond:
+                self.epoch_count += 1
+
+            # The criterion is already checked at each step
+            train_cond = train_cond and self.epoch_count < self.lim_epochs
 
         # Used to determine if there needs to be further training
         return train_cond
@@ -142,6 +142,18 @@ class GradientDescent:
         net.backward(sub_train_y, out)
 
         self.__update_weights(net, sub_train_x.shape[0])
+
+        if self.stop_crit_type == 'delta_w':
+            norm_weights = []
+
+            for i, layer in enumerate(net.layers):
+                norm_weights.append(np.linalg.norm(layer.delta_w_old))
+
+            # Take the biggest change in weights to determine stop cond
+            self.delta_w_norm = np.max(norm_weights)
+
+        return self.check_stop_crit()
+
 
     def __update_weights(self, net, num_patt):
 
