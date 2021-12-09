@@ -1,5 +1,5 @@
 import itertools as it
-import time
+from inspect import signature
 from joblib import Parallel, delayed
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,7 +8,7 @@ from network import Network
 from optimizer import GradientDescent
 
 
-def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k, metric):
+def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k, metric, kfold_runs=10):
 
     # Obtain a fixed order list of corresponding key-value pairs
     net_keys, net_values = zip(*par_dict_net.items())
@@ -28,7 +28,7 @@ def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k, metric):
         dict_opt = {opt_keys[i]: combo_opt[i] for i in range(len(opt_keys))}
 
         task = delayed(kfold_cv)(dict_net, dict_opt,
-                                 train_x, train_y, k, metric)
+                                 train_x, train_y, k, metric, n_runs=kfold_runs)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {len(list_tasks)}")
@@ -72,7 +72,12 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
     # Store all epochs results for all folds for both tr set and val set
     score_dict = {"tr": [], "val": []}
     pattern_idx = np.arange(x_mat.shape[0])
-    lim_epochs = par_combo_opt["lim_epochs"]
+
+    if "lim_epochs" in par_combo_opt:
+        lim_epochs = par_combo_opt["lim_epochs"]
+    else:
+        # Retrieve default from function paramenters
+        lim_epochs = signature(GradientDescent).parameters["lim_epochs"].default
 
     np.random.shuffle(pattern_idx)
 
@@ -96,7 +101,7 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
 
             tr_score_list, val_score_list =\
                 train_eval_fold(par_combo_net, par_combo_opt, train_x,
-                                train_y, val_x, val_y, metric)
+                                train_y, val_x, val_y, metric, lim_epochs)
 
             tmp_tr_scores.append(tr_score_list)
             tmp_val_scores.append(val_score_list)
@@ -122,11 +127,10 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
     return avg_tr_score[-1], avg_val_score[-1], par_combo_net, par_combo_opt
 
 def train_eval_fold(par_combo_net, par_combo_opt, train_x, train_y,
-                    val_x, val_y, metric):
+                    val_x, val_y, metric, lim_epochs):
 
     cur_net = Network(**par_combo_net)
     gradient_descent = GradientDescent(**par_combo_opt)
-    lim_epochs = par_combo_opt["lim_epochs"]
 
     results_tr_list = []
     results_val_list = []

@@ -44,6 +44,9 @@ class Plotter:
 
     def plot(self):
 
+        if self.results_dict is None:
+            raise RuntimeError("Plotter: no results to plot")
+
         plot_dims = ((len(self.results_dict)+1)//self.n_cols, self.n_cols)
         fig, axs = plt.subplots(*plot_dims, squeeze=False)
         tot_epochs = self.num_intervals * self.epoch_interval
@@ -92,10 +95,12 @@ class Plotter:
                 pred_vec = network.forward(data_x, net_out=True)
             elif metric.name == "squared":
                 pred_vec = network.forward(data_x)
-            else:
+            elif metric.name in ["miscl. error"]:
                 pred_vec = network.forward(data_x)
                 pred_vec[pred_vec < 0.5] = 0
                 pred_vec[pred_vec >= 0.5] = 1
+            else:
+                raise ValueError("plot_learning_curve: unsupported metric")
 
             metric_res = metric(data_y, pred_vec)
 
