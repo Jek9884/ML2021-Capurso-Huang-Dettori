@@ -3,9 +3,14 @@ from functions.Function import Function, DerivableFunction
 
 
 # Weight initialisation functions (layer-wise, assume a shape (unit, feature))
-def std_weight_init(shape, sparse_count=0):
-    init_matrix = np.random.uniform(low=-1 / np.sqrt(shape[1]),
-                                    high=1 / np.sqrt(shape[1]),
+def std_weight_init(shape, scale=0, sparse_count=0):
+
+    # Defaults to number of nodes in layer as scale for uniform distr
+    if scale == 0:
+        scale = shape[1]
+
+    init_matrix = np.random.uniform(low=-1 / np.sqrt(scale),
+                                    high=1 / np.sqrt(scale),
                                     size=shape)
 
     if 0 < sparse_count < shape[1]:

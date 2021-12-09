@@ -1,6 +1,7 @@
 import numpy as np
 from layer import Layer
 from functions.act_funcs import identity_act_func
+from functools import partial
 
 """
 
@@ -26,7 +27,7 @@ Attributes:
 class Network:
 
     def __init__(self, conf_layers, init_func=None, act_func=None, out_func=None,
-                 loss_func=None, bias=None, debug_bool=False):
+                 loss_func=None, bias=None, debug_bool=False, init_scale=0):
 
         self.conf_layers = conf_layers
         self.init_func = init_func
@@ -41,10 +42,14 @@ class Network:
             # Init layer bias with heuristic value based on act/out func
             bias_dict = {"identity": 0,
                          "sigm": 0.5,
-                         "tanh": 0}
+                         "tanh": 0,
+                         "relu": 0.1}
             act_bias = [bias_dict[act_func.name]]*(len(conf_layers)-2)
             out_bias = bias_dict[out_func.name]
             self.bias = [*act_bias, out_bias]
+
+        if self.init_func is not None and self.init_func.name == "std":
+            init_func = partial(init_func, scale=init_scale)
 
         # layers init
         for i in range(len(conf_layers) - 2):

@@ -1,7 +1,6 @@
 import numpy as np
 from functions.Function import Function, DerivableFunction
 
-
 # Activation functions
 def identity(x):
     return x
@@ -28,12 +27,20 @@ def tanh_deriv(x):
     return np.multiply(4, sigm_deriv(np.multiply(2, x)))
 
 
+def relu(x):
+    return np.maximum(x, 0)
+
+def relu_deriv(x):
+    return np.maximum(np.sign(x), 0)
+
 # Activation function dictionary
 identity_act_func = DerivableFunction(identity, identity_deriv, 'identity')
 sigm_act_func = DerivableFunction(sigm, sigm_deriv, 'sigm')
 tanh_act_func = DerivableFunction(tanh, tanh_deriv, 'tanh')
+relu_act_func = DerivableFunction(relu, relu_deriv, 'relu')
 act_dict = {
     'identity': identity_act_func,
     'sigm': sigm_act_func,
-    'tanh': tanh_act_func
+    'tanh': tanh_act_func,
+    'relu': relu_act_func
 }
