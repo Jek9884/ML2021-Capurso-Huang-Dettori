@@ -4,9 +4,9 @@ import numpy as np
 class GradientDescent:
 
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
-                 nesterov=False, lim_epochs=None, lr_decay=False,
+                 nesterov=False, lim_epochs=10**4, lr_decay=False,
                  lr_decay_tau=None, stop_crit_type='fixed', epsilon=None,
-                 patient=None):
+                 patient=5):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
@@ -43,7 +43,7 @@ class GradientDescent:
         # Useful to know when to reset lr_decay's alpha
         self.epoch_count = 0
 
-        if self.stop_crit_type == 'weights_change':
+        if self.stop_crit_type == 'delta_w':
             self.delta_w_norm = np.inf
             self.count_patient = 0
 
@@ -91,7 +91,7 @@ class GradientDescent:
                 raise ValueError("Mini-batch size should be >= 1 and < l.\
                                  If you want to use the batch version use -1.")
 
-            if self.stop_crit_type == 'weights_change':
+            if self.stop_crit_type == 'delta_w':
                 norm_weights = []
 
                 for i, layer in enumerate(net.layers):
@@ -113,7 +113,7 @@ class GradientDescent:
 
         if self.stop_crit_type == 'fixed':
             result = True
-        elif self.stop_crit_type == 'weights_change':
+        elif self.stop_crit_type == 'delta_w':
             epsilon = self.epsilon
 
             if self.delta_w_norm > epsilon:
@@ -134,7 +134,7 @@ class GradientDescent:
 
         net.null_grad()
 
-        if self.momentum_val != 0 and self.nesterov:
+        if self.momentum_val > 0 and self.nesterov:
             for layer in net.layers:
                 layer.weights += self.momentum_val * layer.delta_w_old
 
@@ -151,7 +151,7 @@ class GradientDescent:
             delta_w = self.lr * avg_grad_w
             delta_b = self.lr * avg_grad_b
 
-            if self.momentum_val != 0:
+            if self.momentum_val > 0:
                 delta_w += self.momentum_val * layer.delta_w_old
 
             # TODO: take decision regarding norm-1 and reg_type parameter
