@@ -35,12 +35,12 @@ def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k, metric, kfold_r
 
     # -2: Leave one core free
     # This is a barrier for the parallel computation
-    results = Parallel(n_jobs=-2, verbose=0)(list_tasks)
+    results = Parallel(n_jobs=-2, verbose=50)(list_tasks)
 
     return compare_results_metric(results, metric)
 
 
-def compare_results_metric(results, metric):
+def compare_results_metric(results, metric, topk=5):
 
     if metric.name in ["miscl. error", "nll"]:
         best_score = np.inf
@@ -49,21 +49,13 @@ def compare_results_metric(results, metric):
         best_score = 0
         sign = 1
 
-    best_combo = None
+    results = sorted(results, key=lambda i: i[1], reverse=(sign == 1))
+    results = results[:topk]
 
-    # This is a barrier for the parallel computation
-    for result in results:
+    best_score = results[0][1]
+    best_combo = [results[0][2], results[0][3]]
 
-        cur_val_score = result[1]
-
-        c1 = best_score < cur_val_score and sign == 1
-        c2 = best_score > cur_val_score and sign == -1
-
-        if c1 or c2:
-            best_score = cur_val_score
-            best_combo = [result[2], result[3]]  # Return both dicts
-
-    return best_score, best_combo
+    return best_score, best_combo, results
 
 def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
              plot_bool=False):
