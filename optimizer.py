@@ -96,11 +96,10 @@ class GradientDescent:
                 raise ValueError("Mini-batch size should be >= 1 and < l.\
                                  If you want to use the batch version use -1.")
 
-            if plotter is not None:
-                plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
-
             # If training is already over do not increase epochs
             if train_cond:
+                if plotter is not None:
+                    plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
                 self.epoch_count += 1
 
             # The criterion is already checked at each step
@@ -153,7 +152,6 @@ class GradientDescent:
             self.delta_w_norm = np.max(norm_weights)
 
         return self.check_stop_crit()
-
 
     def __update_weights(self, net, num_patt):
 

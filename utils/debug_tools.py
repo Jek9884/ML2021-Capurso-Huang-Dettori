@@ -122,7 +122,6 @@ class Plotter:
         self.results_dict["lr"].append(optimizer.lr)
 
     # Note: needs to be used after a backward pass
-    # TODO: check if there are problems with optimizer op order
     def plot_gradient_norm(self, network):
 
         norm_grad_list = []
@@ -131,6 +130,7 @@ class Plotter:
 
             bias_shape = (layer.grad_w.shape[0], 1)
 
+            # TODO: check for spike in plot
             # Uses frobenius norm on the joint weights (bias included) matrix
             grad_layer = np.hstack((layer.grad_w, layer.grad_b.reshape(bias_shape)))
             norm_grad = np.linalg.norm(grad_layer)

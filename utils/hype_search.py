@@ -40,23 +40,6 @@ def grid_search(train_x, train_y, par_dict_net, par_dict_opt, k, metric, kfold_r
     return compare_results_metric(results, metric)
 
 
-def compare_results_metric(results, metric, topk=5):
-
-    if metric.name in ["miscl. error", "nll"]:
-        best_score = np.inf
-        sign = -1
-    else:
-        best_score = 0
-        sign = 1
-
-    results = sorted(results, key=lambda i: i[1], reverse=(sign == 1))
-    results = results[:topk]
-
-    best_score = results[0][1]
-    best_combo = [results[0][2], results[0][3]]
-
-    return best_score, best_combo, results
-
 def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
              plot_bool=False):
 
@@ -64,12 +47,6 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
     # Store all epochs results for all folds for both tr set and val set
     score_dict = {"tr": [], "val": []}
     pattern_idx = np.arange(x_mat.shape[0])
-
-    if "lim_epochs" in par_combo_opt:
-        lim_epochs = par_combo_opt["lim_epochs"]
-    else:
-        # Retrieve default from function paramenters
-        lim_epochs = signature(GradientDescent).parameters["lim_epochs"].default
 
     np.random.shuffle(pattern_idx)
 
@@ -93,21 +70,21 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
 
             tr_score_list, val_score_list =\
                 train_eval_fold(par_combo_net, par_combo_opt, train_x,
-                                train_y, val_x, val_y, metric, lim_epochs)
+                                train_y, val_x, val_y, metric)
 
             tmp_tr_scores.append(tr_score_list)
             tmp_val_scores.append(val_score_list)
 
-        score_dict["tr"].append(np.average(tmp_tr_scores, axis=0))
-        score_dict["val"].append(np.average(tmp_val_scores, axis=0))
+        score_dict["tr"].append(average_non_std_mat(tmp_tr_scores))
+        score_dict["val"].append(average_non_std_mat(tmp_val_scores))
 
-    avg_tr_score = np.average(score_dict["tr"], axis=0)
-    avg_val_score = np.average(score_dict["val"], axis=0)
+    avg_tr_score = average_non_std_mat(score_dict["tr"])
+    avg_val_score = average_non_std_mat(score_dict["val"])
 
     if plot_bool:
 
-        plt.plot(range(0, lim_epochs), avg_tr_score, label="tr")
-        plt.plot(range(0, lim_epochs), avg_val_score, label="val")
+        plt.plot(range(0, len(avg_tr_score)), avg_tr_score, label="tr")
+        plt.plot(range(0, len(avg_val_score)), avg_val_score, label="val")
 
         plt.title(f"Results of kfold ({n_runs} runs)")
         plt.xlabel("Epochs")
@@ -115,11 +92,52 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, k, metric, n_runs=1,
         plt.legend()
         plt.show(block=False)
 
-
     return avg_tr_score[-1], avg_val_score[-1], par_combo_net, par_combo_opt
 
+def average_non_std_mat(value_mat):
+
+    max_col = 0
+
+    # Find longest row of non-standard matrix
+    for row in value_mat:
+        len_row = len(row)
+
+        if len_row > max_col:
+            max_col = len_row
+
+    sum_vec = np.zeros((max_col,))  # Numerator
+    count_vec = np.zeros((max_col,))  # Denominator
+
+    for row in value_mat:
+        len_row = len(row)
+        # row with normalised length
+        sum_vec += np.append(np.array(row), np.zeros((max_col - len_row,)))
+        count_vec += np.append(np.ones((len_row,)), np.zeros((max_col - len_row,)))
+
+    div_vec = np.divide(sum_vec, count_vec)
+
+    return div_vec
+
+
+def compare_results_metric(results, metric, topk=5):
+
+    if metric.name in ["miscl. error", "nll"]:
+        best_score = np.inf
+        sign = -1
+    else:
+        best_score = 0
+        sign = 1
+
+    results = sorted(results, key=lambda i: i[1], reverse=(sign == 1))
+    results = results[:topk]
+
+    best_score = results[0][1]
+    best_combo = [results[0][2], results[0][3]]
+
+    return best_score, best_combo, results
+
 def train_eval_fold(par_combo_net, par_combo_opt, train_x, train_y,
-                    val_x, val_y, metric, lim_epochs):
+                    val_x, val_y, metric):
 
     cur_net = Network(**par_combo_net)
     gradient_descent = GradientDescent(**par_combo_opt)
@@ -127,22 +145,14 @@ def train_eval_fold(par_combo_net, par_combo_opt, train_x, train_y,
     results_tr_list = []
     results_val_list = []
 
-    count = 0
     train_bool = True
 
     while train_bool:
 
         train_bool = gradient_descent.train(cur_net, train_x, train_y, 1)
-        count += 1
 
         results_tr_list.append(eval_dataset(cur_net, train_x, train_y, metric))
         results_val_list.append(eval_dataset(cur_net, val_x, val_y, metric))
-
-    # Increase length by repeating last result in order to 
-    # have the same number of epochs in each output
-    for i in range(lim_epochs - len(results_tr_list)):
-        results_tr_list.append(results_tr_list[-1])
-        results_val_list.append(results_val_list[-1])
 
     return results_tr_list, results_val_list
 
