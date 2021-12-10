@@ -1,5 +1,4 @@
 import itertools as it
-from inspect import signature
 from joblib import Parallel, delayed
 import numpy as np
 import matplotlib.pyplot as plt

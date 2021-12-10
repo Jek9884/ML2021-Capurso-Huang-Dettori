@@ -65,13 +65,13 @@ def simple_and_learning_test_classification():  # Func: A and B
     train_y = np.asarray(np.matrix('0; 0; 0; 1'))
 
     net = Network([2, 1],
-                  init_dict["norm"],
+                  init_dict["std"],
                   act_dict["relu"],
                   act_dict["sigm"],
                   loss_dict["nll"])
 
-    gd = GradientDescent(0.5, 1, lr_decay=True, lr_decay_tau=100,
-                         momentum_val=0, stop_crit_type="delta_w", epsilon=0.01)
+    gd = GradientDescent(0.2, 1, lr_decay=True, lr_decay_tau=100,
+                         momentum_val=0.99, stop_crit_type="delta_w", epsilon=0.01)
     gd.train(net, train_x, train_y)
 
     net_pred = net.forward(train_x)
@@ -87,32 +87,35 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     train_y = np.asarray(np.matrix('0; 0; 1; 1; 1; 0; 0'))
 
     dict_param_net = {
-        'conf_layers': [4, 4, 1],
+        'conf_layers': [4, 2, 1],
         'init_func': init_dict["norm"],
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
-        'loss_func': loss_dict["nll"],
-        'init_scale': 2
+        'loss_func': loss_dict["nll"]
     }
 
     dict_param_sgd = {
-        'lr': 0.5,
+        'lr': 0.01,
         'batch_size': 1,
-        'reg_val': 0,
+        'reg_val': 0.9,
         'reg_type': 2,
-        'momentum_val': 0,
+        'momentum_val': 0.9,
         'nesterov': False,
         'lr_decay': True,
-        'lr_decay_tau': 500,
+        'lr_decay_tau': 50,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.02,
-        'patient': 20
+        'epsilon': 0.001,
+        'patient': 5
     }
 
     net = Network(**dict_param_net)
-    gd = GradientDescent(**dict_param_sgd)
 
-    gd.train(net, train_x, train_y)
+    plotter = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
+                      [error_dict["nll"], metr_dict["miscl. error"]], 2)
+    gd = GradientDescent(0.5, 1, lr_decay=True, momentum_val=0.99, lr_decay_tau=100,
+                         stop_crit_type="delta_w", epsilon=0.01, patient=20)
+    gd.train(net, train_x, train_y, plotter=plotter)
+    plotter.plot()
 
     net_pred = net.forward(train_x)
     net_pred[net_pred < 0.5] = 0
@@ -121,9 +124,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     return metr_dict["accuracy"](train_y, net_pred), gd.epoch_count
 
 
-def test_monk1_grid():
-    path_train = os.path.join('datasets', 'monks-1.train')
-    path_test = os.path.join('datasets', 'monks-1.test')
+def test_monk_grid_search(path_train, path_test):
     train_x, train_y = read_monk(path_train)
     test_x, test_y = read_monk(path_test)
 
@@ -136,24 +137,23 @@ def test_monk1_grid():
     }
 
     dict_param_sgd = {
-        'lr': [0.1, 0.5],
-        'batch_size': [-1, 1, 20],
-        'reg_val': [0, 0.2, 0.5, 0.9],
+        'lr': [0.01, 0.2],
+        'batch_size': [-1, 20],
+        'reg_val': [0, 0.9],
         'reg_type': [2],
-        'momentum_val': [0, 0.2, 0.5, 0.99],
+        'momentum_val': [0, 0.9],
         'nesterov': [False, True],
-        'lim_epochs': [500],
+        'lim_epochs': [200],
         'lr_decay': [True, False],
-        'lr_decay_tau': [100, 200, 400],
-        'stop_crit_type': ['delta_w'],
-        'epsilon': [0.001, 0.01],
-        'patient': [10]
+        'lr_decay_tau': [50, 100],
+        'stop_crit_type': ['fixed', 'delta_w'],
+        'epsilon': [0.001, 0.0001],
+        'patient': [5]
     }
 
     metric = error_dict["nll"]
-    best_result, best_combo, all_res = grid_search(train_x, train_y, dict_param_net,
-                                                   dict_param_sgd, 5, metric,
-                                                   kfold_runs=10)
+    best_result, best_combo = grid_search(train_x, train_y,
+                                          dict_param_net, dict_param_sgd, 5, metric)
 
     print(f"Best {metric.name} score (train): ", best_result)
 
@@ -163,15 +163,9 @@ def test_monk1_grid():
     print('loss_func: ' + best_combo[0]['loss_func'].name)
     print(best_combo[1])
 
-    print([res[0] for res in all_res])
-    print([res[1] for res in all_res])
-    print([res[3] for res in all_res])
-
     return best_result
 
-def test_monk1():
-    path_train = os.path.join('datasets', 'monks-1.train')
-    path_test = os.path.join('datasets', 'monks-1.test')
+def test_monk(path_train, path_test):
     train_x, train_y = read_monk(path_train, norm_data=False)
     test_x, test_y = read_monk(path_test, norm_data=False)
 
@@ -188,57 +182,13 @@ def test_monk1():
         'batch_size': 20,
         'reg_val': 0,
         'reg_type': 2,
-        'momentum_val': 0.3,
+        'momentum_val': 0.6,
         'nesterov': False,
+        'lim_epochs': 500,
         'lr_decay': True,
         'lr_decay_tau': 450,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.001,
-        'patient': 10
-    }
-
-    metric1 = error_dict["nll"]
-    metric2 = metr_dict["miscl. error"]
-
-#    res = kfold_cv(dict_param_net, dict_param_sgd, train_x, train_y, 5,
-#                   metric2, plot_bool=True, n_runs=10)
-
-    net = Network(**dict_param_net)
-    gd = GradientDescent(**dict_param_sgd)
-
-    gd.train(net, train_x, train_y)
-
-    net_pred = net.forward(train_x)
-    net_pred[net_pred < 0.5] = 0
-    net_pred[net_pred >= 0.5] = 1
-
-    return metr_dict["accuracy"](train_y, net_pred), gd.epoch_count
-
-def test_monk2():
-    path_train = os.path.join('datasets', 'monks-2.train')
-    path_test = os.path.join('datasets', 'monks-2.test')
-    train_x, train_y = read_monk(path_train, norm_data=False)
-    test_x, test_y = read_monk(path_test, norm_data=False)
-
-    dict_param_net = {
-        'conf_layers': [6, 20, 20, 1],
-        'init_func': init_dict["norm"],
-        'act_func': act_dict["tanh"],
-        'out_func': act_dict["sigm"],
-        'loss_func': loss_dict["nll"]
-    }
-
-    dict_param_sgd = {
-        'lr': 0.5,
-        'batch_size': -1,
-        'reg_val': 0.0001,
-        'reg_type': 2,
-        'momentum_val': 0.5,
-        'nesterov': False,
-        'lr_decay': False,
-        'lr_decay_tau': 400,
-        'stop_crit_type': 'delta_w',
-        'epsilon': 0.004,
+        'epsilon': 0.01,
         'patient': 10
     }
 
@@ -246,7 +196,7 @@ def test_monk2():
     metric2 = metr_dict["miscl. error"]
 
     res = kfold_cv(dict_param_net, dict_param_sgd, train_x, train_y, 5,
-                   metric2, plot_bool=True, n_runs=5)
+                   metric2, plot_bool=True, n_runs=10)
 
     net = Network(**dict_param_net)
     gd = GradientDescent(**dict_param_sgd)
@@ -256,11 +206,7 @@ def test_monk2():
     gd.train(net, train_x, train_y, plotter=plotter)
     plotter.plot()
 
-    net_pred = net.forward(train_x)
-    net_pred[net_pred < 0.5] = 0
-    net_pred[net_pred >= 0.5] = 1
-
-    return res[1], gd.epoch_count
+    return res[1]
 
 
 print("Forward test: ", forward_test())
@@ -272,12 +218,10 @@ print(f"Simple regression test: {reg_res[0]}, epochs: {reg_res[1]}")
 clas1_res = simple_and_learning_test_classification()
 print(f"Simple AND classification test: {clas1_res[0]}, epochs: {clas1_res[1]}")
 
-clas2_res = simple_learning_test_classification()
-print(f"Simple classification test: {clas2_res[0]}, epochs: {clas2_res[1]}")
-# Tests on monk1
-monk1_res = test_monk1()
-print(f"Monk 1 score on validation set: {monk1_res}")
+print("Simple classification test: ", simple_learning_test_classification())
+exit()
 
-# Tests on monk2
-monk2_res = test_monk2()
-print(f"Monk 2 score on validation set: {monk2_res}")
+# Tests on monk1
+path_train_monk1 = os.path.join('datasets', 'monks-1.train')
+path_test_monk1 = os.path.join('datasets', 'monks-1.test')
+print("Monk 1 score on validation set:", test_monk(path_train_monk1, path_test_monk1))
