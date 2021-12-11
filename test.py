@@ -70,8 +70,8 @@ def simple_learning_test_regression():
         'epsilon': 0.01
     }
 
-#    res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-#                     error_dict["squared"], plot_bool=True, n_folds=0, n_runs=100)
+    res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
+                     error_dict["squared"], plot_bool=True, n_folds=0, n_runs=100)
 
     net = Network(**dict_param_net)
     gd = GradientDescent(**dict_param_sgd)

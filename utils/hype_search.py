@@ -116,8 +116,14 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
             score_list = avg_score_dict[key]
 
             axs[0][0].plot(range(0, len(score_list)), score_list, label=key)
-            axs[0][0].scatter(perc_idx, score_list[perc_idx],
-                              label=f"{key} ({q_perc}-perc)", c="r")
+
+            if isinstance(score_list[perc_idx], np.ndarray):
+                for i, val in enumerate(score_list[perc_idx]):
+                    axs[0][0].scatter(perc_idx, val,
+                                      label=f"{key} ({q_perc}-perc)", c="r")
+            else:
+                axs[0][0].scatter(perc_idx, score_list[perc_idx],
+                                  label=f"{key} ({q_perc}-perc)", c="r")
 
         axs[1][0].plot(range(0, len(density_list)), density_list)
         axs[1][0].scatter(perc_idx, density_list[perc_idx],

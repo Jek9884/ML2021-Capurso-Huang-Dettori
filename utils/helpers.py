@@ -46,4 +46,8 @@ def average_non_std_mat(value_mat):
 
     div_vec = np.divide(sum_vec, count_vec)
 
+    # Needed in order to avoid sending a matrix of values as count
+    if len_cell > 1:
+        count_vec = count_vec[:, 0]
+
     return div_vec, count_vec
