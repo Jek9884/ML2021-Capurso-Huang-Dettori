@@ -74,8 +74,8 @@ def simple_learning_test_regression():
 #                     error_dict["squared"], plot_bool=True, n_folds=0, n_runs=100)
 
     net = Network(**dict_param_net)
-
     gd = GradientDescent(**dict_param_sgd)
+
     gd.train(net, train_x, train_y)
 
     return net.forward(train_x), gd.epoch_count
@@ -133,23 +133,22 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     }
 
     dict_param_sgd = {
-        'lr': 0.5,
+        'lr': 1,
         'batch_size': 1,
         'reg_val': 0,
         'reg_type': 2,
         'momentum_val': 0.8,
-        'nesterov': False,
+        'nesterov': True,
         'lr_decay': True,
         'lr_decay_tau': 50,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.04,
-        'patient': 10
+        'epsilon': 0.06,
+        'patient': 5
     }
 
-    res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metr_dict["miscl. error"], plot_bool=True, n_folds=0, n_runs=100)
+#    res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
+#                     metr_dict["miscl. error"], plot_bool=True, n_folds=0, n_runs=500)
 
-    exit()
     net = Network(**dict_param_net)
     gd = GradientDescent(**dict_param_sgd)
 
@@ -225,12 +224,12 @@ def test_monk1():
     }
 
     dict_param_sgd = {
-        'lr': 0.5,
+        'lr': 0.1,
         'batch_size': 20,
-        'reg_val': 0,
+        'reg_val': 0.0000001,
         'reg_type': 2,
         'momentum_val': 0.3,
-        'nesterov': False,
+        'nesterov': True,
         'lr_decay': True,
         'lr_decay_tau': 50,
         'stop_crit_type': 'delta_w',
@@ -254,7 +253,7 @@ def test_monk1():
     net_pred[net_pred < 0.5] = 0
     net_pred[net_pred >= 0.5] = 1
 
-    return metr_dict["accuracy"](train_y, net_pred), gd.epoch_count
+    return res[1], gd.epoch_count
 
 def test_monk2():
     path_train = os.path.join('datasets', 'monks-2.train')

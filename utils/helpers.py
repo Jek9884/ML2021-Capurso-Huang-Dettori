@@ -46,5 +46,4 @@ def average_non_std_mat(value_mat):
 
     div_vec = np.divide(sum_vec, count_vec)
 
-    return div_vec
-
+    return div_vec, count_vec

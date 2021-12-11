@@ -88,26 +88,58 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
             score_mat_dict["tr"].append(tr_scores)
 
     avg_score_dict = {}
+    density_list = None
+    perc_idx = None
+
+    q_perc = 50
 
     for key in score_mat_dict:
-        avg_score_dict[key] = average_non_std_mat(score_mat_dict[key])
+        avg_score_dict[key], tmp_density_list = \
+            average_non_std_mat(score_mat_dict[key])
+
+        # Since the density of tr and val are the same initialise once
+        if density_list is None:
+            density_list = tmp_density_list
+
+        if perc_idx is None:
+
+            # Find index of q_perc point in the density data
+            perc_val = np.percentile(density_list, q_perc, interpolation="nearest")
+            perc_idx = np.argwhere(density_list == perc_val)[-1][0]
 
     if plot_bool:
 
-        for key, score_list in avg_score_dict.items():
-            plt.plot(range(0, len(score_list)), score_list, label=key)
+        plot_dims = (2, 1)
+        fig, axs = plt.subplots(*plot_dims, squeeze=False)
 
-        plt.title(f"Model results ({n_runs} runs, {n_folds} kfolds)")
-        plt.xlabel("Epochs")
-        plt.ylabel(f"Metric ({metric.name})")
-        plt.legend()
+        for key in avg_score_dict:
+            score_list = avg_score_dict[key]
+
+            axs[0][0].plot(range(0, len(score_list)), score_list, label=key)
+            axs[0][0].scatter(perc_idx, score_list[perc_idx],
+                              label=f"{key} ({q_perc}-perc)", c="r")
+
+        axs[1][0].plot(range(0, len(density_list)), density_list)
+        axs[1][0].scatter(perc_idx, density_list[perc_idx],
+                              label=f"{q_perc}-perc", c="r")
+
+        axs[0][0].set_title(f"Model results ({n_runs} runs, {n_folds} kfolds)")
+        axs[0][0].set_xlabel("Epochs")
+        axs[0][0].set_ylabel(f"Metric ({metric.name})")
+        axs[0][0].legend()
+
+        axs[1][0].set_title(f"Distribution of model results ({n_runs} runs, {n_folds} kfolds)")
+        axs[1][0].set_xlabel("Epochs")
+        axs[1][0].set_ylabel(f"Number of datapoints")
+        axs[1][0].legend()
+
         plt.show()
 
     if "val" in avg_score_dict:
-        results = (avg_score_dict["tr"][-1], avg_score_dict["val"][-1],
+        results = (avg_score_dict["tr"][perc_idx], avg_score_dict["val"][perc_idx],
                    par_combo_net, par_combo_opt)
     else:
-        results = (avg_score_dict["tr"][-1], None, par_combo_net, par_combo_opt)
+        results = (avg_score_dict["tr"][perc_idx], None, par_combo_net, par_combo_opt)
 
     return results
 
@@ -143,8 +175,8 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds):
         val_score_mat.append(val_score_list)
 
     # Lists shape = (num. epochs,), avg score of model accross folds
-    avg_tr_score_list = average_non_std_mat(tr_score_mat)
-    avg_val_score_list = average_non_std_mat(val_score_mat)
+    avg_tr_score_list, _ = average_non_std_mat(tr_score_mat)
+    avg_val_score_list, _ = average_non_std_mat(val_score_mat)
 
     return avg_tr_score_list, avg_val_score_list
 
