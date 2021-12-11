@@ -51,7 +51,6 @@ class Plotter:
         fig, axs = plt.subplots(*plot_dims, squeeze=False)
         tot_epochs = self.num_intervals * self.epoch_interval
 
-        # TODO: add more info in label and titles
         for i, plt_type in enumerate(self.results_dict):
 
             cur_row = i // self.n_cols
@@ -83,6 +82,12 @@ class Plotter:
 
             cur_ax.set_xlabel("Epochs")
             cur_ax.set_ylabel(f"{plt_type}")
+
+        n_blank_axs = len(self.results_dict) % self.n_cols
+
+        # Hide unused plots
+        for i in range(1, n_blank_axs + 1):
+            axs[-1][-i].axis('off')
 
         plt.show()
 
