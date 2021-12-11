@@ -38,8 +38,8 @@ class Layer:
         # Variable used to keep track of the layer's last output
         self.out = None
 
-        # Varibale used by the optimizer to implement momentum
-        self.delta_w_old = 0
+        # Variable used by the optimizer to implement momentum
+        self.delta_w_old = np.zeros((n_in,))
 
         # Variable used to print some debug information
         self.debug_bool = debug_bool

@@ -27,6 +27,9 @@ class GradientDescent:
         self.epsilon = epsilon
         self.patient = patient
 
+        # Min number of epochs to train for, needed to avoid 1 epoch mb
+        self.min_epoch = 2
+
         # linear decay heuristic
         if self.lr_decay:
             self.eta_0 = self.lr
@@ -64,7 +67,7 @@ class GradientDescent:
         # Since the check has side effects we need to store the result
         train_cond = self.check_stop_crit() and self.epoch_count < self.lim_epochs
 
-        while train_cond:
+        while train_cond or self.epoch_count < self.min_epoch:
 
             if self.epoch_count >= lim_step:
                 break
@@ -97,7 +100,7 @@ class GradientDescent:
                                  If you want to use the batch version use -1.")
 
             # If training is already over do not increase epochs
-            if train_cond:
+            if train_cond or self.epoch_count < self.min_epoch:
                 if plotter is not None:
                     plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
                 self.epoch_count += 1
@@ -158,16 +161,16 @@ class GradientDescent:
         for layer in net.layers:
             avg_grad_w = np.divide(layer.grad_w, num_patt)
             avg_grad_b = np.divide(layer.grad_b, num_patt)
-            delta_w = self.lr * avg_grad_w
-            delta_b = self.lr * avg_grad_b
+            delta_w = -1 * self.lr * avg_grad_w
+            delta_b = -1 * self.lr * avg_grad_b
 
             if self.momentum_val > 0:
                 delta_w += self.momentum_val * layer.delta_w_old
 
             # TODO: take decision regarding norm-1 and reg_type parameter
             if self.reg_val > 0 and self.reg_type == 2:
-                delta_w += 2 * self.reg_val * layer.weights
+                delta_w += -2 * self.reg_val * layer.weights
 
-            layer.weights = layer.weights - delta_w
-            layer.bias = layer.bias - delta_b
+            layer.weights = layer.weights + delta_w
+            layer.bias = layer.bias + delta_b
             layer.delta_w_old = delta_w
