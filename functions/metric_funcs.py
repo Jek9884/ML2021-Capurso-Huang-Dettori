@@ -1,6 +1,7 @@
 import numpy as np
 from functions.Function import Function
 
+# Hp: all outputs must be numpy.ndarray
 
 def compute_confusion_matrix_bin(exp_vec, pred_vec):
 
@@ -30,23 +31,23 @@ def accuracy(exp_mat, pred_mat):
 
     tp, tn, fp, fn = compute_confusion_matrix_bin(exp_mat, pred_mat)
 
-    return (tp+tn)/(tp+tn+fp+fn)
+    return np.array((tp+tn)/(tp+tn+fp+fn), ndmin=1)
 
 def miscl_error(exp_mat, pred_mat):
 
-    return 1 - accuracy(exp_mat, pred_mat)
+    return np.array(1 - accuracy(exp_mat, pred_mat), ndmin=1)
 
 def precision(exp_mat, pred_mat):
 
     tp, tn, fp, fn = compute_confusion_matrix_bin(exp_mat, pred_mat)
 
-    return tp/(tp+fp)
+    return np.array(tp/(tp+fp), ndmin=1)
 
 def recall(exp_mat, pred_mat):
 
     tp, tn, fp, fn = compute_confusion_matrix_bin(exp_mat, pred_mat)
 
-    return tp/(tp+fn)
+    return np.array(tp/(tp+fn), ndmin=1)
 
 
 # Metric function dictionary

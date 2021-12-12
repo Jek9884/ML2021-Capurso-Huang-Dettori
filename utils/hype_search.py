@@ -55,12 +55,13 @@ def compare_results(results, metric, topk=5):
         best_score = 0
         sign = 1
 
-    # Check if validation score was computed, and use it to sort
+    #TODO: consider adding comparison of std for best result
+    # Check if the mean of validation score was computed, and use it to sort
     if results[0][1] != None:
-        results = sorted(results, key=lambda i: i[1], reverse=(sign == 1))
-    # Else sort by training score
+        results = sorted(results, key=lambda i: i[1][0], reverse=(sign == 1))
+    # Else sort by mean of training score
     else:
-        results = sorted(results, key=lambda i: i[0], reverse=(sign == 1))
+        results = sorted(results, key=lambda i: i[0][0], reverse=(sign == 1))
 
     return results[:topk]
 
@@ -69,7 +70,7 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
                n_folds=0, plot_bool=False):
 
     score_epoch_dict = {"tr": []}
-    score_avg_dict = {"tr": 0}
+    score_results_dict = {"tr": []}  # Used to compute mean and std
 
     for _ in range(n_runs):
 
@@ -86,30 +87,34 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
             score_epoch_dict["tr"].append(epoch_tr_scores)
             score_epoch_dict["val"].append(epoch_val_scores)
 
-            if "val" not in score_avg_dict:
-                score_avg_dict["val"] = 0
+            if "val" not in score_results_dict:
+                score_results_dict["val"] = []
 
-            score_avg_dict["tr"] += avg_tr_res
-            score_avg_dict["val"] += avg_val_res
+            score_results_dict["tr"].append(avg_tr_res)
+            score_results_dict["val"].append(avg_val_res)
 
         # Train w/o validation set, used to estimate the avg performance
         else:
             tr_scores, val_scores = train_eval_dataset(par_combo_net, par_combo_opt,
                                                        x_mat, y_mat, metric)
             score_epoch_dict["tr"].append(tr_scores)
-            score_avg_dict["tr"] += tr_scores[-1]
+            score_results_dict["tr"].append(tr_scores[-1])
 
-    # Take average wrt runs
-    for key in score_avg_dict:
-        score_avg_dict[key] /= n_runs
+    score_stats_dict = {"tr": (0, 0)}
 
-    density_list = None
+    # Take average and std wrt runs
+    for key in score_results_dict:
 
-    for key in score_epoch_dict:
-        score_epoch_dict[key], density_list = \
-            average_non_std_mat(score_epoch_dict[key])
+        mean = np.average(score_results_dict[key], axis=0)
+        std = np.std(score_results_dict[key], axis=0)
+        score_stats_dict[key] = (mean, std)
 
     if plot_bool:
+        density_list = None
+
+        for key in score_epoch_dict:
+            score_epoch_dict[key], density_list = \
+                average_non_std_mat(score_epoch_dict[key])
 
         plot_dims = (2, 1)
         _, axs = plt.subplots(*plot_dims, squeeze=False)
@@ -121,23 +126,22 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
 
         axs[1][0].plot(range(0, len(density_list)), density_list)
 
-        axs[0][0].set_title(f"Model results ({n_runs} runs, {n_folds} kfolds)")
+        axs[0][0].set_title(f"Model results ({n_runs} runs, {n_folds}-folds)")
         axs[0][0].set_xlabel("Epochs")
         axs[0][0].set_ylabel(f"Metric ({metric.name})")
         axs[0][0].legend()
 
-        axs[1][0].set_title(f"Distribution of model results ({n_runs} runs, {n_folds} kfolds)")
+        axs[1][0].set_title(f"Distribution of model stop epoch per run ({n_runs} runs, {n_folds}-folds)")
         axs[1][0].set_xlabel("Epochs")
         axs[1][0].set_ylabel("Number of models")
-        axs[1][0].legend()
 
         plt.show()
 
     if "val" in score_epoch_dict:
-        results = (score_avg_dict["tr"], score_avg_dict["val"],
+        results = (score_stats_dict["tr"], score_stats_dict["val"],
                    par_combo_net, par_combo_opt)
     else:
-        results = (score_avg_dict["tr"], None, par_combo_net, par_combo_opt)
+        results = (score_stats_dict["tr"], None, par_combo_net, par_combo_opt)
 
     return results
 
@@ -214,12 +218,14 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
     return epoch_res_tr_list, epoch_res_val_list
 
 
+# Hp: all outputs from metric must be arrays
 def eval_dataset(net, data_x, data_y, metric):
 
     net_pred = net.forward(data_x)
 
     if metric.name in ["nll", "squared"]:
-        res = np.squeeze(metric(data_y, net_pred))
+        res = metric(data_y, net_pred)
+
     elif metric.name in ["miscl. error"]:
         # Note: it works only with classification
         net_pred[net_pred < 0.5] = 0

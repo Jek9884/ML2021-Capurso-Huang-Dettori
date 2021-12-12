@@ -71,7 +71,7 @@ def simple_learning_test_regression():
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     error_dict["squared"], plot_bool=True, n_folds=0, n_runs=10)
+                     error_dict["squared"], plot_bool=False, n_folds=0, n_runs=100)
 
 #    net = Network(**dict_param_net)
 #    gd = GradientDescent(**dict_param_sgd)
@@ -105,7 +105,7 @@ def simple_and_learning_test_classification():  # Func: A and B
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metr_dict["miscl. error"], plot_bool=False, n_folds=0, n_runs=20)
+                     metr_dict["miscl. error"], plot_bool=False, n_folds=0, n_runs=100)
 
 #    net = Network(**dict_param_net)
 #    gd = GradientDescent(**dict_param_sgd)
@@ -168,7 +168,7 @@ def test_monk1_grid():
     test_x, test_y = read_monk(path_test)
 
     dict_param_net = {
-        'conf_layers': [[6, 6, 1]],
+        'conf_layers': [[6, 4, 1]],
         'init_func': [init_dict["norm"]],
         'act_func': [act_dict["tanh"]],
         'out_func': [act_dict["sigm"]],
@@ -186,14 +186,14 @@ def test_monk1_grid():
         'lr_decay': [True, False],
         'lr_decay_tau': [100, 200, 400],
         'stop_crit_type': ['delta_w'],
-        'epsilon': [0.001, 0.01],
+        'epsilon': [0.01],
         'patient': [10]
     }
 
     metric = error_dict["nll"]
     best_result, best_combo, all_res = grid_search(dict_param_net, dict_param_sgd,
                                                    train_x, train_y, metric,
-                                                   n_folds=5, n_runs=1)
+                                                   n_folds=5, n_runs=10)
 
     print(f"Best {metric.name} score (train): ", best_result)
 
@@ -216,7 +216,7 @@ def test_monk1():
     test_x, test_y = read_monk(path_test, norm_data=False)
 
     dict_param_net = {
-        'conf_layers': [6, 6, 1],
+        'conf_layers': [6, 4, 1],
         'init_func': init_dict["norm"],
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
@@ -261,7 +261,7 @@ def test_monk2():
     test_x, test_y = read_monk(path_test, norm_data=False)
 
     dict_param_net = {
-        'conf_layers': [6, 20, 20, 1],
+        'conf_layers': [6, 4, 1],
         'init_func': init_dict["norm"],
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
@@ -317,7 +317,7 @@ clas2_res = simple_learning_test_classification()
 print(f"Simple classification test error: {clas2_res}")
 
 # Tests on monk1
-monk1_res = test_monk1()
+monk1_res = test_monk1_grid()
 print(f"Monk 1 score on validation set error: {monk1_res}")
 
 # Tests on monk2
