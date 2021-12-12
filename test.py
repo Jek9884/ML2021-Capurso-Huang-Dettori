@@ -71,14 +71,14 @@ def simple_learning_test_regression():
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     error_dict["squared"], plot_bool=True, n_folds=0, n_runs=100)
+                     error_dict["squared"], plot_bool=True, n_folds=0, n_runs=10)
 
-    net = Network(**dict_param_net)
-    gd = GradientDescent(**dict_param_sgd)
+#    net = Network(**dict_param_net)
+#    gd = GradientDescent(**dict_param_sgd)
+#
+#    gd.train(net, train_x, train_y)
 
-    gd.train(net, train_x, train_y)
-
-    return net.forward(train_x), gd.epoch_count
+    return res[0]
 
 
 def simple_and_learning_test_classification():  # Func: A and B
@@ -104,19 +104,19 @@ def simple_and_learning_test_classification():  # Func: A and B
         'epsilon': 0.09
     }
 
-#    res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-#                     metr_dict["miscl. error"], plot_bool=True, n_folds=0, n_runs=100)
+    res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
+                     metr_dict["miscl. error"], plot_bool=False, n_folds=0, n_runs=20)
 
-    net = Network(**dict_param_net)
-    gd = GradientDescent(**dict_param_sgd)
+#    net = Network(**dict_param_net)
+#    gd = GradientDescent(**dict_param_sgd)
 
-    gd.train(net, train_x, train_y)
+#    gd.train(net, train_x, train_y)
 
-    net_pred = net.forward(train_x)
-    net_pred[net_pred < 0.5] = 0
-    net_pred[net_pred >= 0.5] = 1
+#    net_pred = net.forward(train_x)
+#    net_pred[net_pred < 0.5] = 0
+#    net_pred[net_pred >= 0.5] = 1
 
-    return metr_dict["accuracy"](train_y, net_pred), gd.epoch_count
+    return res[0]
 
 
 def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
@@ -146,19 +146,19 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
         'patient': 5
     }
 
-#    res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-#                     metr_dict["miscl. error"], plot_bool=True, n_folds=0, n_runs=500)
+    res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
+                     metr_dict["miscl. error"], plot_bool=False, n_folds=0, n_runs=10)
 
-    net = Network(**dict_param_net)
-    gd = GradientDescent(**dict_param_sgd)
+#    net = Network(**dict_param_net)
+#    gd = GradientDescent(**dict_param_sgd)
 
-    gd.train(net, train_x, train_y)
+#    gd.train(net, train_x, train_y)
 
-    net_pred = net.forward(train_x)
-    net_pred[net_pred < 0.5] = 0
-    net_pred[net_pred >= 0.5] = 1
+#    net_pred = net.forward(train_x)
+#    net_pred[net_pred < 0.5] = 0
+#    net_pred[net_pred >= 0.5] = 1
 
-    return metr_dict["accuracy"](train_y, net_pred), gd.epoch_count
+    return res[0]
 
 
 def test_monk1_grid():
@@ -241,19 +241,18 @@ def test_monk1():
     metric2 = metr_dict["miscl. error"]
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metric2, plot_bool=True, n_folds=5, n_runs=10)
+                     metric2, plot_bool=False, n_folds=5, n_runs=10)
 
-    net = Network(**dict_param_net)
-    gd = GradientDescent(**dict_param_sgd)
+#    net = Network(**dict_param_net)
+#    gd = GradientDescent(**dict_param_sgd)
 
-    gd.train(net, train_x, train_y, plotter=plotter)
-    plotter.plot()
+#    gd.train(net, train_x, train_y)
 
-    net_pred = net.forward(train_x)
-    net_pred[net_pred < 0.5] = 0
-    net_pred[net_pred >= 0.5] = 1
+#    net_pred = net.forward(train_x)
+#    net_pred[net_pred < 0.5] = 0
+#    net_pred[net_pred >= 0.5] = 1
 
-    return res[1], gd.epoch_count
+    return res[1]
 
 def test_monk2():
     path_train = os.path.join('datasets', 'monks-2.train')
@@ -274,7 +273,7 @@ def test_monk2():
         'batch_size': -1,
         'reg_val': 0.0001,
         'reg_type': 2,
-        'momentum_val': 0.99,
+        'momentum_val': 0.5,
         'nesterov': False,
         'lr_decay': False,
         'lr_decay_tau': 400,
@@ -288,40 +287,39 @@ def test_monk2():
     metric2 = metr_dict["miscl. error"]
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metric2, plot_bool=True, n_folds=5, n_runs=5)
+                     metric2, plot_bool=False, n_folds=5, n_runs=5)
 
-    net = Network(**dict_param_net)
-    gd = GradientDescent(**dict_param_sgd)
+#    net = Network(**dict_param_net)
+#    gd = GradientDescent(**dict_param_sgd)
 
-    plotter = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
-                      [metric1, metric2], 2)
-    gd.train(net, train_x, train_y, plotter=plotter)
-    plotter.plot()
+#    plotter = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
+#                      [metric1, metric2], 2)
+#    gd.train(net, train_x, train_y, plotter=plotter)
+#    plotter.plot()
 
-    net_pred = net.forward(train_x)
-    net_pred[net_pred < 0.5] = 0
-    net_pred[net_pred >= 0.5] = 1
+#    net_pred = net.forward(train_x)
+#    net_pred[net_pred < 0.5] = 0
+#    net_pred[net_pred >= 0.5] = 1
 
-    return res[1], gd.epoch_count
+    return res[1]
 
 
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())
 
 reg_res = simple_learning_test_regression()
-print(f"Simple regression test: {reg_res[0]}, epochs: {reg_res[1]}")
+print(f"Simple regression test error: {reg_res}")
 
 clas1_res = simple_and_learning_test_classification()
-print(f"Simple AND classification test: {clas1_res[0]}, epochs: {clas1_res[1]}")
+print(f"Simple AND classification test error: {clas1_res}")
 
 clas2_res = simple_learning_test_classification()
-print(f"Simple classification test: {clas2_res[0]}, epochs: {clas2_res[1]}")
+print(f"Simple classification test error: {clas2_res}")
 
 # Tests on monk1
 monk1_res = test_monk1()
-print(f"Monk 1 score on validation set: {monk1_res}")
-exit()
+print(f"Monk 1 score on validation set error: {monk1_res}")
 
 # Tests on monk2
 monk2_res = test_monk2()
-print(f"Monk 2 score on validation set: {monk2_res}")
+print(f"Monk 2 score on validation set error: {monk2_res}")

@@ -68,66 +68,58 @@ def compare_results(results, metric, topk=5):
 def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
                n_folds=0, plot_bool=False):
 
-    score_mat_dict = {"tr": []}
+    score_epoch_dict = {"tr": []}
+    score_avg_dict = {"tr": 0}
 
     for _ in range(n_runs):
 
         # Use kfold
         if n_folds > 0:
-            tr_scores, val_scores = kfold_cv(par_combo_net, par_combo_opt,
-                                             x_mat, y_mat, metric, n_folds)
-            if "val" not in score_mat_dict:
-                score_mat_dict["val"] = []
 
-            score_mat_dict["tr"].append(tr_scores)
-            score_mat_dict["val"].append(val_scores)
+            avg_tr_res, avg_val_res, epoch_tr_scores, epoch_val_scores = \
+                kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds)
+
+            if "val" not in score_epoch_dict:
+                score_epoch_dict["val"] = []
+
+            # Every kfold has a validation set
+            score_epoch_dict["tr"].append(epoch_tr_scores)
+            score_epoch_dict["val"].append(epoch_val_scores)
+
+            if "val" not in score_avg_dict:
+                score_avg_dict["val"] = 0
+
+            score_avg_dict["tr"] += avg_tr_res
+            score_avg_dict["val"] += avg_val_res
+
         # Train w/o validation set, used to estimate the avg performance
         else:
             tr_scores, val_scores = train_eval_dataset(par_combo_net, par_combo_opt,
                                                        x_mat, y_mat, metric)
-            score_mat_dict["tr"].append(tr_scores)
+            score_epoch_dict["tr"].append(tr_scores)
+            score_avg_dict["tr"] += tr_scores[-1]
 
-    avg_score_dict = {}
+    # Take average wrt runs
+    for key in score_avg_dict:
+        score_avg_dict[key] /= n_runs
+
     density_list = None
-    perc_idx = None
 
-    q_perc = 50
-
-    for key in score_mat_dict:
-        avg_score_dict[key], tmp_density_list = \
-            average_non_std_mat(score_mat_dict[key])
-
-        # Since the density of tr and val are the same initialise once
-        if density_list is None:
-            density_list = tmp_density_list
-
-        if perc_idx is None:
-
-            # Find index of q_perc point in the density data
-            perc_val = np.percentile(density_list, q_perc, interpolation="nearest")
-            perc_idx = np.argwhere(density_list == perc_val)[-1][0]
+    for key in score_epoch_dict:
+        score_epoch_dict[key], density_list = \
+            average_non_std_mat(score_epoch_dict[key])
 
     if plot_bool:
 
         plot_dims = (2, 1)
-        fig, axs = plt.subplots(*plot_dims, squeeze=False)
+        _, axs = plt.subplots(*plot_dims, squeeze=False)
 
-        for key in avg_score_dict:
-            score_list = avg_score_dict[key]
+        for key in score_epoch_dict:
+            score_list = score_epoch_dict[key]
 
             axs[0][0].plot(range(0, len(score_list)), score_list, label=key)
 
-            if isinstance(score_list[perc_idx], np.ndarray):
-                for i, val in enumerate(score_list[perc_idx]):
-                    axs[0][0].scatter(perc_idx, val,
-                                      label=f"{key} ({q_perc}-perc)", c="r")
-            else:
-                axs[0][0].scatter(perc_idx, score_list[perc_idx],
-                                  label=f"{key} ({q_perc}-perc)", c="r")
-
         axs[1][0].plot(range(0, len(density_list)), density_list)
-        axs[1][0].scatter(perc_idx, density_list[perc_idx],
-                              label=f"{q_perc}-perc", c="r")
 
         axs[0][0].set_title(f"Model results ({n_runs} runs, {n_folds} kfolds)")
         axs[0][0].set_xlabel("Epochs")
@@ -136,16 +128,16 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
 
         axs[1][0].set_title(f"Distribution of model results ({n_runs} runs, {n_folds} kfolds)")
         axs[1][0].set_xlabel("Epochs")
-        axs[1][0].set_ylabel(f"Number of datapoints")
+        axs[1][0].set_ylabel("Number of models")
         axs[1][0].legend()
 
         plt.show()
 
-    if "val" in avg_score_dict:
-        results = (avg_score_dict["tr"][perc_idx], avg_score_dict["val"][perc_idx],
+    if "val" in score_epoch_dict:
+        results = (score_avg_dict["tr"], score_avg_dict["val"],
                    par_combo_net, par_combo_opt)
     else:
-        results = (avg_score_dict["tr"][perc_idx], None, par_combo_net, par_combo_opt)
+        results = (score_avg_dict["tr"], None, par_combo_net, par_combo_opt)
 
     return results
 
@@ -153,10 +145,15 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
 def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds):
 
     fold_size = int(np.ceil(x_mat.shape[0] / n_folds))
-    tr_score_mat = []
-    val_score_mat = []
-    # Store all epochs results for all folds for both tr set and val set
     pattern_idx = np.arange(x_mat.shape[0])
+
+    # Used to get a learning curve
+    epoch_tr_score_mat = []
+    epoch_val_score_mat = []
+
+    # Used to take average of the final nets result
+    avg_tr_score = 0
+    avg_val_score = 0
 
     np.random.shuffle(pattern_idx)
 
@@ -177,14 +174,20 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds):
             train_eval_dataset(par_combo_net, par_combo_opt, train_x,
                                train_y, metric, val_x, val_y)
 
-        tr_score_mat.append(tr_score_list)
-        val_score_mat.append(val_score_list)
+        epoch_tr_score_mat.append(tr_score_list)
+        epoch_val_score_mat.append(val_score_list)
+
+        avg_tr_score += tr_score_list[-1]
+        avg_val_score += val_score_list[-1]
 
     # Lists shape = (num. epochs,), avg score of model accross folds
-    avg_tr_score_list, _ = average_non_std_mat(tr_score_mat)
-    avg_val_score_list, _ = average_non_std_mat(val_score_mat)
+    avg_tr_score_list, _ = average_non_std_mat(epoch_tr_score_mat)
+    avg_val_score_list, _ = average_non_std_mat(epoch_val_score_mat)
 
-    return avg_tr_score_list, avg_val_score_list
+    avg_tr_score /= n_folds
+    avg_val_score /= n_folds
+
+    return avg_tr_score, avg_val_score, avg_tr_score_list, avg_val_score_list
 
 
 def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
@@ -193,8 +196,8 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
     net = Network(**par_combo_net)
     gd = GradientDescent(**par_combo_opt)
 
-    results_tr_list = []
-    results_val_list = []
+    epoch_res_tr_list = []
+    epoch_res_val_list = []
 
     train_bool = True
 
@@ -202,13 +205,13 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
 
         train_bool = gd.train(net, train_x, train_y, 1)
 
-        results_tr_list.append(eval_dataset(net, train_x, train_y, metric))
+        epoch_res_tr_list.append(eval_dataset(net, train_x, train_y, metric))
 
         # Check if the validation set is given as input
         if val_x is not None and val_y is not None:
-            results_val_list.append(eval_dataset(net, val_x, val_y, metric))
+            epoch_res_val_list.append(eval_dataset(net, val_x, val_y, metric))
 
-    return results_tr_list, results_val_list
+    return epoch_res_tr_list, epoch_res_val_list
 
 
 def eval_dataset(net, data_x, data_y, metric):
