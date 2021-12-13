@@ -51,9 +51,11 @@ def compare_results(results, metric, topk=5):
     if metric.name in ["miscl. error", "nll"]:
         best_score = np.inf
         sign = -1
-    else:
+    elif metric.name in ["accuracy"]:
         best_score = 0
         sign = 1
+    else:
+        raise ValueError(f"Metric not supported {metric.name}")
 
     #TODO: consider adding comparison of std for best result
     # Check if the mean of validation score was computed, and use it to sort

@@ -69,17 +69,13 @@ class GradientDescent:
 
         while train_cond or self.epoch_count < self.min_epoch:
 
+            # Check if number of epochs requested in train() has been reached
             if self.epoch_count >= lim_step:
                 break
 
-            if self.lr_decay:
-                # Avoid having an alpha > 1 due to difference in lim_epochs/tau
-                alpha = min(self.epoch_count / self.lr_decay_tau, 1)
-                self.lr = self.eta_0*(1-alpha) + alpha*self.eta_tau
-
             # Batch version
             if self.batch_size == -1:
-                train_cond = self.__step(net, train_x, train_y)
+                train_cond = self.update_weights(net, train_x, train_y)
 
             # Online/mini-batch version
             elif 1 <= self.batch_size < n_patterns:
@@ -92,17 +88,19 @@ class GradientDescent:
                     mini_batch_x = train_x[idx_list]
                     mini_batch_y = train_y[idx_list]
 
-                    train_cond = self.__step(net, mini_batch_x, mini_batch_y)
+                    train_cond = self.update_weights(net, mini_batch_x, mini_batch_y)
                     i += 1
 
             else:
                 raise ValueError("Mini-batch size should be >= 1 and < l.\
                                  If you want to use the batch version use -1.")
 
-            # If training is already over do not increase epochs
+            # If training is already over do not increase epochs and plot
             if train_cond or self.epoch_count < self.min_epoch:
+
                 if plotter is not None:
                     plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
+
                 self.epoch_count += 1
 
             # The criterion is already checked at each step
@@ -132,7 +130,7 @@ class GradientDescent:
 
         return result
 
-    def __step(self, net, sub_train_x, sub_train_y):
+    def update_weights(self, net, sub_train_x, sub_train_y):
 
         net.null_grad()
 
@@ -143,7 +141,7 @@ class GradientDescent:
         out = net.forward(sub_train_x)
         net.backward(sub_train_y, out)
 
-        self.__update_weights(net, sub_train_x.shape[0])
+        self.compute_deltas(net, sub_train_x.shape[0])
 
         if self.stop_crit_type == 'delta_w':
             norm_weights = []
@@ -156,7 +154,12 @@ class GradientDescent:
 
         return self.check_stop_crit()
 
-    def __update_weights(self, net, num_patt):
+    def compute_deltas(self, net, num_patt):
+
+        if self.lr_decay:
+            # Avoid having an alpha > 1 due to difference in lim_epochs/tau
+            alpha = min(self.epoch_count / self.lr_decay_tau, 1)
+            self.lr = self.eta_0*(1-alpha) + alpha*self.eta_tau
 
         for layer in net.layers:
             avg_grad_w = np.divide(layer.grad_w, num_patt)
