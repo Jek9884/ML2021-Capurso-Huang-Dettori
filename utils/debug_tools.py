@@ -14,6 +14,7 @@ class Plotter:
         self.lr_metric_list = lr_metric_list
         self.type_plots = type_plots
         self.n_cols = n_cols
+        self.n_plots = 0
 
         # Each "leaf" of the dict is a list of plotlines
         self.results_dict = {}
@@ -49,6 +50,8 @@ class Plotter:
             elif isinstance(v, dict):
                 self.add_new_plotline(v)
 
+        self.n_plots += 1
+
     def plot(self):
 
         if self.results_dict == {}:
@@ -56,7 +59,10 @@ class Plotter:
 
         # Substitute lists of list with their average row-wise
         popul_distr = self.compute_average_plotlines(self.results_dict)
-        self.results_dict["popul_distr"] = popul_distr
+        print(self.results_dict["lr"])
+
+        if self.n_plots > 0:
+            self.results_dict["popul_distr"] = popul_distr
 
         plot_dims = ((len(self.results_dict)+1)//self.n_cols, self.n_cols)
         _, axs = plt.subplots(*plot_dims, squeeze=False)
@@ -82,8 +88,11 @@ class Plotter:
                     cur_ax.plot(range(tot_epochs), val, label=data_label)
                 cur_ax.legend()
 
-            else:
+            elif plt_type in ["lr", "popul_distr"]:
                 cur_ax.plot(range(0, tot_epochs), self.results_dict[plt_type])
+
+            else:
+                raise ValueError(f"Unknown plt_type ({plt_type})")
 
             cur_ax.set_xlabel("Epochs")
             cur_ax.set_ylabel(f"{plt_type}")

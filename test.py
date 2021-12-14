@@ -135,15 +135,6 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metr_dict["miscl. error"], n_folds=0, n_runs=10)
 
-#    net = Network(**dict_param_net)
-#    gd = GradientDescent(**dict_param_sgd)
-
-#    gd.train(net, train_x, train_y)
-
-#    net_pred = net.forward(train_x)
-#    net_pred[net_pred < 0.5] = 0
-#    net_pred[net_pred >= 0.5] = 1
-
     return res[0]
 
 
@@ -209,33 +200,26 @@ def test_monk1():
     }
 
     dict_param_sgd = {
-        'lr': 0.5,
-        'batch_size': 1,
+        'lr': 0.8,
+        'batch_size': -1,
         'reg_val': 0,
         'reg_type': 2,
-        'momentum_val': 0,
+        'momentum_val': 0.3,
         'nesterov': True,
         'lr_decay': False,
         'lr_decay_tau': 100,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.1,
-        'patient': 10
+        'epsilon': 0.01,
+        'patient': 10,
+        'lim_epochs': 500
     }
 
     metric1 = error_dict["nll"]
     metric2 = metr_dict["miscl. error"]
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metric2, n_folds=5, n_runs=50)
-
-#    net = Network(**dict_param_net)
-#    gd = GradientDescent(**dict_param_sgd)
-
-#    gd.train(net, train_x, train_y)
-
-#    net_pred = net.forward(train_x)
-#    net_pred[net_pred < 0.5] = 0
-#    net_pred[net_pred >= 0.5] = 1
+                     metric2, n_folds=5, n_runs=50, plotter=plotter)
+    plotter.plot()
 
     return res[1]
 
@@ -273,18 +257,6 @@ def test_monk2():
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metric2, n_folds=5, n_runs=5)
-
-#    net = Network(**dict_param_net)
-#    gd = GradientDescent(**dict_param_sgd)
-
-#    plotter = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
-#                      [metric1, metric2], 2)
-#    gd.train(net, train_x, train_y, plotter=plotter)
-#    plotter.plot()
-
-#    net_pred = net.forward(train_x)
-#    net_pred[net_pred < 0.5] = 0
-#    net_pred[net_pred >= 0.5] = 1
 
     return res[1]
 
