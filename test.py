@@ -71,12 +71,7 @@ def simple_learning_test_regression():
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     error_dict["squared"], plot_bool=False, n_folds=0, n_runs=100)
-
-#    net = Network(**dict_param_net)
-#    gd = GradientDescent(**dict_param_sgd)
-#
-#    gd.train(net, train_x, train_y)
+                     error_dict["squared"], n_folds=0, n_runs=100)
 
     return res[0]
 
@@ -96,25 +91,16 @@ def simple_and_learning_test_classification():  # Func: A and B
     dict_param_sgd = {
         'lr': 1,
         'batch_size': 1,
-        'momentum_val': 0.8,
+        'momentum_val': 0.9,
         'nesterov': False,
         'lr_decay': True,
         'lr_decay_tau': 50,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.09
+        'epsilon': 0.05
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metr_dict["miscl. error"], plot_bool=False, n_folds=0, n_runs=100)
-
-#    net = Network(**dict_param_net)
-#    gd = GradientDescent(**dict_param_sgd)
-
-#    gd.train(net, train_x, train_y)
-
-#    net_pred = net.forward(train_x)
-#    net_pred[net_pred < 0.5] = 0
-#    net_pred[net_pred >= 0.5] = 1
+                     metr_dict["miscl. error"], n_folds=0, n_runs=100)
 
     return res[0]
 
@@ -142,12 +128,12 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
         'lr_decay': True,
         'lr_decay_tau': 50,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.06,
+        'epsilon': 0.01,
         'patient': 5
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metr_dict["miscl. error"], plot_bool=False, n_folds=0, n_runs=10)
+                     metr_dict["miscl. error"], n_folds=0, n_runs=10)
 
 #    net = Network(**dict_param_net)
 #    gd = GradientDescent(**dict_param_sgd)
@@ -176,9 +162,9 @@ def test_monk1_grid():
     }
 
     dict_param_sgd = {
-        'lr': [0.1, 0.5],
+        'lr': [0.1, 0.5, 0.8, 1],
         'batch_size': [-1, 1, 20],
-        'reg_val': [0, 0.5],
+        'reg_val': [0, 0.01, 0.001, 0.00001],
         'reg_type': [2],
         'momentum_val': [0, 0.5, 0.99],
         'nesterov': [False, True],
@@ -193,7 +179,7 @@ def test_monk1_grid():
     metric = error_dict["nll"]
     best_result, best_combo, all_res = grid_search(dict_param_net, dict_param_sgd,
                                                    train_x, train_y, metric,
-                                                   n_folds=5, n_runs=10)
+                                                   n_folds=5, n_runs=20)
 
     print(f"Best {metric.name} score (train): ", best_result)
 
@@ -201,11 +187,10 @@ def test_monk1_grid():
     print('act_func: ' + best_combo[0]['act_func'].name)
     print('out_func: ' + best_combo[0]['out_func'].name)
     print('loss_func: ' + best_combo[0]['loss_func'].name)
-    print(best_combo[1])
 
-    print([res[0] for res in all_res])
-    print([res[1] for res in all_res])
-    print([res[3] for res in all_res])
+    print("Tr scores: ",[res[0] for res in all_res])
+    print("Val scores: ", [res[1] for res in all_res])
+    print("Combos: ", [res[3] for res in all_res])
 
     return best_result
 
@@ -224,16 +209,16 @@ def test_monk1():
     }
 
     dict_param_sgd = {
-        'lr': 0.1,
-        'batch_size': 20,
-        'reg_val': 0.0000001,
+        'lr': 0.5,
+        'batch_size': 1,
+        'reg_val': 0,
         'reg_type': 2,
-        'momentum_val': 0.3,
+        'momentum_val': 0,
         'nesterov': True,
-        'lr_decay': True,
-        'lr_decay_tau': 50,
+        'lr_decay': False,
+        'lr_decay_tau': 100,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.01,
+        'epsilon': 0.1,
         'patient': 10
     }
 
@@ -241,7 +226,7 @@ def test_monk1():
     metric2 = metr_dict["miscl. error"]
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metric2, plot_bool=False, n_folds=5, n_runs=10)
+                     metric2, n_folds=5, n_runs=50)
 
 #    net = Network(**dict_param_net)
 #    gd = GradientDescent(**dict_param_sgd)
@@ -287,7 +272,7 @@ def test_monk2():
     metric2 = metr_dict["miscl. error"]
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metric2, plot_bool=False, n_folds=5, n_runs=5)
+                     metric2, n_folds=5, n_runs=5)
 
 #    net = Network(**dict_param_net)
 #    gd = GradientDescent(**dict_param_sgd)
@@ -317,7 +302,7 @@ clas2_res = simple_learning_test_classification()
 print(f"Simple classification test error: {clas2_res}")
 
 # Tests on monk1
-monk1_res = test_monk1_grid()
+monk1_res = test_monk1()
 print(f"Monk 1 score on validation set error: {monk1_res}")
 
 # Tests on monk2

@@ -49,10 +49,8 @@ def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
 def compare_results(results, metric, topk=5):
 
     if metric.name in ["miscl. error", "nll"]:
-        best_score = np.inf
         sign = -1
     elif metric.name in ["accuracy"]:
-        best_score = 0
         sign = 1
     else:
         raise ValueError(f"Metric not supported {metric.name}")
@@ -69,7 +67,7 @@ def compare_results(results, metric, topk=5):
 
 
 def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
-               n_folds=0, plot_bool=False):
+               n_folds=0, plotter=None):
 
     score_epoch_dict = {"tr": []}
     score_results_dict = {"tr": []}  # Used to compute mean and std
@@ -80,7 +78,8 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
         if n_folds > 0:
 
             avg_tr_res, avg_val_res, epoch_tr_scores, epoch_val_scores = \
-                kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds)
+                kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric,
+                         n_folds, plotter=plotter)
 
             if "val" not in score_epoch_dict:
                 score_epoch_dict["val"] = []
@@ -97,8 +96,9 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
 
         # Train w/o validation set, used to estimate the avg performance
         else:
-            tr_scores, val_scores = train_eval_dataset(par_combo_net, par_combo_opt,
-                                                       x_mat, y_mat, metric)
+            tr_scores, _ = train_eval_dataset(par_combo_net, par_combo_opt,
+                                              x_mat, y_mat, metric,
+                                              plotter=plotter)
             score_epoch_dict["tr"].append(tr_scores)
             score_results_dict["tr"].append(tr_scores[-1])
 
@@ -111,34 +111,6 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
         std = np.std(score_results_dict[key], axis=0)
         score_stats_dict[key] = (mean, std)
 
-    if plot_bool:
-        density_list = None
-
-        for key in score_epoch_dict:
-            score_epoch_dict[key], density_list = \
-                average_non_std_mat(score_epoch_dict[key])
-
-        plot_dims = (2, 1)
-        _, axs = plt.subplots(*plot_dims, squeeze=False)
-
-        for key in score_epoch_dict:
-            score_list = score_epoch_dict[key]
-
-            axs[0][0].plot(range(0, len(score_list)), score_list, label=key)
-
-        axs[1][0].plot(range(0, len(density_list)), density_list)
-
-        axs[0][0].set_title(f"Model results ({n_runs} runs, {n_folds}-folds)")
-        axs[0][0].set_xlabel("Epochs")
-        axs[0][0].set_ylabel(f"Metric ({metric.name})")
-        axs[0][0].legend()
-
-        axs[1][0].set_title(f"Distribution of model stop epoch per run ({n_runs} runs, {n_folds}-folds)")
-        axs[1][0].set_xlabel("Epochs")
-        axs[1][0].set_ylabel("Number of models")
-
-        plt.show()
-
     if "val" in score_epoch_dict:
         results = (score_stats_dict["tr"], score_stats_dict["val"],
                    par_combo_net, par_combo_opt)
@@ -148,7 +120,7 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
     return results
 
 
-def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds):
+def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotter=None):
 
     fold_size = int(np.ceil(x_mat.shape[0] / n_folds))
     pattern_idx = np.arange(x_mat.shape[0])
@@ -178,7 +150,7 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds):
 
         tr_score_list, val_score_list =\
             train_eval_dataset(par_combo_net, par_combo_opt, train_x,
-                               train_y, metric, val_x, val_y)
+                               train_y, metric, val_x, val_y, plotter=plotter)
 
         epoch_tr_score_mat.append(tr_score_list)
         epoch_val_score_mat.append(val_score_list)
@@ -197,7 +169,7 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds):
 
 
 def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
-                       metric, val_x=None, val_y=None):
+                       metric, val_x=None, val_y=None, plotter=None):
 
     net = Network(**par_combo_net)
     gd = GradientDescent(**par_combo_opt)
@@ -209,13 +181,19 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
 
     while train_bool:
 
-        train_bool = gd.train(net, train_x, train_y, 1)
+        train_bool = gd.train(net, train_x, train_y, 1, plotter=plotter)
 
         epoch_res_tr_list.append(eval_dataset(net, train_x, train_y, metric))
 
         # Check if the validation set is given as input
         if val_x is not None and val_y is not None:
             epoch_res_val_list.append(eval_dataset(net, val_x, val_y, metric))
+
+            if plotter is not None:
+                plotter.add_lr_curve_datapoint(net, val_x, val_y, "val")
+
+    if plotter is not None:
+        plotter.add_new_plotline()
 
     return epoch_res_tr_list, epoch_res_val_list
 

@@ -14,7 +14,10 @@ def average_non_std_mat(value_mat):
     # Needed to handle multi-out network, in which each cell in value_mat
     # contains an array of len equal to the number of outs
     # Hp: all cells have the same size
-    len_cell = value_mat[0][0].shape[0]
+    if np.isscalar(value_mat[0][0]):
+        len_cell = 1
+    else:
+        len_cell = value_mat[0][0].shape[0]
 
     # Numerator of average
     sum_vec = np.zeros((max_col, len_cell))
@@ -24,9 +27,17 @@ def average_non_std_mat(value_mat):
 
     for row in value_mat:
 
+        # In case of empty row
+        if row == []:
+            continue
+
         len_row = len(row)
         new_vec = np.array(row)
         loc_count_vec = np.ones((len_row, len_cell))
+
+        # In case the matrix contains scalars reshape them in to array of len 1
+        if np.isscalar(value_mat[0][0]):
+            new_vec = np.reshape(new_vec, (len_row, 1))
 
         # Create new row with normalised length
         for i in range(max_col - len_row):

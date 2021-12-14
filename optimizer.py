@@ -27,6 +27,10 @@ class GradientDescent:
         self.epsilon = epsilon
         self.patient = patient
 
+        # Note: train() can also be called on a partially trained model
+        # Since the check has side effects we need to store the result
+        self.train_cond = True
+
         # Min number of epochs to train for, needed to avoid 1 epoch mb
         self.min_epoch = 2
 
@@ -63,11 +67,7 @@ class GradientDescent:
         # Bengio et al suggest that one shuffle is enough
         np.random.shuffle(index_list)
 
-        # Note: train() can also be called on a partially trained model
-        # Since the check has side effects we need to store the result
-        train_cond = self.check_stop_crit() and self.epoch_count < self.lim_epochs
-
-        while train_cond or self.epoch_count < self.min_epoch:
+        while self.train_cond or self.epoch_count < self.min_epoch:
 
             # Check if number of epochs requested in train() has been reached
             if self.epoch_count >= lim_step:
@@ -75,7 +75,7 @@ class GradientDescent:
 
             # Batch version
             if self.batch_size == -1:
-                train_cond = self.update_weights(net, train_x, train_y)
+                self.train_cond = self.update_weights(net, train_x, train_y)
 
             # Online/mini-batch version
             elif 1 <= self.batch_size < n_patterns:
@@ -83,31 +83,27 @@ class GradientDescent:
                 n_minibatch = int(np.ceil(n_patterns / self.batch_size))
                 i = 0
 
-                while i < n_minibatch and train_cond:
+                while i < n_minibatch and self.train_cond:
                     idx_list = index_list[i * self.batch_size: (i + 1) * self.batch_size]
                     mini_batch_x = train_x[idx_list]
                     mini_batch_y = train_y[idx_list]
 
-                    train_cond = self.update_weights(net, mini_batch_x, mini_batch_y)
+                    self.train_cond = self.update_weights(net, mini_batch_x, mini_batch_y)
                     i += 1
 
             else:
                 raise ValueError("Mini-batch size should be >= 1 and < l.\
                                  If you want to use the batch version use -1.")
 
-            # If training is already over do not increase epochs and plot
-            if train_cond or self.epoch_count < self.min_epoch:
-
-                if plotter is not None:
-                    plotter.build_plot(net, self, train_x, train_y, self.epoch_count)
-
-                self.epoch_count += 1
-
             # The criterion is already checked at each step
-            train_cond = train_cond and self.epoch_count < self.lim_epochs
+            self.train_cond = self.train_cond and self.epoch_count < self.lim_epochs
+            self.epoch_count += 1
+
+            if plotter is not None:
+                plotter.add_plot_datapoint(net, self, train_x, train_y)
 
         # Used to determine if there needs to be further training
-        return train_cond
+        return self.train_cond
 
     def check_stop_crit(self):
 
