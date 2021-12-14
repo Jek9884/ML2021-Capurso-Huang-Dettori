@@ -166,7 +166,6 @@ class GradientDescent:
             if self.momentum_val > 0:
                 delta_w += self.momentum_val * layer.delta_w_old
 
-            # TODO: take decision regarding norm-1 and reg_type parameter
             if self.reg_val > 0 and self.reg_type == 2:
                 delta_w += -2 * self.reg_val * layer.weights
 

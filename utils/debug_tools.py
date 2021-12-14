@@ -3,6 +3,7 @@ import numpy as np
 
 from utils.helpers import average_non_std_mat
 
+
 # TODO: lookup gradient checking technique
 
 # Idea: each plotter can be used for either a model or a full eval by
@@ -59,12 +60,11 @@ class Plotter:
 
         # Substitute lists of list with their average row-wise
         popul_distr = self.compute_average_plotlines(self.results_dict)
-        print(self.results_dict["lr"])
 
         if self.n_plots > 0:
             self.results_dict["popul_distr"] = popul_distr
 
-        plot_dims = ((len(self.results_dict)+1)//self.n_cols, self.n_cols)
+        plot_dims = ((len(self.results_dict) + 1) // self.n_cols, self.n_cols)
         _, axs = plt.subplots(*plot_dims, squeeze=False)
         tot_epochs = len(popul_distr)
 
@@ -78,7 +78,7 @@ class Plotter:
             if plt_type in ["grad_norm", "act_val"]:
 
                 for n_layer, val in self.results_dict[plt_type].items():
-                    cur_ax.plot(range(0, tot_epochs), val, label=f"Layer {n_layer}")
+                    cur_ax.plot(range(tot_epochs), val, label=f"Layer {n_layer}")
 
                 cur_ax.legend()
 
@@ -89,7 +89,7 @@ class Plotter:
                 cur_ax.legend()
 
             elif plt_type in ["lr", "popul_distr"]:
-                cur_ax.plot(range(0, tot_epochs), self.results_dict[plt_type])
+                cur_ax.plot(range(tot_epochs), np.around(self.results_dict[plt_type], decimals=5))
 
             else:
                 raise ValueError(f"Unknown plt_type ({plt_type})")
@@ -104,7 +104,6 @@ class Plotter:
             axs[-1][-i].axis('off')
 
         plt.show()
-
 
     def add_lr_curve_datapoint(self, network, data_x, data_y, data_label="tr"):
 

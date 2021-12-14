@@ -199,7 +199,7 @@ def test_monk1():
 
     dict_param_sgd = {
         'lr': 0.8,
-        'batch_size': -1,
+        'batch_size': 5,
         'reg_val': 0,
         'reg_type': 2,
         'momentum_val': 0.3,

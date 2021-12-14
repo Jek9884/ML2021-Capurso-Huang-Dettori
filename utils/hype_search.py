@@ -2,11 +2,9 @@ import itertools as it
 from joblib import Parallel, delayed
 import numpy as np
 
-import utils.helpers
 from network import Network
 from optimizer import GradientDescent
 from utils.helpers import average_non_std_mat
-
 
 def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
                 n_folds, n_runs=10):
