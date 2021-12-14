@@ -1,6 +1,7 @@
 import os
 import numpy as np
 
+import utils.helpers
 from network import Network
 from functions.loss_funcs import loss_dict, error_dict
 from functions.act_funcs import act_dict
@@ -10,9 +11,11 @@ from optimizer import GradientDescent
 from utils.data_handler import read_monk
 from utils.hype_search import grid_search, eval_model
 from utils.debug_tools import Plotter
+from utils.helpers import save_results_to_csv, result_to_str
 
 plotter = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
                   [error_dict["nll"], metr_dict["miscl. error"]], 2)
+
 
 def forward_test():
     in_vec = np.array([[3, 3]])
@@ -73,7 +76,7 @@ def simple_learning_test_regression():
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      error_dict["squared"], n_folds=0, n_runs=100)
 
-    return res[0]
+    return res['score_tr']
 
 
 def simple_and_learning_test_classification():  # Func: A and B
@@ -102,7 +105,7 @@ def simple_and_learning_test_classification():  # Func: A and B
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metr_dict["miscl. error"], n_folds=0, n_runs=100)
 
-    return res[0]
+    return res['score_tr']
 
 
 def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
@@ -135,7 +138,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metr_dict["miscl. error"], n_folds=0, n_runs=10)
 
-    return res[0]
+    return res['score_tr']
 
 
 def test_monk1_grid():
@@ -168,22 +171,17 @@ def test_monk1_grid():
     }
 
     metric = error_dict["nll"]
-    best_result, best_combo, all_res = grid_search(dict_param_net, dict_param_sgd,
-                                                   train_x, train_y, metric,
-                                                   n_folds=5, n_runs=20)
+    results = grid_search(dict_param_net, dict_param_sgd,
+                          train_x, train_y, metric,
+                          n_folds=5, n_runs=20)
 
-    print(f"Best {metric.name} score (train): ", best_result)
+    path = os.path.join('.', 'results', 'best_results.csv')
+    save_results_to_csv(path, results)
 
-    print('init_func: ' + best_combo[0]['init_func'].name)
-    print('act_func: ' + best_combo[0]['act_func'].name)
-    print('out_func: ' + best_combo[0]['out_func'].name)
-    print('loss_func: ' + best_combo[0]['loss_func'].name)
+    print(result_to_str(results[0], ', '))
 
-    print("Tr scores: ",[res[0] for res in all_res])
-    print("Val scores: ", [res[1] for res in all_res])
-    print("Combos: ", [res[3] for res in all_res])
+    return results[0]['score_val']
 
-    return best_result
 
 def test_monk1():
     path_train = os.path.join('datasets', 'monks-1.train')
@@ -221,7 +219,8 @@ def test_monk1():
                      metric2, n_folds=5, n_runs=50, plotter=plotter)
     plotter.plot()
 
-    return res[1]
+    return res['score_val']
+
 
 def test_monk2():
     path_train = os.path.join('datasets', 'monks-2.train')
@@ -258,7 +257,7 @@ def test_monk2():
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metric2, n_folds=5, n_runs=5)
 
-    return res[1]
+    return res['score_val']
 
 
 print("Forward test: ", forward_test())

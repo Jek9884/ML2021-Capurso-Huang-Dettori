@@ -1,7 +1,7 @@
 import numpy as np
 
-def average_non_std_mat(value_mat):
 
+def average_non_std_mat(value_mat):
     max_col = 0
 
     # Find longest row of non-standard matrix
@@ -41,7 +41,6 @@ def average_non_std_mat(value_mat):
 
         # Create new row with normalised length
         for i in range(max_col - len_row):
-
             vec_zeroes = np.zeros((1, len_cell))
             new_vec = np.append(new_vec, vec_zeroes, axis=0)
             loc_count_vec = np.append(loc_count_vec, vec_zeroes, axis=0)
@@ -56,3 +55,56 @@ def average_non_std_mat(value_mat):
         count_vec = count_vec[:, 0]
 
     return div_vec, count_vec
+
+
+def result_to_str(result, sep=' '):
+    combo_str = str(result['combo_net']['conf_layers']) + sep
+
+    combo_str += result['combo_net']['init_func'].name + sep
+    combo_str += result['combo_net']['act_func'].name + sep
+    combo_str += result['combo_net']['out_func'].name + sep
+    combo_str += result['combo_net']['loss_func'].name + sep
+
+    for value in result['combo_opt'].values():
+        combo_str += str(value) + sep
+
+    combo_str += str(result['score_tr'][0]) + sep  # average
+    combo_str += str(result['score_tr'][1])  # standard deviation
+
+    if result['score_val'] is not None:
+        combo_str += sep
+        combo_str += str(result['score_val'][0]) + sep # average
+        combo_str += str(result['score_val'][1]) # standard deviation
+
+    combo_str += '\n'
+
+    return combo_str
+
+
+def get_csv_header(result, sep=' '):
+    header = ''
+
+    for key in result['combo_net']:
+        header += key + sep
+
+    for key in result['combo_opt']:
+        header += key + sep
+
+    header += result['metric'] + '_tr_avg' + sep
+    header += result['metric'] + '_tr_std'
+
+    if result['score_val'] is not None:
+        header += sep
+        header += result['metric'] + '_tr_avg' + sep
+        header += result['metric'] + '_tr_std'
+
+    header += '\n'
+
+    return header
+
+
+def save_results_to_csv(path, results, sep=';'):
+    with open(path, 'w') as file:
+        file.write(get_csv_header(results[0], sep))
+        for combo in results:
+            file.write(result_to_str(combo, sep))
