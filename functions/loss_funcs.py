@@ -4,7 +4,7 @@ from functions.function import Function, DerivableFunction
 
 # Loss functions
 def squared_loss(exp_val, pred_val):
-    return np.square(np.subtract(exp_val, pred_val))
+    return 1/2*np.square(np.subtract(exp_val, pred_val))
 
 def squared_loss_deriv(exp_val, pred_val):
     return np.subtract(pred_val, exp_val)

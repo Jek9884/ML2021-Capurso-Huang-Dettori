@@ -89,7 +89,7 @@ class Layer:
         self.grad_w = np.dot(np.transpose(delta), self.in_val)
         self.grad_b = np.sum(delta, axis=0)
 
-        new_deriv_err = np.matmul(delta, self.weights)
+        new_deriv_err = np.dot(delta, self.weights)
 
         if self.debug_bool:
             print("Layer")

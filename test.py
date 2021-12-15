@@ -12,9 +12,10 @@ from utils.data_handler import read_monk
 from utils.hype_search import grid_search, eval_model
 from utils.plotter import Plotter
 from utils.helpers import save_results_to_csv, result_to_str
+from utils.debug_tools import check_gradient_net
 
 plotter = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
-                  [error_dict["nll"], metr_dict["miscl. error"]], 2)
+                  [error_dict["nll"]], 2)
 
 
 def forward_test():
@@ -33,8 +34,15 @@ def backward_test():
     in_vec = np.array([[3, 3]])
     exp_res = np.array([[6, 6]])
 
-    net = Network([2, 2, 2], None, act_dict["identity"],
-                  act_dict["identity"], loss_dict["squared"])
+    dict_param_net = {
+        'conf_layers': [2, 2, 2],
+        'init_func': None,
+        'act_func': act_dict["identity"],
+        'out_func': act_dict["identity"],
+        'loss_func': loss_dict["squared"]
+    }
+
+    net = Network(**dict_param_net)
 
     out = net.forward(in_vec)
     net.backward(exp_res, out)
@@ -53,24 +61,26 @@ def backward_test():
 
 
 def simple_learning_test_regression():
-    train_x = np.array([[3, 3]])
-    train_y = np.array([[6, 6]])
+    train_x = np.array([[2, 2, 2], [3, 2, 4], [1, 1, 1]])
+    train_y = np.array([[4, 4, 4], [6, 4, 8], [2, 2, 2]])
 
     dict_param_net = {
-        'conf_layers': [2, 2, 2],
-        'init_func': init_dict["norm"],
+        'conf_layers': [3, 3],
+        'init_func': None,
         'act_func': act_dict["sigm"],
         'out_func': act_dict["identity"],
         'loss_func': loss_dict["squared"]
     }
 
     dict_param_sgd = {
-        'lr': 0.5,
+        'lr': 0.1,
         'batch_size': -1,
         'momentum_val': 0,
         'nesterov': False,
+        'lr_decay': False,
+        'lr_decay_tau': 20,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.01
+        'epsilon': 0.05
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
@@ -260,7 +270,6 @@ def test_monk2():
 
     return res['score_val']
 
-"""
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())
 
@@ -280,6 +289,3 @@ print(f"Monk 1 score on validation set error: {monk1_res}")
 # Tests on monk2
 monk2_res = test_monk2()
 print(f"Monk 2 score on validation set error: {monk2_res}")
-"""
-
-test_monk1_grid()

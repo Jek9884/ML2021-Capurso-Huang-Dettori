@@ -1,191 +1,77 @@
-import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.helpers import average_non_std_mat
+from network import Network
 
+# Implementation of gradient checker
 
-# TODO: lookup gradient checking technique
+def check_gradient_net(par_combo_net, train_x, train_y):
 
-# Idea: each plotter can be used for either a model or a full eval by
-# constructing multiple plots and taking the averages
-class Plotter:
+    net = Network(**par_combo_net)
 
-    def __init__(self, type_plots=[], lr_metric_list=None, n_cols=1):
+    # Note: supports only online learning
+    for i in range(train_x.shape[0]):
 
-        self.lr_metric_list = lr_metric_list
-        self.type_plots = type_plots
-        self.n_cols = n_cols
-        self.n_plots = 0
+        x_row = np.array([train_x[i]])
+        y_row = np.array([train_y[i]])
 
-        # Each "leaf" of the dict is a list of plotlines
-        self.results_dict = {}
+        for j, _ in enumerate(net.layers):
 
-        if "lr_curve" in self.type_plots and self.lr_metric_list is None:
-            raise ValueError("To print the learning curve a metric is needed")
+            check_gradient_layer(net, j, x_row, y_row)
 
-    def add_plot_datapoint(self, network, optimizer, data_x, data_y):
+def check_gradient_layer(net, layer_idx, train_x, train_y, epsilon=10**-6):
 
-        for plt_type in self.type_plots:
+    x_row = train_x
+    y_row = train_y
+    weights_mat = net.layers[layer_idx].weights
+    num_units = weights_mat.shape[0]
+    num_feat = weights_mat.shape[1]
 
-            if plt_type == "lr_curve":
-                self.add_lr_curve_datapoint(network, data_x, data_y)
-            elif plt_type == "lr":
-                self.add_lr_rate_datapoint(optimizer)
-            elif plt_type == "grad_norm":
-                self.add_grad_norm_datapoint(network)
-            elif plt_type == "act_val":
-                self.add_activ_val_datapoint(network, data_x)
+    if net.loss_func.name == "nll" and net.out_func.name == "sigm":
+        net_out = True
+    else:
+        net_out = False
 
-    # Ideally called at the end of a model training process
-    def add_new_plotline(self, plot_dict=None):
+    print(f"Layer {layer_idx}")
+    print("Numerical grad: ")
 
-        if plot_dict is None:
-            plot_dict = self.results_dict
+    num_grad_mat = []
+    for i in range(num_units):
 
-        # Add an empty list to each list of lists
-        for k, v in plot_dict.items():
+        unit_vec = []
+        for j in range(num_feat):
 
-            if isinstance(v, list):
-                v.append([])
+            new_weights = np.array(weights_mat, copy=True)
+            eye_mat = np.zeros((num_units, num_feat))
+            eye_mat[i, j] = 1
 
-            elif isinstance(v, dict):
-                self.add_new_plotline(v)
+            eps_mat = epsilon*eye_mat
+            pert_mat1 = new_weights + eps_mat
+            pert_mat2 = new_weights - eps_mat
 
-        self.n_plots += 1
+            net.layers[layer_idx].weights = pert_mat1
+            res = net.forward(x_row, net_out)
+            f1 = net.loss_func(y_row, res)
 
-    def plot(self):
+            net.layers[layer_idx].weights = pert_mat2
+            res = net.forward(x_row, net_out)
+            f2 = net.loss_func(y_row, res)
 
-        if self.results_dict == {}:
-            raise RuntimeError("Plotter: no results to plot")
+            num_grad = np.squeeze((f1-f2)/(2*epsilon), axis=0)
+            net.layers[layer_idx].weights = weights_mat
 
-        # Substitute lists of list with their average row-wise
-        popul_distr = self.compute_average_plotlines(self.results_dict)
+            # In case of multi-head net sum the changes relative to each weight
+            if not np.isscalar(num_grad) and len(num_grad) > 1:
+                num_grad = np.sum(num_grad)
 
-        if self.n_plots > 0:
-            self.results_dict["popul_distr"] = popul_distr
+            unit_vec.append(num_grad)
 
-        plot_dims = ((len(self.results_dict) + 1) // self.n_cols, self.n_cols)
-        _, axs = plt.subplots(*plot_dims, squeeze=False)
-        tot_epochs = len(popul_distr)
+        num_grad_mat.append(unit_vec)
 
-        for i, plt_type in enumerate(self.results_dict):
+    print(np.array(num_grad_mat))
+    # Analytical gradient
+    net.null_grad()
+    out = net.forward(x_row)
+    net.backward(y_row, out)
+    an_grad = net.layers[layer_idx].grad_w
 
-            cur_row = i // self.n_cols
-            cur_col = i % self.n_cols
-            cur_ax = axs[cur_row][cur_col]
-
-            # Needed to handle matrix of values in these plots
-            if plt_type in ["grad_norm", "act_val"]:
-
-                for n_layer, val in self.results_dict[plt_type].items():
-                    cur_ax.plot(range(tot_epochs), val, label=f"Layer {n_layer}")
-
-                cur_ax.legend()
-
-            elif "lr_curve" in plt_type:
-
-                for data_label, val in self.results_dict[plt_type].items():
-                    cur_ax.plot(range(tot_epochs), val, label=data_label)
-                cur_ax.legend()
-
-            elif plt_type in ["lr", "popul_distr"]:
-                cur_ax.plot(range(tot_epochs), np.around(self.results_dict[plt_type], decimals=5))
-
-            else:
-                raise ValueError(f"Unknown plt_type ({plt_type})")
-
-            cur_ax.set_xlabel("Epochs")
-            cur_ax.set_ylabel(f"{plt_type}")
-
-        n_blank_axs = len(self.results_dict) % self.n_cols
-
-        # Hide unused plots
-        for i in range(1, n_blank_axs + 1):
-            axs[-1][-i].axis('off')
-
-        plt.show()
-
-    def add_lr_curve_datapoint(self, network, data_x, data_y, data_label="tr"):
-
-        for metric in self.lr_metric_list:
-
-            if metric.name == "nll":
-                pred_vec = network.forward(data_x, net_out=True)
-            elif metric.name == "squared":
-                pred_vec = network.forward(data_x)
-            elif metric.name in ["miscl. error"]:
-                pred_vec = network.forward(data_x)
-                pred_vec[pred_vec < 0.5] = 0
-                pred_vec[pred_vec >= 0.5] = 1
-            else:
-                raise ValueError("add_lr_curve_datapoint: unsupported metric")
-
-            metric_res = metric(data_y, pred_vec)
-
-            plot_name = f"lr_curve ({metric.name})"
-
-            if plot_name not in self.results_dict:
-                self.results_dict[plot_name] = {}
-
-            if data_label not in self.results_dict[plot_name]:
-                self.results_dict[plot_name][data_label] = [[]]
-
-            self.results_dict[plot_name][data_label][-1].append(metric_res)
-
-    def add_lr_rate_datapoint(self, optimizer):
-
-        if "lr" not in self.results_dict:
-            self.results_dict["lr"] = [[]]
-
-        self.results_dict["lr"][-1].append(optimizer.lr)
-
-    # Note: needs to be used after a backward pass
-    def add_grad_norm_datapoint(self, network):
-
-        if "grad_norm" not in self.results_dict:
-            self.results_dict["grad_norm"] = {}
-
-        for i, layer in enumerate(network.layers):
-
-            bias_shape = (layer.grad_w.shape[0], 1)
-
-            # Uses frobenius norm on the joint weights (bias included) matrix
-            grad_layer = np.hstack((layer.grad_w,
-                                    layer.grad_b.reshape(bias_shape)))
-            norm_grad = np.linalg.norm(grad_layer)
-
-            if i not in self.results_dict["grad_norm"]:
-                self.results_dict["grad_norm"][i] = [[]]
-
-            self.results_dict["grad_norm"][i][-1].append(norm_grad)
-
-    def add_activ_val_datapoint(self, network, data_x):
-
-        if "act_val" not in self.results_dict:
-            self.results_dict["act_val"] = {}
-
-        network.forward(data_x)
-
-        for i, layer in enumerate(network.layers):
-
-            if i not in self.results_dict["act_val"]:
-                self.results_dict["act_val"][i] = [[]]
-
-            self.results_dict["act_val"][i][-1].append(np.average(layer.out))
-
-    def compute_average_plotlines(self, plot_dict=None):
-
-        if plot_dict is None:
-            plot_dict = self.results_dict
-
-        popul_distr = None
-        # Add an empty list to each list of lists
-        for k, v in plot_dict.items():
-
-            if isinstance(v, list):
-                plot_dict[k], popul_distr = average_non_std_mat(v)
-
-            elif isinstance(v, dict):
-                self.compute_average_plotlines(v)
-
-        return popul_distr
+    print("Analytical grad: \n", an_grad)
