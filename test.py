@@ -10,7 +10,7 @@ from functions.metric_funcs import metr_dict
 from optimizer import GradientDescent
 from utils.data_handler import read_monk
 from utils.hype_search import grid_search, eval_model
-from utils.debug_tools import Plotter
+from utils.plotter import Plotter
 from utils.helpers import save_results_to_csv, result_to_str
 
 plotter = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
@@ -208,7 +208,7 @@ def test_monk1():
         'lr_decay': False,
         'lr_decay_tau': 100,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.01,
+        'epsilon': 0.07,
         'patient': 10,
         'lim_epochs': 500
     }

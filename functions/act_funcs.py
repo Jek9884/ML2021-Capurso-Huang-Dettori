@@ -1,5 +1,5 @@
 import numpy as np
-from functions.Function import Function, DerivableFunction
+from functions.function import Function, DerivableFunction
 
 # Activation functions
 def identity(x):

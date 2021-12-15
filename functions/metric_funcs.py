@@ -1,5 +1,5 @@
 import numpy as np
-from functions.Function import Function
+from functions.function import Function
 
 # Hp: all outputs must be numpy.ndarray
 

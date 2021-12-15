@@ -73,7 +73,6 @@ class Network:
 
     def forward(self, in_mat, net_out=False):
 
-        # net and act functions
         fw_mat = in_mat
 
         for i, layer in enumerate(self.layers):
