@@ -156,18 +156,18 @@ def test_monk1_grid():
     }
 
     dict_param_sgd = {
-        'lr': [0.1, 0.5, 0.8, 1],
-        'batch_size': [-1, 1, 20],
-        'reg_val': [0, 0.01, 0.001, 0.00001],
+        'lr': [0.1, 0.5, 0.8, 0.9],
+        'batch_size': [-1, 1, 5, 20],
+        'reg_val': [0, 0.00001, 0.0001, 0.001],
         'reg_type': [2],
-        'momentum_val': [0, 0.5, 0.99],
+        'momentum_val': [0, 0.3, 0.5],
         'nesterov': [False, True],
-        'lim_epochs': [300],
+        'lim_epochs': [500],
         'lr_decay': [True, False],
         'lr_decay_tau': [100, 200, 400],
         'stop_crit_type': ['delta_w'],
-        'epsilon': [0.01],
-        'patient': [10]
+        'epsilon': [0.01, 0.1],
+        'patient': [5, 10]
     }
 
     metric = error_dict["nll"]
@@ -196,6 +196,7 @@ def test_monk1():
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"]
     }
+
 
     dict_param_sgd = {
         'lr': 0.8,
@@ -259,7 +260,7 @@ def test_monk2():
 
     return res['score_val']
 
-
+"""
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())
 
@@ -279,3 +280,6 @@ print(f"Monk 1 score on validation set error: {monk1_res}")
 # Tests on monk2
 monk2_res = test_monk2()
 print(f"Monk 2 score on validation set error: {monk2_res}")
+"""
+
+test_monk1_grid()

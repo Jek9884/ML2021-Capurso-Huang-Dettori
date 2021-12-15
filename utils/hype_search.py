@@ -2,9 +2,11 @@ import itertools as it
 from joblib import Parallel, delayed
 import numpy as np
 
+import utils.helpers
 from network import Network
 from optimizer import GradientDescent
-from utils.helpers import average_non_std_mat
+from utils.helpers import average_non_std_mat, clean_combos
+
 
 def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
                 n_folds, n_runs=10):
@@ -14,6 +16,8 @@ def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
 
     # It makes a cartesian product between all hyper-parameters
     combo_list = list(it.product(*(net_values + opt_values)))  # Join the two list of params
+
+    combo_list = clean_combos(par_combo_net, par_combo_opt, combo_list)
 
     list_tasks = []
 
