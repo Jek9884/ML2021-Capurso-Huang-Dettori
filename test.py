@@ -128,26 +128,27 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
 
     dict_param_net = {
         'conf_layers': [4, 2, 1],
-        'init_func': init_dict["norm"],
+        'init_func': init_dict["std"],
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
-        'loss_func': loss_dict["nll"]
+        'loss_func': loss_dict["nll"],
+        'init_scale': 50
     }
 
     dict_param_sgd = {
         'lr': 1,
         'batch_size': 1,
-        'reg_val': 0.0001,
+        'reg_val': 0.0002,
         'reg_type': 2,
-        'momentum_val': 0.9,
+        'momentum_val': 0.8,
         'nesterov': True,
         'lr_decay_type': "lin",
         'lr_dec_exp_k': 0.05,
-        'lr_dec_lin_tau': 50,
-        'stop_crit_type': 'fixed',
-        'epsilon': 0.005,
+        'lr_dec_lin_tau': 100,
+        'stop_crit_type': 'delta_w',
+        'epsilon': 0.02,
         'patient': 5,
-        'lim_epochs': 50
+        'lim_epochs': 500
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,

@@ -44,22 +44,22 @@ class Network:
                          "sigm": 0.5,
                          "tanh": 0,
                          "relu": 0.1}
+
             act_bias = [bias_dict[act_func.name]]*(len(conf_layers)-2)
             out_bias = bias_dict[out_func.name]
             self.bias = [*act_bias, out_bias]
 
-        if self.init_func is not None and self.init_func.name == "std":
-            init_func = partial(init_func, scale=init_scale)
-
         # layers init
         for i in range(len(conf_layers) - 2):
             self.layers.append(Layer(conf_layers[i + 1], conf_layers[i],
-                                     init_func, act_func, self.bias[i], debug_bool))
+                                     self.init_func, self.act_func,
+                                     self.bias[i], init_scale, debug_bool))
 
         # init of output layer is handled at the network level to avoid numerical problems
         self.layers.append(Layer(conf_layers[-1], conf_layers[-2],
-                                 init_func, out_func,
-                                 self.bias[len(conf_layers) - 2], debug_bool))
+                                 self.init_func, self.out_func,
+                                 self.bias[len(conf_layers) - 2], init_scale,
+                                 debug_bool))
 
     """
         Computes network forward pass
@@ -99,7 +99,7 @@ class Network:
             print("Network-wise info:")
             print("\tOut: ", cur_out)
             print("\tExpected: ", exp_out)
-            print("\tLoss: ", self.loss_func.func(exp_out, cur_out))
+            print("\tLoss: ", self.loss_func(exp_out, cur_out))
             print("\tDeriv Loss: ", self.loss_func.deriv(exp_out, cur_out))
             print()
 

@@ -21,13 +21,15 @@ Attributes:
 class Layer:
 
     # Network may not pass an act_func to the last layer
-    def __init__(self, n_out, n_in, init_func=None, act_func=None, bias=None, debug_bool=False):
+    def __init__(self, n_out, n_in, init_func=None, act_func=None, bias=None,
+                 init_scale=0, debug_bool=False):
 
         self.n_in = n_in  # Number of units in previous layer
         self.n_out = n_out  # Number of units in this layer
         self.bias = bias
         self.act_func = act_func
         self.init_func = init_func
+        self.init_scale = init_scale
 
         # Variables used to implement backpropagation
         self.grad_w = None
@@ -66,7 +68,7 @@ class Layer:
         if net_out:
             self.out = self.net
         else:
-            self.out = self.act_func.func(self.net)
+            self.out = self.act_func(self.net)
 
         return self.out
 
@@ -94,7 +96,7 @@ class Layer:
         if self.debug_bool:
             print("Layer")
             print("Activation function: ", self.act_func.name)
-            print("\tOut: ", self.act_func.func(self.net))
+            print("\tOut: ", self.act_func(self.net))
             print("\tNet with bias: ", self.net)
             print("\tBias: ", self.bias)
             print("\tDelta: ", delta)
@@ -117,8 +119,12 @@ class Layer:
             # Each row is composed of the weights of the unit
             self.weights = np.ones((self.n_out, self.n_in))
         # TODO add parameter for sparse count
+
+        elif self.init_func.name == "std" and self.init_scale != 0:
+            self.weights = self.init_func((self.n_out, self.n_in), self.init_scale, 0)
+
         else:
-            self.weights = self.init_func.func((self.n_out, self.n_in), 0)
+            self.weights = self.init_func((self.n_out, self.n_in), 0)
 
         self.null_grad()
 
