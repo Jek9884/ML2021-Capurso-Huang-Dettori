@@ -44,6 +44,7 @@ def backward_test():
 
     net = Network(**dict_param_net)
 
+#    check_gradient_net(dict_param_net, in_vec, exp_res)
     out = net.forward(in_vec)
     net.backward(exp_res, out)
 
@@ -66,7 +67,7 @@ def simple_learning_test_regression():
 
     dict_param_net = {
         'conf_layers': [3, 3],
-        'init_func': None,
+        'init_func': init_dict["norm"],
         'act_func': act_dict["sigm"],
         'out_func': act_dict["identity"],
         'loss_func': loss_dict["squared"]
@@ -86,7 +87,7 @@ def simple_learning_test_regression():
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      error_dict["squared"], n_folds=0, n_runs=100)
 
-    return res['score_tr']
+    return res['score_tr'], res["epochs"]
 
 
 def simple_and_learning_test_classification():  # Func: A and B
@@ -115,7 +116,7 @@ def simple_and_learning_test_classification():  # Func: A and B
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metr_dict["miscl. error"], n_folds=0, n_runs=100)
 
-    return res['score_tr']
+    return res['score_tr'], res["epochs"]
 
 
 def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
@@ -148,7 +149,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metr_dict["miscl. error"], n_folds=0, n_runs=10)
 
-    return res['score_tr']
+    return res['score_tr'], res["epochs"]
 
 
 def test_monk1_grid():
@@ -210,27 +211,27 @@ def test_monk1():
 
     dict_param_sgd = {
         'lr': 0.8,
-        'batch_size': 5,
+        'batch_size': 20,
         'reg_val': 0,
         'reg_type': 2,
-        'momentum_val': 0.3,
-        'nesterov': True,
-        'lr_decay': False,
+        'momentum_val': 0.8,
+        'nesterov': False,
+        'lr_decay': True,
         'lr_decay_tau': 100,
-        'stop_crit_type': 'delta_w',
-        'epsilon': 0.07,
+        'stop_crit_type': 'fixed',
+        'epsilon': 0.01,
         'patient': 10,
-        'lim_epochs': 500
+        'lim_epochs': 100
     }
 
     metric1 = error_dict["nll"]
     metric2 = metr_dict["miscl. error"]
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metric2, n_folds=5, n_runs=50, plotter=plotter)
+                     metric2, n_folds=5, n_runs=10, plotter=plotter)
     plotter.plot()
 
-    return res['score_val']
+    return res['score_val'], res["epochs"]
 
 
 def test_monk2():
@@ -268,7 +269,7 @@ def test_monk2():
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metric2, n_folds=5, n_runs=5)
 
-    return res['score_val']
+    return res['score_val'], res["epochs"]
 
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())

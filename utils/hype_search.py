@@ -65,39 +65,36 @@ def compare_results(results, metric, topk=5):
 
 def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
                n_folds=0, plotter=None):
-    score_epoch_dict = {"tr": []}
+
     score_results_dict = {"tr": []}  # Used to compute mean and std
+    train_epoch_list = []
 
     for _ in range(n_runs):
 
         # Use kfold
         if n_folds > 0:
 
-            avg_tr_res, avg_val_res, epoch_tr_scores, epoch_val_scores = \
+            avg_tr_res, avg_val_res, n_epochs = \
                 kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric,
                          n_folds, plotter=plotter)
-
-            if "val" not in score_epoch_dict:
-                score_epoch_dict["val"] = []
-
-            # Every kfold has a validation set
-            score_epoch_dict["tr"].append(epoch_tr_scores)
-            score_epoch_dict["val"].append(epoch_val_scores)
 
             if "val" not in score_results_dict:
                 score_results_dict["val"] = []
 
             score_results_dict["tr"].append(avg_tr_res)
             score_results_dict["val"].append(avg_val_res)
+            train_epoch_list.append(n_epochs)
 
         # Train w/o validation set, used to estimate the avg performance
         else:
-            tr_scores, _ = train_eval_dataset(par_combo_net, par_combo_opt,
-                                              x_mat, y_mat, metric,
-                                              plotter=plotter)
-            score_epoch_dict["tr"].append(tr_scores)
+            tr_scores, _, n_epochs = train_eval_dataset(par_combo_net,
+                                                        par_combo_opt,
+                                                        x_mat, y_mat, metric,
+                                                        plotter=plotter)
             score_results_dict["tr"].append(tr_scores[-1])
+            train_epoch_list.append(n_epochs)
 
+    avg_epochs = np.average(train_epoch_list)
     score_stats_dict = {"tr": (0, 0)}
 
     # Take average and std wrt runs
@@ -106,18 +103,20 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
         std = np.std(score_results_dict[key], axis=0)
         score_stats_dict[key] = (mean, std)
 
-    if "val" in score_epoch_dict:
+    if "val" in score_results_dict:
         results = {'combo_net': par_combo_net,
                    'combo_opt': par_combo_opt,
                    'score_tr': score_stats_dict["tr"],
                    'score_val': score_stats_dict["val"],
-                   'metric': metric.name}
+                   'metric': metric.name,
+                   'epochs': avg_epochs}
     else:
         results = {'combo_net': par_combo_net,
                    'combo_opt': par_combo_opt,
                    'score_tr': score_stats_dict["tr"],
                    'score_val': None,
-                   'metric': metric.name}
+                   'metric': metric.name,
+                   'epochs': avg_epochs}
 
     return results
 
@@ -126,13 +125,10 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotte
     fold_size = int(np.ceil(x_mat.shape[0] / n_folds))
     pattern_idx = np.arange(x_mat.shape[0])
 
-    # Used to get a learning curve
-    epoch_tr_score_mat = []
-    epoch_val_score_mat = []
-
     # Used to take average of the final nets result
     avg_tr_score = 0
     avg_val_score = 0
+    avg_epochs = 0
 
     np.random.shuffle(pattern_idx)
 
@@ -148,24 +144,19 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotte
         val_x = x_mat[i * fold_size:(i + 1) * fold_size]
         val_y = y_mat[i * fold_size:(i + 1) * fold_size]
 
-        tr_score_list, val_score_list = \
+        tr_score_list, val_score_list, n_epochs = \
             train_eval_dataset(par_combo_net, par_combo_opt, train_x,
                                train_y, metric, val_x, val_y, plotter=plotter)
 
-        epoch_tr_score_mat.append(tr_score_list)
-        epoch_val_score_mat.append(val_score_list)
-
         avg_tr_score += tr_score_list[-1]
         avg_val_score += val_score_list[-1]
-
-    # Lists shape = (num. epochs,), avg score of model accross folds
-    avg_tr_score_list, _ = average_non_std_mat(epoch_tr_score_mat)
-    avg_val_score_list, _ = average_non_std_mat(epoch_val_score_mat)
+        avg_epochs += n_epochs
 
     avg_tr_score /= n_folds
     avg_val_score /= n_folds
+    avg_epochs /= n_folds
 
-    return avg_tr_score, avg_val_score, avg_tr_score_list, avg_val_score_list
+    return avg_tr_score, avg_val_score, avg_epochs
 
 
 def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
@@ -194,7 +185,7 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
     if plotter is not None:
         plotter.add_new_plotline()
 
-    return epoch_res_tr_list, epoch_res_val_list
+    return epoch_res_tr_list, epoch_res_val_list, gd.epoch_count
 
 
 # Hp: all outputs from metric must be arrays
