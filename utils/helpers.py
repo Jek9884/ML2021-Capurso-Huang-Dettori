@@ -124,17 +124,23 @@ def clean_combos(dict_net, dict_opt, combos):
                                   (combos_keys.index('nesterov'), n_nesterov))
         # print("momentum ", len(np_combos))
 
-    if False in dict_opt['lr_decay']:
-        n_decay_tau = len(dict_opt['lr_decay_tau'])
-        np_combos = delete_combos(np_combos, combos_keys.index('lr_decay'), False,
-                                  (combos_keys.index('lr_decay_tau'), n_decay_tau))
+    if "lin" in dict_opt['lr_decay_type']:
+        n_decay_tau = len(dict_opt['lr_dec_lin_tau'])
+        np_combos = delete_combos(np_combos, combos_keys.index('lr_decay_type'), False,
+                                  (combos_keys.index('lr_dec_lin_tau'), n_decay_tau))
         # print("lr_decay ", len(np_combos))
+
+    elif "exp" in dict_opt['lr_decay_type']:
+        n_decay_k = len(dict_opt['lr_dec_exp_k'])
+        np_combos = delete_combos(np_combos, combos_keys.index('lr_decay_type'), False,
+                                  (combos_keys.index('lr_dec_exp_k'), n_decay_k))
 
     if 'fixed' in dict_opt['stop_crit_type']:
         n_patient = len(dict_opt['patient'])
         n_epsilon = len(dict_opt['epsilon'])
         np_combos = delete_combos(np_combos, combos_keys.index('stop_crit_type'), 'fixed',
-                                  (combos_keys.index('epsilon'), n_epsilon), (combos_keys.index('patient'), n_patient))
+                                  (combos_keys.index('epsilon'), n_epsilon),
+                                  (combos_keys.index('patient'), n_patient))
         # print("stop_crit_type ", len(np_combos))
 
     return np_combos

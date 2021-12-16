@@ -4,9 +4,9 @@ import numpy as np
 class GradientDescent:
 
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
-                 nesterov=False, lim_epochs=10**4, lr_decay=False,
-                 lr_decay_tau=None, stop_crit_type='fixed', epsilon=None,
-                 patient=5):
+                 nesterov=False, lim_epochs=10**4, lr_decay_type=None,
+                 lr_dec_lin_tau=None, lr_dec_exp_k=None, stop_crit_type='fixed',
+                 epsilon=None, patient=5):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
@@ -21,8 +21,7 @@ class GradientDescent:
         self.momentum_val = momentum_val
         self.nesterov = nesterov
         self.lim_epochs = lim_epochs
-        self.lr_decay = lr_decay
-        self.lr_decay_tau = lr_decay_tau
+        self.lr_decay_type = lr_decay_type
         self.stop_crit_type = stop_crit_type
         self.epsilon = epsilon
         self.patient = patient
@@ -35,9 +34,15 @@ class GradientDescent:
         self.min_epoch = 2
 
         # linear decay heuristic
-        if self.lr_decay:
-            self.eta_0 = self.lr
-            self.eta_tau = self.eta_0 / 100
+        if self.lr_decay_type == "lin":
+            self.lr_decay_tau = lr_dec_lin_tau
+            self.initial_lr = self.lr
+            self.eta_tau = self.initial_lr / 100
+        elif self.lr_decay_type == "exp":
+            self.lr_decay_k = lr_dec_exp_k
+            self.initial_lr = self.lr
+        elif self.lr_decay_type is not None:
+            raise ValueError(f"lr_decay type not supported {self.lr_decay_type}")
 
         self.reset_optimizer()
 
@@ -152,10 +157,13 @@ class GradientDescent:
 
     def compute_deltas(self, net, num_patt):
 
-        if self.lr_decay:
+        if self.lr_decay_type == "lin":
             # Avoid having an alpha > 1 due to difference in lim_epochs/tau
             alpha = min(self.epoch_count / self.lr_decay_tau, 1)
-            self.lr = self.eta_0*(1-alpha) + alpha*self.eta_tau
+            self.lr = self.initial_lr*(1-alpha) + alpha*self.eta_tau
+        elif self.lr_decay_type == "exp":
+            exp_fact = np.exp(-self.lr_decay_k*self.epoch_count)
+            self.lr = self.initial_lr * exp_fact
 
         for layer in net.layers:
             avg_grad_w = np.divide(layer.grad_w, num_patt)

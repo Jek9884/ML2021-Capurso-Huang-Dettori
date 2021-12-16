@@ -15,7 +15,7 @@ from utils.helpers import save_results_to_csv, result_to_str
 from utils.debug_tools import check_gradient_net
 
 plotter = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
-                  [error_dict["nll"]], 2)
+                  [error_dict["nll"], metr_dict["miscl. error"]], 2)
 
 
 def forward_test():
@@ -78,8 +78,8 @@ def simple_learning_test_regression():
         'batch_size': -1,
         'momentum_val': 0,
         'nesterov': False,
-        'lr_decay': False,
-        'lr_decay_tau': 20,
+        'lr_decay_type': None,
+        'lr_dec_lin_tau': 20,
         'stop_crit_type': 'delta_w',
         'epsilon': 0.05
     }
@@ -96,7 +96,7 @@ def simple_and_learning_test_classification():  # Func: A and B
 
     dict_param_net = {
         'conf_layers': [2, 1],
-        'init_func': init_dict["norm"],
+        'init_func': init_dict["std"],
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"]
@@ -107,10 +107,12 @@ def simple_and_learning_test_classification():  # Func: A and B
         'batch_size': 1,
         'momentum_val': 0.9,
         'nesterov': False,
-        'lr_decay': True,
-        'lr_decay_tau': 50,
+        'lr_decay_type': "lin",
+        'lr_dec_exp_k': 0.21,
+        'lr_dec_lin_tau': 20,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.05
+        'epsilon': 0.01,
+        'patient': 5
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
@@ -135,19 +137,22 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     dict_param_sgd = {
         'lr': 1,
         'batch_size': 1,
-        'reg_val': 0,
+        'reg_val': 0.0001,
         'reg_type': 2,
-        'momentum_val': 0.8,
+        'momentum_val': 0.9,
         'nesterov': True,
-        'lr_decay': True,
-        'lr_decay_tau': 50,
-        'stop_crit_type': 'delta_w',
-        'epsilon': 0.01,
-        'patient': 5
+        'lr_decay_type': "lin",
+        'lr_dec_exp_k': 0.05,
+        'lr_dec_lin_tau': 50,
+        'stop_crit_type': 'fixed',
+        'epsilon': 0.005,
+        'patient': 5,
+        'lim_epochs': 50
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metr_dict["miscl. error"], n_folds=0, n_runs=10)
+                     metr_dict["miscl. error"], n_folds=0, n_runs=100, plotter=plotter)
+    plotter.plot()
 
     return res['score_tr'], res["epochs"]
 
@@ -167,18 +172,18 @@ def test_monk1_grid():
     }
 
     dict_param_sgd = {
-        'lr': [0.1, 0.5, 0.8, 0.9],
+        'lr': [0.1, 0.5, 0.8],
         'batch_size': [-1, 1, 5, 20],
         'reg_val': [0, 0.00001, 0.0001, 0.001],
         'reg_type': [2],
         'momentum_val': [0, 0.3, 0.5],
         'nesterov': [False, True],
-        'lim_epochs': [500],
-        'lr_decay': [True, False],
-        'lr_decay_tau': [100, 200, 400],
+        'lim_epochs': [400],
+        'lr_decay_type': ["lin", None],
+        'lr_dec_lin_tau': [100, 200, 400],
         'stop_crit_type': ['delta_w'],
-        'epsilon': [0.01, 0.1],
-        'patient': [5, 10]
+        'epsilon': [0.05, 0.01, 0.1],
+        'patient': [5, 10, 20]
     }
 
     metric = error_dict["nll"]
@@ -191,37 +196,39 @@ def test_monk1_grid():
 
     print(result_to_str(results[0], ', '))
 
-    return results[0]['score_val']
+    return results[0]['score_val'], res[0]["epochs"]
 
 
 def test_monk1():
+    exit()
     path_train = os.path.join('datasets', 'monks-1.train')
     path_test = os.path.join('datasets', 'monks-1.test')
-    train_x, train_y = read_monk(path_train, norm_data=False)
+    train_x, train_y = read_monk(path_train, norm_data=True)
     test_x, test_y = read_monk(path_test, norm_data=False)
 
     dict_param_net = {
-        'conf_layers': [6, 4, 1],
-        'init_func': init_dict["norm"],
+        'conf_layers': [6, 2, 2, 1],
+        'init_func': init_dict["std"],
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
-        'loss_func': loss_dict["nll"]
+        'loss_func': loss_dict["nll"],
+        'init_scale': 10
     }
 
 
     dict_param_sgd = {
-        'lr': 0.8,
-        'batch_size': 20,
+        'lr': 0.99,
+        'batch_size': 50,
         'reg_val': 0,
         'reg_type': 2,
-        'momentum_val': 0.8,
-        'nesterov': False,
-        'lr_decay': True,
-        'lr_decay_tau': 100,
-        'stop_crit_type': 'fixed',
-        'epsilon': 0.01,
-        'patient': 10,
-        'lim_epochs': 100
+        'momentum_val': 0.5,
+        'nesterov': True,
+        'lr_decay_type': None,
+        'lr_decay_lin_tau': 400,
+        'stop_crit_type': 'delta_w',
+        'epsilon': 0.005,
+        'patient': 40,
+        'lim_epochs': 500
     }
 
     metric1 = error_dict["nll"]
@@ -231,7 +238,7 @@ def test_monk1():
                      metric2, n_folds=5, n_runs=10, plotter=plotter)
     plotter.plot()
 
-    return res['score_val'], res["epochs"]
+    return res['score_tr'], res["epochs"]
 
 
 def test_monk2():
@@ -255,8 +262,8 @@ def test_monk2():
         'reg_type': 2,
         'momentum_val': 0.5,
         'nesterov': False,
-        'lr_decay': False,
-        'lr_decay_tau': 400,
+        'lr_decay_type': None,
+        'lr_decay_lin_tau': 400,
         'stop_crit_type': 'delta_w',
         'epsilon': 0.01,
         'patient': 10,
