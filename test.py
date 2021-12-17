@@ -97,7 +97,7 @@ def simple_and_learning_test_classification():  # Func: A and B
 
     dict_param_net = {
         'conf_layers': [2, 1],
-        'init_func': None,
+        'init_func': init_dict["std"],
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"]
@@ -129,31 +129,31 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
 
     dict_param_net = {
         'conf_layers': [4, 2, 1],
-        'init_func': init_dict["std"],
+        'init_func': None,
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"],
-        'init_scale': 0.5
+        'init_scale': 100
     }
 
     dict_param_sgd = {
-        'lr': 1,
+        'lr': 0.99,
         'batch_size': 1,
-        'reg_val': 0.0002,
+        'reg_val': 0.005,
         'reg_type': 2,
-        'momentum_val': 0.8,
-        'nesterov': True,
-        'lr_decay_type': "lin",
-        'lr_dec_exp_k': 0.05,
-        'lr_dec_lin_tau': 100,
+        'momentum_val': 0.7,
+        'nesterov': False,
+        'lr_decay_type': "exp",
+        'lr_dec_exp_k': 0.001,
+        'lr_dec_lin_tau': 500,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.02,
+        'epsilon': 0.01,
         'patient': 5,
-        'lim_epochs': 500
+        'lim_epochs': 100
     }
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
-                     metr_dict["miscl. error"], n_folds=0, n_runs=100, plotter=plotter)
+                     metr_dict["miscl. error"], n_folds=2, n_runs=10, plotter=plotter)
     plotter.plot()
 
     return res['score_tr'], res["epochs"]

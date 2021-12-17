@@ -59,7 +59,7 @@ class Plotter:
         # Substitute lists of list with their average row-wise
         popul_distr = self.compute_stats_plotlines(self.results_dict)
 
-        if self.n_plots > 0:
+        if self.n_plots > 0 and popul_distr[0] > 1:
             self.results_dict["popul_distr"] = popul_distr
 
         plot_dims = ((len(self.results_dict) + 1) // self.n_cols, self.n_cols)
@@ -76,20 +76,23 @@ class Plotter:
             if plt_type in ["grad_norm", "act_val"]:
 
                 for n_layer, val in self.results_dict[plt_type].items():
-                    cur_ax.errorbar(range(tot_epochs), val[0], val[1],
-                                    label=f"Layer {n_layer}")
-
+                    cur_ax.errorbar(range(tot_epochs), val["avg"], val["std"],
+                                    label=f"Layer {n_layer}", linestyle="None",
+                                    marker=".")
                 cur_ax.legend()
 
             elif "lr_curve" in plt_type:
 
-                for data_label, val in self.results_dict[plt_type].items():
-                    cur_ax.plot(range(tot_epochs), val[0], label=data_label)
+                for i, data_label in enumerate(self.results_dict[plt_type]):
+                    val = self.results_dict[plt_type][data_label]
+                    cur_ax.plot(range(tot_epochs), val["avg"], label=data_label)
+                    cur_ax.plot(range(tot_epochs), [val["avg_final"]]*tot_epochs,
+                                label=f"Avg {data_label}", linestyle="dashed")
                 cur_ax.legend()
 
             elif plt_type in ["lr"]:
                 cur_ax.plot(range(tot_epochs),
-                            np.around(self.results_dict[plt_type][0], decimals=5))
+                            np.around(self.results_dict[plt_type]["avg"], decimals=5))
 
             elif plt_type == "popul_distr":
                 cur_ax.plot(range(tot_epochs), self.results_dict[plt_type])
@@ -176,7 +179,7 @@ class Plotter:
 
             self.results_dict["act_val"][i][-1].append(np.average(layer.out))
 
-    def compute_stats_plotlines(self, plot_dict=None):
+    def compute_stats_plotlines(self, plot_dict=None, parent=None):
 
         if plot_dict is None:
             plot_dict = self.results_dict
@@ -193,9 +196,16 @@ class Plotter:
                 if popul_distr is None:
                     popul_distr = np.ma.count(ma_matrix, axis=0)
 
-                plot_dict[k] = (ma_average, ma_std)
+                plot_dict[k] = {"avg": ma_average, "std": ma_std}
+
+                if isinstance(parent, str) and "lr_curve" in parent:
+                    # Take the last non-masked element of each row
+                    last_ma_idx = np.ma.notmasked_edges(ma_matrix, axis=1)[1][1]
+                    # Generate list of position in the matrix to compute average
+                    final_pred_idx = (range(len(last_ma_idx)), last_ma_idx)
+                    plot_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
 
             elif isinstance(v, dict):
-                popul_distr = self.compute_stats_plotlines(v)
+                popul_distr = self.compute_stats_plotlines(v, parent=k)
 
         return popul_distr
