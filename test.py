@@ -67,10 +67,11 @@ def simple_learning_test_regression():
 
     dict_param_net = {
         'conf_layers': [3, 3],
-        'init_func': init_dict["norm"],
+        'init_func': init_dict["std"],
         'act_func': act_dict["sigm"],
         'out_func': act_dict["identity"],
-        'loss_func': loss_dict["squared"]
+        'loss_func': loss_dict["squared"],
+        'init_scale': 5
     }
 
     dict_param_sgd = {
@@ -96,7 +97,7 @@ def simple_and_learning_test_classification():  # Func: A and B
 
     dict_param_net = {
         'conf_layers': [2, 1],
-        'init_func': init_dict["std"],
+        'init_func': None,
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"]
@@ -109,9 +110,9 @@ def simple_and_learning_test_classification():  # Func: A and B
         'nesterov': False,
         'lr_decay_type': "lin",
         'lr_dec_exp_k': 0.21,
-        'lr_dec_lin_tau': 20,
+        'lr_dec_lin_tau': 15,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.01,
+        'epsilon': 0.02,
         'patient': 5
     }
 
@@ -132,7 +133,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"],
-        'init_scale': 50
+        'init_scale': 0.5
     }
 
     dict_param_sgd = {

@@ -1,13 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.helpers import average_non_std_mat
+from utils.helpers import convert_ragged_mat_to_ma_array
 
-
-# TODO: lookup gradient checking technique
 
 # Idea: each plotter can be used for either a model or a full eval by
-# constructing multiple plots and taking the averages
+# constructing multiple plots and taking their stats
 class Plotter:
 
     def __init__(self, type_plots=[], lr_metric_list=None, n_cols=1):
@@ -59,7 +57,7 @@ class Plotter:
             raise RuntimeError("Plotter: no results to plot")
 
         # Substitute lists of list with their average row-wise
-        popul_distr = self.compute_average_plotlines(self.results_dict)
+        popul_distr = self.compute_stats_plotlines(self.results_dict)
 
         if self.n_plots > 0:
             self.results_dict["popul_distr"] = popul_distr
@@ -78,18 +76,23 @@ class Plotter:
             if plt_type in ["grad_norm", "act_val"]:
 
                 for n_layer, val in self.results_dict[plt_type].items():
-                    cur_ax.plot(range(tot_epochs), val, label=f"Layer {n_layer}")
+                    cur_ax.errorbar(range(tot_epochs), val[0], val[1],
+                                    label=f"Layer {n_layer}")
 
                 cur_ax.legend()
 
             elif "lr_curve" in plt_type:
 
                 for data_label, val in self.results_dict[plt_type].items():
-                    cur_ax.plot(range(tot_epochs), val, label=data_label)
+                    cur_ax.plot(range(tot_epochs), val[0], label=data_label)
                 cur_ax.legend()
 
-            elif plt_type in ["lr", "popul_distr"]:
-                cur_ax.plot(range(tot_epochs), np.around(self.results_dict[plt_type], decimals=5))
+            elif plt_type in ["lr"]:
+                cur_ax.plot(range(tot_epochs),
+                            np.around(self.results_dict[plt_type][0], decimals=5))
+
+            elif plt_type == "popul_distr":
+                cur_ax.plot(range(tot_epochs), self.results_dict[plt_type])
 
             else:
                 raise ValueError(f"Unknown plt_type ({plt_type})")
@@ -173,7 +176,7 @@ class Plotter:
 
             self.results_dict["act_val"][i][-1].append(np.average(layer.out))
 
-    def compute_average_plotlines(self, plot_dict=None):
+    def compute_stats_plotlines(self, plot_dict=None):
 
         if plot_dict is None:
             plot_dict = self.results_dict
@@ -183,9 +186,16 @@ class Plotter:
         for k, v in plot_dict.items():
 
             if isinstance(v, list):
-                plot_dict[k], popul_distr = average_non_std_mat(v)
+                ma_matrix = convert_ragged_mat_to_ma_array(v)
+                ma_average = np.ma.average(ma_matrix, axis=0)
+                ma_std = np.ma.std(ma_matrix, axis=0)
+
+                if popul_distr is None:
+                    popul_distr = np.ma.count(ma_matrix, axis=0)
+
+                plot_dict[k] = (ma_average, ma_std)
 
             elif isinstance(v, dict):
-                self.compute_average_plotlines(v)
+                popul_distr = self.compute_stats_plotlines(v)
 
         return popul_distr
