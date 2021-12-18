@@ -40,13 +40,34 @@ class Layer:
         # Variable used to keep track of the layer's last output
         self.out = None
 
-        # Variable used by the optimizer to implement momentum
-        self.delta_w_old = np.zeros((n_in,))
-
         # Variable used to print some debug information
         self.debug_bool = debug_bool
 
         self.reset_parameters()
+
+    '''
+        Reset the parameters of the layer
+
+        Used instead of generating a new network
+    '''
+    def reset_parameters(self):
+
+        # Variables used by the optimizer to implement momentum
+        self.delta_w_old = np.zeros((self.n_out, self.n_in))
+        self.delta_b_old = np.zeros((self.n_out,))
+
+        if self.init_func is None:
+            # Each row is composed of the weights of the unit
+            self.weights = np.ones((self.n_out, self.n_in))
+        # TODO add parameter for sparse count
+
+        elif self.init_func.name == "std" and self.init_scale != 0:
+            self.weights = self.init_func((self.n_out, self.n_in), self.init_scale, 0)
+
+        else:
+            self.weights = self.init_func((self.n_out, self.n_in), 0)
+
+        self.null_grad()
 
     """
         Computes layer forward pass
@@ -107,26 +128,6 @@ class Layer:
             print()
 
         return new_deriv_err
-
-    '''
-        Reset the parameters of the layer
-
-        Used instead of generating a new network
-    '''
-    def reset_parameters(self):
-
-        if self.init_func is None:
-            # Each row is composed of the weights of the unit
-            self.weights = np.ones((self.n_out, self.n_in))
-        # TODO add parameter for sparse count
-
-        elif self.init_func.name == "std" and self.init_scale != 0:
-            self.weights = self.init_func((self.n_out, self.n_in), self.init_scale, 0)
-
-        else:
-            self.weights = self.init_func((self.n_out, self.n_in), 0)
-
-        self.null_grad()
 
     '''
         Zero out the gradient variables of the layer

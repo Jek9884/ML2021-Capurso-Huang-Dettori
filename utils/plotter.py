@@ -161,11 +161,9 @@ class Plotter:
 
         for i, layer in enumerate(network.layers):
 
-            bias_shape = (layer.grad_w.shape[0], 1)
-
             # Uses frobenius norm on the joint weights (bias included) matrix
-            grad_layer = np.hstack((layer.grad_w,
-                                    layer.grad_b.reshape(bias_shape)))
+            grad_layer = \
+                np.hstack((layer.grad_w, np.expand_dims(layer.grad_b, axis=1)))
             norm_grad = np.linalg.norm(grad_layer)
 
             if i not in self.results_dict["grad_norm"]:

@@ -33,6 +33,9 @@ class GradientDescent:
         # Min number of epochs to train for, needed to avoid 1 epoch mb
         self.min_epoch = 2
 
+        # Used to implement stop criteria
+        self.delta_w_norm = None
+
         # linear decay heuristic
         if self.lr_decay_type == "lin":
             self.lr_decay_tau = lr_dec_lin_tau
@@ -149,7 +152,12 @@ class GradientDescent:
             norm_weights = []
 
             for i, layer in enumerate(net.layers):
-                norm_weights.append(np.linalg.norm(layer.delta_w_old))
+                grad_layer = \
+                    np.hstack((layer.delta_w_old,
+                               np.expand_dims(layer.delta_b_old, axis=1)))
+                norm_delta = np.linalg.norm(grad_layer)
+
+                norm_weights.append(norm_delta)
 
             # Take the biggest change in weights to determine stop cond
             self.delta_w_norm = np.max(norm_weights)
@@ -162,6 +170,7 @@ class GradientDescent:
             # Avoid having an alpha > 1 due to difference in lim_epochs/tau
             alpha = min(self.epoch_count / self.lr_decay_tau, 1)
             self.lr = self.initial_lr*(1-alpha) + alpha*self.eta_tau
+
         elif self.lr_decay_type == "exp":
             exp_fact = np.exp(-self.lr_decay_k*self.epoch_count)
             self.lr = self.initial_lr * exp_fact
@@ -174,6 +183,7 @@ class GradientDescent:
 
             if self.momentum_val > 0:
                 delta_w += self.momentum_val * layer.delta_w_old
+                delta_b += self.momentum_val * layer.delta_b_old
 
             if self.reg_val > 0 and self.reg_type == 2:
                 delta_w += -2 * self.reg_val * layer.weights
@@ -181,3 +191,4 @@ class GradientDescent:
             layer.weights = layer.weights + delta_w
             layer.bias = layer.bias + delta_b
             layer.delta_w_old = delta_w
+            layer.delta_b_old = delta_b
