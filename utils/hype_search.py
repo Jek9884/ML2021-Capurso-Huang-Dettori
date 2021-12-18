@@ -122,7 +122,7 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
 
 
 def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotter=None):
-    fold_size = int(np.ceil(x_mat.shape[0] / n_folds))
+    fold_size = int(np.floor(x_mat.shape[0] / n_folds))
     pattern_idx = np.arange(x_mat.shape[0])
 
     # Used to take average of the final nets result

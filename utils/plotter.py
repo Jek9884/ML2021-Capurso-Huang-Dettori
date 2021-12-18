@@ -199,8 +199,11 @@ class Plotter:
                 plot_dict[k] = {"avg": ma_average, "std": ma_std}
 
                 if isinstance(parent, str) and "lr_curve" in parent:
+                    ma_elem_len = len(ma_matrix[0][0])
                     # Take the last non-masked element of each row
                     last_ma_idx = np.ma.notmasked_edges(ma_matrix, axis=1)[1][1]
+                    # Each idx is repeated for each element in the matrix cell
+                    last_ma_idx = last_ma_idx[::ma_elem_len]
                     # Generate list of position in the matrix to compute average
                     final_pred_idx = (range(len(last_ma_idx)), last_ma_idx)
                     plot_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
