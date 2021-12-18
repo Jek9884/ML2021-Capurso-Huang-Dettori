@@ -63,8 +63,8 @@ def compare_results(results, metric, topk=5):
     return results[:topk]
 
 
-def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
-               n_folds=0, plotter=None):
+def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
+               val_x=None, val_y=None, n_runs=10, n_folds=0, plotter=None):
 
     score_results_dict = {"tr": []}  # Used to compute mean and std
     train_epoch_list = []
@@ -75,7 +75,7 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
         if n_folds > 0:
 
             avg_tr_res, avg_val_res, n_epochs = \
-                kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric,
+                kfold_cv(par_combo_net, par_combo_opt, train_x, train_y, metric,
                          n_folds, plotter=plotter)
 
             if "val" not in score_results_dict:
@@ -85,12 +85,26 @@ def eval_model(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_runs=10,
             score_results_dict["val"].append(avg_val_res)
             train_epoch_list.append(n_epochs)
 
+        # Train w validation set
+        elif val_x is not None and val_y is not None:
+
+            tr_scores, val_scores, n_epochs = \
+                train_eval_dataset(par_combo_net, par_combo_opt, train_x,
+                                   train_y, metric, val_x=val_x, val_y=val_y,
+                                   plotter=plotter)
+
+            if "val" not in score_results_dict:
+                score_results_dict["val"] = []
+
+            score_results_dict["tr"].append(tr_scores)
+            score_results_dict["val"].append(val_scores)
+            train_epoch_list.append(n_epochs)
+
         # Train w/o validation set, used to estimate the avg performance
         else:
-            tr_scores, _, n_epochs = train_eval_dataset(par_combo_net,
-                                                        par_combo_opt,
-                                                        x_mat, y_mat, metric,
-                                                        plotter=plotter)
+            tr_scores, _, n_epochs = \
+                train_eval_dataset(par_combo_net, par_combo_opt, train_x,
+                                   train_y, metric, plotter=plotter)
             score_results_dict["tr"].append(tr_scores[-1])
             train_epoch_list.append(n_epochs)
 
@@ -161,6 +175,7 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotte
 
 def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
                        metric, val_x=None, val_y=None, plotter=None):
+
     net = Network(**par_combo_net)
     gd = GradientDescent(**par_combo_opt)
 
