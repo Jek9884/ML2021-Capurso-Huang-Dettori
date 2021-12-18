@@ -70,9 +70,10 @@ class GradientDescent:
         n_patterns = train_x.shape[0]
         index_list = np.arange(n_patterns)
         # Bengio et al suggest that one shuffle is enough
-        np.random.shuffle(index_list)
 
         while self.train_cond or self.epoch_count < self.min_epoch:
+
+            np.random.shuffle(index_list)
 
             # Check if number of epochs requested in train() has been reached
             if self.epoch_count >= lim_step:

@@ -85,7 +85,7 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
             score_results_dict["val"].append(avg_val_res)
             train_epoch_list.append(n_epochs)
 
-        # Train w validation set
+        # Train, then test on validation/test set
         elif val_x is not None and val_y is not None:
 
             tr_scores, val_scores, n_epochs = \
@@ -96,8 +96,8 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
             if "val" not in score_results_dict:
                 score_results_dict["val"] = []
 
-            score_results_dict["tr"].append(tr_scores)
-            score_results_dict["val"].append(val_scores)
+            score_results_dict["tr"].append(tr_scores[-1])
+            score_results_dict["val"].append(val_scores[-1])
             train_epoch_list.append(n_epochs)
 
         # Train w/o validation set, used to estimate the avg performance

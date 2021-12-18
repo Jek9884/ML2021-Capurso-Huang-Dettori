@@ -52,6 +52,14 @@ class Plotter:
         self.n_plots += 1
 
     def plot(self):
+        self.build_plot()
+        plt.show()
+
+    def save_fig(self, path):
+        fig = self.build_plot()
+        fig.save_fig(path)
+
+    def build_plot(self):
 
         if self.results_dict == {}:
             raise RuntimeError("Plotter: no results to plot")
@@ -63,7 +71,7 @@ class Plotter:
             self.results_dict["popul_distr"] = popul_distr
 
         plot_dims = ((len(self.results_dict) + 1) // self.n_cols, self.n_cols)
-        _, axs = plt.subplots(*plot_dims, squeeze=False)
+        fig, axs = plt.subplots(*plot_dims, squeeze=False)
         tot_epochs = len(popul_distr)
 
         for i, plt_type in enumerate(self.results_dict):
@@ -109,7 +117,7 @@ class Plotter:
         for i in range(1, n_blank_axs + 1):
             axs[-1][-i].axis('off')
 
-        plt.show()
+        return fig
 
     def add_lr_curve_datapoint(self, network, data_x, data_y, data_label="tr"):
 
