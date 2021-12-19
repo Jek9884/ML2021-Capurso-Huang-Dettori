@@ -72,7 +72,6 @@ class GradientDescent:
 
         n_patterns = train_x.shape[0]
         index_list = np.arange(n_patterns)
-        # Bengio et al suggest that one shuffle is enough
 
         while self.train_cond or self.epoch_count < self.min_epoch:
 
@@ -142,6 +141,7 @@ class GradientDescent:
         if self.momentum_val > 0 and self.nesterov:
             for layer in net.layers:
                 layer.weights += self.momentum_val * layer.delta_w_old
+                layer.bias += self.momentum_val * layer.delta_b_old
 
         out = net.forward(sub_train_x)
         net.backward(sub_train_y, out)
