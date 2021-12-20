@@ -2,14 +2,14 @@ import numpy as np
 from network import Network
 from optimizer import GradientDescent
 
-
 class Ensemble:
 
-    def __init__(self, combo, comp_func='mode', n_models=100):
+    def __init__(self, combo, comp_func='mode', n_models=100, bagging=False):
         self.combo = combo
         self.comp_func = comp_func
         self.net_vec = []
         self.n_models = n_models
+        self.bagging = bagging
 
     def forward(self, data_x):
 
@@ -50,12 +50,21 @@ class Ensemble:
     def train(self, train_x, train_y):
 
         for i in range(self.n_models):
+            if self.bagging:
+                data_x, data_y = gen_subset(train_x, train_y)
+            else:
+                data_x = train_x
+                data_y = train_y
+
             net = Network(**self.combo['combo_net'])
             opt = GradientDescent(**self.combo['combo_opt'])
 
-            opt.train(net, train_x, train_y)
+            opt.train(net, data_x, data_y)
 
             self.net_vec.append(net)
 
-    def eval_res(self):
-        pass
+
+def gen_subset(data_x, data_y):
+    subset_idx = np.random.randint(0, len(data_x), size=len(data_x))
+
+    return data_x[subset_idx], data_y[subset_idx]
