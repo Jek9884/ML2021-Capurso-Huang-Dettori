@@ -2,6 +2,7 @@ import itertools as it
 from joblib import Parallel, delayed
 import numpy as np
 
+import ensemble
 import utils.helpers
 from network import Network
 from optimizer import GradientDescent

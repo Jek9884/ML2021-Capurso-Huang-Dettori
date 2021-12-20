@@ -13,7 +13,7 @@ from utils.hype_search import grid_search, eval_model
 from utils.plotter import Plotter
 from utils.helpers import save_results_to_csv, result_to_str
 from utils.debug_tools import check_gradient_net
-
+from ensemble import Ensemble
 
 
 def forward_test():
@@ -42,7 +42,7 @@ def backward_test():
 
     net = Network(**dict_param_net)
 
-#    check_gradient_net(dict_param_net, in_vec, exp_res)
+    #    check_gradient_net(dict_param_net, in_vec, exp_res)
     out = net.forward(in_vec)
     net.backward(exp_res, out)
 
@@ -90,7 +90,7 @@ def simple_learning_test_regression():
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      error_dict["squared"], n_folds=0, n_runs=10, plotter=plotter_reg)
-#    plotter_reg.plot()
+    #    plotter_reg.plot()
 
     return res['score_tr'], res["epochs"]
 
@@ -123,22 +123,23 @@ def simple_and_learning_test_classification():  # Func: A and B
     }
 
     plotter_and = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
-                  [error_dict["nll"], metr_dict["miscl. error"]], 2)
+                          [error_dict["nll"], metr_dict["miscl. error"]], 2)
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metr_dict["miscl. error"], n_folds=0, n_runs=30, plotter=plotter_and)
-#    plotter_and.plot()
+
+    #    plotter_and.plot()
 
     return res['score_tr'], res["epochs"]
 
 
 def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     train_x = np.asarray(
-        np.matrix('0 0 0 0; 0 0 0 1; 0 0 1 0; 0 0 1 1; 0 1 0 0; 0 1 0 1; 0 1 1 0; '+
-                  '0 1 1 1; 1 0 0 0; 1 0 0 1; 1 0 1 0; 1 0 1 1; 1 1 0 0; 1 1 0 1; '+
+        np.matrix('0 0 0 0; 0 0 0 1; 0 0 1 0; 0 0 1 1; 0 1 0 0; 0 1 0 1; 0 1 1 0; ' +
+                  '0 1 1 1; 1 0 0 0; 1 0 0 1; 1 0 1 0; 1 0 1 1; 1 1 0 0; 1 1 0 1; ' +
                   '1 1 1 0; 1 1 1 1'))
-    train_y = np.asarray(np.matrix('0; 1; 1; 1; 1; 0; 0; '+
-                                   '0; 1; 0; 0; 0; 1; 0; '+
+    train_y = np.asarray(np.matrix('0; 1; 1; 1; 1; 0; 0; ' +
+                                   '0; 1; 0; 0; 0; 1; 0; ' +
                                    '0; 0'))
 
     dict_param_net = {
@@ -165,9 +166,9 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
         'lim_epochs': 200
     }
 
-#    train_x = (train_x - np.mean(train_x, axis=0))/np.std(train_x, axis=0)
+    #    train_x = (train_x - np.mean(train_x, axis=0))/np.std(train_x, axis=0)
     plotter_xor = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
-                  [error_dict["nll"], metr_dict["miscl. error"]], 2)
+                          [error_dict["nll"], metr_dict["miscl. error"]], 2)
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metr_dict["miscl. error"], n_folds=0, n_runs=100, plotter=plotter_xor)
@@ -183,7 +184,7 @@ def test_monk1_grid():
     test_x, test_y = read_monk(path_test)
 
     dict_param_net_grid = {
-        'conf_layers': [[6, 4, 1]],
+        'conf_layers': [[17, 4, 1]],
         'init_func': [init_dict["norm"]],
         'act_func': [act_dict["tanh"]],
         'out_func': [act_dict["sigm"]],
@@ -212,9 +213,7 @@ def test_monk1_grid():
     path = os.path.join('.', 'results', 'best_results.csv')
     save_results_to_csv(path, results)
 
-    print(result_to_str(results[0], ', '))
-
-    return results[0]['score_val'], res[0]["epochs"]
+    return results[0]['score_val'], results[0]["epochs"]
 
 
 def test_monk1():
@@ -248,7 +247,7 @@ def test_monk1():
     }
 
     plotter_m1 = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
-                  [error_dict["nll"], metr_dict["miscl. error"]], 2)
+                         [error_dict["nll"], metr_dict["miscl. error"]], 2)
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metr_dict["miscl. error"], n_folds=0, n_runs=50, val_x=test_x,
@@ -289,7 +288,7 @@ def test_monk2():
     }
 
     plotter_m2 = Plotter(["lr_curve", "lr", "act_val", "grad_norm"],
-                  [error_dict["nll"], metr_dict["miscl. error"]], 2)
+                         [error_dict["nll"], metr_dict["miscl. error"]], 2)
 
     res = eval_model(dict_param_net, dict_param_sgd, train_x, train_y,
                      metr_dict["miscl. error"], n_folds=5, n_runs=10, plotter=plotter_m2)
@@ -297,17 +296,18 @@ def test_monk2():
 
     return res['score_tr'], res['score_val'], res["epochs"]
 
+
 print("Forward test: ", forward_test())
 print("Backward test: ", backward_test())
 
-#reg_res = simple_learning_test_regression()
-#print(f"Simple regression test error: {reg_res}")
+# reg_res = simple_learning_test_regression()
+# print(f"Simple regression test error: {reg_res}")
 
-#clas1_res = simple_and_learning_test_classification()
-#print(f"Simple AND classification test error: {clas1_res}")
+# clas1_res = simple_and_learning_test_classification()
+# print(f"Simple AND classification test error: {clas1_res}")
 
-#clas2_res = simple_learning_test_classification()
-#print(f"Simple classification test error: {clas2_res}")
+# clas2_res = simple_learning_test_classification()
+# print(f"Simple classification test error: {clas2_res}")
 
 # Tests on monk1
 monk1_res = test_monk1()
