@@ -209,7 +209,7 @@ def eval_dataset(net, data_x, data_y, metric):
     net_pred = net.forward(data_x)
 
     if metric.name in ["nll", "squared"]:
-        res = metric(data_y, net_pred)
+        res = metric(data_y, net_pred, reduce_bool=True)
 
     elif metric.name in ["miscl. error"]:
         # Note: it works only with classification

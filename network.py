@@ -71,16 +71,13 @@ class Network:
             -matrix of network's outputs
     """
 
-    def forward(self, in_mat, net_out=False):
+    def forward(self, in_mat):
 
         fw_mat = in_mat
 
         for i, layer in enumerate(self.layers):
 
-            if i == (len(self.layers)-1) and net_out:
-                fw_mat = layer.forward(fw_mat, net_out)
-            else:
-                fw_mat = layer.forward(fw_mat)
+            fw_mat = layer.forward(fw_mat)
 
         return fw_mat
 
@@ -93,22 +90,66 @@ class Network:
             -exp_out: matrix of expected results
     """
 
-    def backward(self, exp_out, cur_out):
+    def backward(self, exp_out):
 
         if self.debug_bool:
             print("Network-wise info:")
-            print("\tOut: ", cur_out)
-            print("\tExpected: ", exp_out)
-            print("\tLoss: ", self.loss_func(exp_out, cur_out))
-            print("\tDeriv Loss: ", self.loss_func.deriv(exp_out, cur_out))
+            print("\tActual out: ", self.layers[-1].out)
+            print("\tExpected y: ", exp_out)
+            print("\tLoss: ", self.eval_loss(exp_out))
+            print("\tDeriv Loss: ", self.eval_deriv_loss(exp_out))
             print()
 
-        # derivative of error w.r.t. the output of the last layer
-        deriv_err = self.loss_func.deriv(exp_out, cur_out)
+        # TODO: fix!!!
+        # derivative of error w.r.t. the output or net of the last layer
+        # depending on loss used
+        deriv_err = self.eval_deriv_loss(exp_out)
 
         # compute derivative of error w.r.t the i-th layer
         for i in reversed(range(len(self.layers))):
-            deriv_err = self.layers[i].backward(deriv_err)
+
+            # nll loss is the deriv wrt net, we already have delta
+            if i == (len(self.layers)-1) and self.loss_func.name == "nll":
+                deriv_err = self.layers[i].backward(ext_delta=deriv_err)
+            else:
+                deriv_err = self.layers[i].backward(deriv_err=deriv_err)
+
+
+    def eval_loss(self, exp_out, reduce_bool=False):
+
+        res = None
+        out_layer = self.layers[-1]
+
+        # If used to avoid surprises
+        if self.loss_func.name == "nll" and out_layer.act_func.name == "sigm":
+            res = self.loss_func(exp_out, self.layers[-1].out, reduce_bool)
+
+        elif self.loss_func.name in ["squared"]:
+            res = self.loss_func(exp_out, self.layers[-1].out, reduce_bool)
+
+        else:
+            raise ValueError(f"network: unknown loss conf {self.loss_func.name}")
+
+        return res
+
+
+    def eval_deriv_loss(self, exp_out):
+
+        res = None
+        out_layer = self.layers[-1]
+
+        # If used to avoid surprises
+        if self.loss_func.name == "nll" and out_layer.act_func.name == "sigm":
+            res = self.loss_func.deriv(exp_out, out_layer.out)
+
+        elif self.loss_func.name in ["squared"]:
+            res = self.loss_func.deriv(exp_out, out_layer.out)
+
+        else:
+            raise ValueError(f"network: unknown loss {self.loss_func.name}")
+
+        return res
+
 
     '''
         Reset network parameters dependent on training

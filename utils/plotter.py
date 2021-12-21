@@ -124,17 +124,25 @@ class Plotter:
         for metric in self.lr_metric_list:
 
             if metric.name == "nll":
-                pred_vec = network.forward(data_x, net_out=True)
+
+                # Cannot apply nll to a net that doesn't use it as its criterion
+                if network.loss_func.name != "nll":
+                    raise ValueError("add_lr_curve_datapoint: unsupported use")
+
+                network.forward(data_x)
+                metric_res = network.eval_loss(data_y, reduce_bool=True)
+
             elif metric.name == "squared":
                 pred_vec = network.forward(data_x)
+                metric_res = metric(data_y, pred_vec, reduce_bool=True)
+
             elif metric.name in ["miscl. error"]:
                 pred_vec = network.forward(data_x)
                 pred_vec[pred_vec < 0.5] = 0
                 pred_vec[pred_vec >= 0.5] = 1
+                metric_res = metric(data_y, pred_vec)
             else:
                 raise ValueError("add_lr_curve_datapoint: unsupported metric")
-
-            metric_res = metric(data_y, pred_vec)
 
             plot_name = f"lr_curve ({metric.name})"
 
@@ -153,7 +161,7 @@ class Plotter:
 
         self.results_dict["lr"][-1].append(optimizer.lr)
 
-    # Note: needs to be used after a backward pass
+    # Note: use after a backward pass
     def add_grad_norm_datapoint(self, network):
 
         if "grad_norm" not in self.results_dict:

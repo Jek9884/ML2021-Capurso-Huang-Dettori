@@ -74,22 +74,18 @@ class Layer:
 
         Parameters:
             -in_mat: matrix of input data
-            -net_out: boolean used to return the net() result w/o activ func
 
         Returns:
             -matrix of layer's outputs
     """
 
-    def forward(self, in_mat, net_out=False):
+    def forward(self, in_mat):
 
         self.in_val = in_mat
         net_wo_bias = np.matmul(self.in_val, np.transpose(self.weights))
         self.net = np.add(net_wo_bias, self.bias)
 
-        if net_out:
-            self.out = self.net
-        else:
-            self.out = self.act_func(self.net)
+        self.out = self.act_func(self.net)
 
         return self.out
 
@@ -98,15 +94,21 @@ class Layer:
 
         Parameters:
             -deriv_err: derivative of error w.r.t. weights of layer
+            -ext_delta: used to provide delta error from outside the func
 
         Returns:
             -deriv_err for next layer's backward
     """
 
-    def backward(self, deriv_err):
+    def backward(self, deriv_err=None, ext_delta=None):
 
-        # delta = deriv_err * f'(net_t)
-        delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
+        if ext_delta is None:
+            # delta = deriv_err * f'(net_t)
+            delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
+        elif deriv_err is None:
+            delta = ext_delta
+        else:
+            raise RuntimeError("layer/backward: unexpected behaviour")
 
         # grad += delta_i * output of previous layer (o_u)
         self.grad_w = np.dot(np.transpose(delta), self.in_val)
@@ -117,7 +119,8 @@ class Layer:
         if self.debug_bool:
             print("Layer")
             print("Activation function: ", self.act_func.name)
-            print("\tOut: ", self.act_func(self.net))
+            print("\tInput: ", self.in_val)
+            print("\tExpected out: ", self.act_func(self.net))
             print("\tNet with bias: ", self.net)
             print("\tBias: ", self.bias)
             print("\tDelta: ", delta)

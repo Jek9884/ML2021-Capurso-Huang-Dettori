@@ -143,8 +143,8 @@ class GradientDescent:
                 layer.weights += self.momentum_val * layer.delta_w_old
                 layer.bias += self.momentum_val * layer.delta_b_old
 
-        out = net.forward(sub_train_x)
-        net.backward(sub_train_y, out)
+        net.forward(sub_train_x)
+        net.backward(sub_train_y)
 
         self.compute_deltas(net, sub_train_x.shape[0])
 
