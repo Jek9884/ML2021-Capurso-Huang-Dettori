@@ -45,23 +45,28 @@ def convert_ragged_mat_to_ma_array(ragged_mat):
 
 
 def result_to_str(result, sep=' '):
-    combo_str = str(result['combo_net']['conf_layers']) + sep
 
-    combo_str += result['combo_net']['init_func'].name + sep
-    combo_str += result['combo_net']['act_func'].name + sep
-    combo_str += result['combo_net']['out_func'].name + sep
-    combo_str += result['combo_net']['loss_func'].name + sep
+    combo_str = ''
+
+    for k, v in result['combo_net'].items():
+        if k == "conf_layers":
+            combo_str += ''.join(str(v)) + sep
+            print(combo_str)
+        else:
+            combo_str += str(v) + sep
 
     for value in result['combo_opt'].values():
         combo_str += str(value) + sep
 
     combo_str += str(result['score_tr'][0]) + sep  # average
-    combo_str += str(result['score_tr'][1])  # standard deviation
+    combo_str += str(result['score_tr'][1]) + sep # standard deviation
 
     if result['score_val'] is not None:
-        combo_str += sep
         combo_str += str(result['score_val'][0]) + sep  # average
-        combo_str += str(result['score_val'][1])  # standard deviation
+        combo_str += str(result['score_val'][1]) + sep # standard deviation
+
+    combo_str += str(result['epochs']) + sep
+    combo_str += str(result['age']) + sep
 
     combo_str += '\n'
 
@@ -69,6 +74,7 @@ def result_to_str(result, sep=' '):
 
 
 def get_csv_header(result, sep=' '):
+
     header = ''
 
     for key in result['combo_net']:
@@ -78,23 +84,29 @@ def get_csv_header(result, sep=' '):
         header += key + sep
 
     header += result['metric'] + '_tr_avg' + sep
-    header += result['metric'] + '_tr_std'
+    header += result['metric'] + '_tr_std' + sep
 
     if result['score_val'] is not None:
-        header += sep
         header += result['metric'] + '_tr_avg' + sep
-        header += result['metric'] + '_tr_std'
+        header += result['metric'] + '_tr_std' + sep
 
+    header += 'epochs' + sep
+    header += 'age' + sep
     header += '\n'
 
     return header
 
 
 def save_results_to_csv(path, results, sep=';'):
-    with open(path, 'w') as file:
-        file.write(get_csv_header(results[0], sep))
-        for combo in results:
-            file.write(result_to_str(combo, sep))
+    with open(path, 'w', newline='') as file:
+
+        header = get_csv_header(results[0], sep)
+        file.write(header)
+
+        for res in results:
+            res_str = result_to_str(res, sep)
+            print(res_str)
+            file.write(res_str)
 
 
 def clean_combos(dict_net, dict_opt, combos):
