@@ -51,7 +51,6 @@ def result_to_str(result, sep=' '):
     for k, v in result['combo_net'].items():
         if k == "conf_layers":
             combo_str += ''.join(str(v)) + sep
-            print(combo_str)
         else:
             combo_str += str(v) + sep
 
@@ -105,7 +104,6 @@ def save_results_to_csv(path, results, sep=';'):
 
         for res in results:
             res_str = result_to_str(res, sep)
-            print(res_str)
             file.write(res_str)
 
 

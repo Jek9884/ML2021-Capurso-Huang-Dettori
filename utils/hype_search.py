@@ -45,6 +45,40 @@ def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
     return best_results
 
 
+def stoch_search(par_combo_net, par_combo_opt, train_x, train_y, metric, n_jobs,
+                n_folds, n_runs=10):
+
+    par_combo = dict(par_combo_net, **par_combo_opt)
+    rng = np.random.default_rng()
+    list_tasks = []
+
+    for _ in range(n_jobs):
+
+        dict_net = {}
+        dict_opt = {}
+
+        for key, arr in par_combo.items():
+
+            par_val = rng.choice(arr)
+
+            if key in par_combo_net:
+                dict_net[key] = par_val
+            elif key in par_combo_opt:
+                dict_opt[key] = par_val
+
+        task = delayed(eval_model)(dict_net, dict_opt, train_x, train_y,
+                                   metric, n_folds=n_folds, n_runs=n_runs)
+        list_tasks.append(task)
+
+    print(f"Number of tasks to execute: {n_jobs}")
+
+    results = Parallel(n_jobs=-2, verbose=50)(list_tasks)
+
+    best_results = compare_results(results, metric)
+
+    return best_results
+
+
 def compare_results(results, metric, topk=5):
     if metric.name in ["miscl. error", "nll"]:
         sign = -1
