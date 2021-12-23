@@ -69,13 +69,14 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
 
     score_results_dict = {"tr": []}  # Used to compute mean and std
     train_epoch_list = []
+    train_age_list = []
 
     for _ in range(n_runs):
 
         # Use kfold
         if n_folds > 0:
 
-            avg_tr_res, avg_val_res, n_epochs = \
+            avg_tr_res, avg_val_res, n_epochs, age = \
                 kfold_cv(par_combo_net, par_combo_opt, train_x, train_y, metric,
                          n_folds, plotter=plotter)
 
@@ -85,11 +86,12 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
             score_results_dict["tr"].append(avg_tr_res)
             score_results_dict["val"].append(avg_val_res)
             train_epoch_list.append(n_epochs)
+            train_age_list.append(age)
 
         # Train, then test on validation/test set
         elif val_x is not None and val_y is not None:
 
-            tr_scores, val_scores, n_epochs = \
+            tr_scores, val_scores, n_epochs, age = \
                 train_eval_dataset(par_combo_net, par_combo_opt, train_x,
                                    train_y, metric, val_x=val_x, val_y=val_y,
                                    plotter=plotter)
@@ -100,16 +102,19 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
             score_results_dict["tr"].append(tr_scores[-1])
             score_results_dict["val"].append(val_scores[-1])
             train_epoch_list.append(n_epochs)
+            train_age_list.append(age)
 
         # Train w/o validation set, used to estimate the avg performance
         else:
-            tr_scores, _, n_epochs = \
+            tr_scores, _, n_epochs, age = \
                 train_eval_dataset(par_combo_net, par_combo_opt, train_x,
                                    train_y, metric, plotter=plotter)
             score_results_dict["tr"].append(tr_scores[-1])
             train_epoch_list.append(n_epochs)
+            train_age_list.append(age)
 
     avg_epochs = np.average(train_epoch_list)
+    avg_age = np.average(train_age_list)
     score_stats_dict = {"tr": (0, 0)}
 
     # Take average and std wrt runs
@@ -124,14 +129,16 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
                    'score_tr': score_stats_dict["tr"],
                    'score_val': score_stats_dict["val"],
                    'metric': metric.name,
-                   'epochs': avg_epochs}
+                   'epochs': avg_epochs,
+                   'age': avg_age}
     else:
         results = {'combo_net': par_combo_net,
                    'combo_opt': par_combo_opt,
                    'score_tr': score_stats_dict["tr"],
                    'score_val': None,
                    'metric': metric.name,
-                   'epochs': avg_epochs}
+                   'epochs': avg_epochs,
+                   'age': avg_age}
 
     return results
 
@@ -144,6 +151,7 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotte
     avg_tr_score = 0
     avg_val_score = 0
     avg_epochs = 0
+    avg_age = 0
 
     np.random.shuffle(pattern_idx)
 
@@ -159,19 +167,21 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotte
         val_x = x_mat[i * fold_size:(i + 1) * fold_size]
         val_y = y_mat[i * fold_size:(i + 1) * fold_size]
 
-        tr_score_list, val_score_list, n_epochs = \
+        tr_score_list, val_score_list, n_epochs, age = \
             train_eval_dataset(par_combo_net, par_combo_opt, train_x,
                                train_y, metric, val_x, val_y, plotter=plotter)
 
         avg_tr_score += tr_score_list[-1]
         avg_val_score += val_score_list[-1]
         avg_epochs += n_epochs
+        avg_age += age
 
     avg_tr_score /= n_folds
     avg_val_score /= n_folds
     avg_epochs /= n_folds
+    avg_age /= n_folds
 
-    return avg_tr_score, avg_val_score, avg_epochs
+    return avg_tr_score, avg_val_score, avg_epochs, avg_age
 
 
 def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
@@ -201,7 +211,7 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
     if plotter is not None:
         plotter.add_new_plotline()
 
-    return epoch_res_tr_list, epoch_res_val_list, gd.epoch_count
+    return epoch_res_tr_list, epoch_res_val_list, gd.epoch_count, gd.age_count
 
 
 # Hp: all outputs from metric must be arrays

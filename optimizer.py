@@ -54,7 +54,9 @@ class GradientDescent:
     # Or when switching models
     def reset_optimizer(self):
 
-        # Used to keep track of cumulative amount of epochs trained
+        # Used to keep track of cumulative amount of epochs/updates trained
+        # Useful to compare accross batch sizes
+        self.age_count = 0
         # Useful to know when to reset lr_decay's alpha
         self.epoch_count = 0
 
@@ -73,6 +75,10 @@ class GradientDescent:
         n_patterns = train_x.shape[0]
         index_list = np.arange(n_patterns)
 
+        # Shortcut for full batch size
+        if self.batch_size == -1:
+            self.batch_size = n_patterns
+
         while self.train_cond or self.epoch_count < self.min_epoch:
 
             np.random.shuffle(index_list)
@@ -81,12 +87,8 @@ class GradientDescent:
             if self.epoch_count >= lim_step:
                 break
 
-            # Batch version
-            if self.batch_size == -1:
-                self.train_cond = self.update_weights(net, train_x, train_y)
-
-            # Online/mini-batch version
-            elif 1 <= self.batch_size < n_patterns:
+            # All batch sizes handled the same way
+            if 1 <= self.batch_size <= n_patterns:
 
                 n_minibatch = int(np.ceil(n_patterns / self.batch_size))
                 i = 0
@@ -96,19 +98,23 @@ class GradientDescent:
                     mini_batch_x = train_x[idx_list]
                     mini_batch_y = train_y[idx_list]
 
-                    self.train_cond = self.update_weights(net, mini_batch_x, mini_batch_y)
+                    self.update_weights(net, mini_batch_x, mini_batch_y)
+
+                    self.age_count += self.batch_size
+                    self.train_cond = self.check_stop_crit()
                     i += 1
 
             else:
-                raise ValueError("Mini-batch size should be >= 1 and < l.\
-                                 If you want to use the batch version use -1.")
+                raise ValueError("Batch size should be >= 1 and <= l.\
+                                 If you want to use the full batch version use -1.")
 
             # The criterion is already checked at each step
             self.train_cond = self.train_cond and self.epoch_count < self.lim_epochs
-            self.epoch_count += 1
 
             if plotter is not None:
                 plotter.add_plot_datapoint(net, self, train_x, train_y)
+
+            self.epoch_count += 1
 
         # Used to determine if there needs to be further training
         return self.train_cond
@@ -161,8 +167,6 @@ class GradientDescent:
 
             # Take the biggest change in weights to determine stop cond
             self.delta_w_norm = np.max(norm_weights)
-
-        return self.check_stop_crit()
 
     def compute_deltas(self, net, num_patt):
 
