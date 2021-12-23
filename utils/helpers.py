@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 
@@ -96,15 +97,22 @@ def get_csv_header(result, sep=' '):
     return header
 
 
-def save_results_to_csv(path, results, sep=';'):
-    with open(path, 'w', newline='') as file:
+def save_results_to_csv(folder_path, results, sep=';'):
+
+    file_path = os.path.join(folder_path, "results.csv")
+
+    with open(file_path, 'w', newline='') as file:
 
         header = get_csv_header(results[0], sep)
         file.write(header)
 
-        for res in results:
+        for i, res in enumerate(results):
             res_str = result_to_str(res, sep)
             file.write(res_str)
+
+            if res["figure"] is not None:
+                img_path = os.path.join(folder_path, f"{i}.png")
+                res["figure"].savefig(img_path)
 
 
 def clean_combos(dict_net, dict_opt, combos):

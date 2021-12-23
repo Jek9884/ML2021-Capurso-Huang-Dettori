@@ -1,4 +1,5 @@
 import itertools as it
+import copy
 from joblib import Parallel, delayed
 import numpy as np
 
@@ -10,7 +11,7 @@ from utils.helpers import clean_combos
 
 
 def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
-                n_folds, n_runs=10):
+                n_folds, n_runs=10, plotter=None):
     # Obtain a fixed order list of corresponding key-value pairs
     net_keys, net_values = zip(*par_combo_net.items())
     opt_keys, opt_values = zip(*par_combo_opt.items())
@@ -29,8 +30,14 @@ def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
         dict_net = {net_keys[i]: combo_net[i] for i in range(len(net_keys))}
         dict_opt = {opt_keys[i]: combo_opt[i] for i in range(len(opt_keys))}
 
-        task = delayed(eval_model)(dict_net, dict_opt, train_x, train_y,
-                                   metric, n_folds=n_folds, n_runs=n_runs)
+        # Used to save images
+        task_plotter = None
+
+        if plotter is not None:
+            task_plotter = copy.deepcopy(plotter)
+
+        task = delayed(eval_model)(dict_net, dict_opt, train_x, train_y, metric,
+                                   n_folds=n_folds, n_runs=n_runs, plotter=task_plotter)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {len(list_tasks)}")
@@ -46,7 +53,7 @@ def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
 
 
 def stoch_search(par_combo_net, par_combo_opt, train_x, train_y, metric, n_jobs,
-                n_folds, n_runs=10):
+                n_folds, n_runs=10, plotter=None):
 
     par_combo = dict(par_combo_net, **par_combo_opt)
     rng = np.random.default_rng()
@@ -66,8 +73,14 @@ def stoch_search(par_combo_net, par_combo_opt, train_x, train_y, metric, n_jobs,
             elif key in par_combo_opt:
                 dict_opt[key] = par_val
 
-        task = delayed(eval_model)(dict_net, dict_opt, train_x, train_y,
-                                   metric, n_folds=n_folds, n_runs=n_runs)
+        # Used to save images
+        task_plotter = None
+
+        if plotter is not None:
+            task_plotter = copy.deepcopy(plotter)
+
+        task = delayed(eval_model)(dict_net, dict_opt, train_x, train_y, metric,
+                                   n_folds=n_folds, n_runs=n_runs, plotter=task_plotter)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {n_jobs}")
@@ -79,7 +92,7 @@ def stoch_search(par_combo_net, par_combo_opt, train_x, train_y, metric, n_jobs,
     return best_results
 
 
-def compare_results(results, metric, topk=5):
+def compare_results(results, metric, topk=10):
     if metric.name in ["miscl. error", "nll"]:
         sign = -1
     elif metric.name in ["accuracy"]:
@@ -95,7 +108,10 @@ def compare_results(results, metric, topk=5):
     else:
         results = sorted(results, key=lambda i: i['score_tr'][0], reverse=(sign == 1))
 
-    return results[:topk]
+    if topk is not None:
+        results = results[:topk]
+
+    return results
 
 
 def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
@@ -149,7 +165,7 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
 
     avg_epochs = np.average(train_epoch_list)
     avg_age = np.average(train_age_list)
-    score_stats_dict = {"tr": (0, 0)}
+    score_stats_dict = {"tr": (0, 0), "val": None}
 
     # Take average and std wrt runs
     for key in score_results_dict:
@@ -157,22 +173,19 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
         std = np.std(score_results_dict[key], axis=0)
         score_stats_dict[key] = (mean, std)
 
-    if "val" in score_results_dict:
-        results = {'combo_net': par_combo_net,
-                   'combo_opt': par_combo_opt,
-                   'score_tr': score_stats_dict["tr"],
-                   'score_val': score_stats_dict["val"],
-                   'metric': metric.name,
-                   'epochs': avg_epochs,
-                   'age': avg_age}
-    else:
-        results = {'combo_net': par_combo_net,
-                   'combo_opt': par_combo_opt,
-                   'score_tr': score_stats_dict["tr"],
-                   'score_val': None,
-                   'metric': metric.name,
-                   'epochs': avg_epochs,
-                   'age': avg_age}
+    figure = None
+
+    if plotter is not None:
+        figure = plotter.build_plot()
+
+    results = {'combo_net': par_combo_net,
+               'combo_opt': par_combo_opt,
+               'score_tr': score_stats_dict["tr"],
+               'score_val': score_stats_dict["val"],
+               'metric': metric.name,
+               'epochs': avg_epochs,
+               'age': avg_age,
+               'figure': figure}
 
     return results
 

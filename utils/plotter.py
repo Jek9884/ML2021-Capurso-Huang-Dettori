@@ -70,8 +70,9 @@ class Plotter:
         if self.n_plots > 0 and popul_distr[0] > 1:
             self.results_dict["popul_distr"] = popul_distr
 
-        plot_dims = ((len(self.results_dict) + 1) // self.n_cols, self.n_cols)
-        fig, axs = plt.subplots(*plot_dims, squeeze=False)
+        plot_dim = ((len(self.results_dict) + 1) // self.n_cols, self.n_cols)
+        fig_dim = (15, 10)
+        fig, axs = plt.subplots(*plot_dim, squeeze=False, figsize=fig_dim)
         tot_epochs = len(popul_distr)
 
         for i, plt_type in enumerate(self.results_dict):
