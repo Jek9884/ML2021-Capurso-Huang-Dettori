@@ -1,4 +1,5 @@
 import os
+import shutil
 import numpy as np
 
 
@@ -98,6 +99,13 @@ def get_csv_header(result, sep=' '):
 
 
 def save_results_to_csv(folder_path, results, sep=';'):
+
+    # If the folder already exists, delete it
+    if os.path.exists(folder_path):
+        shutil.rmtree(folder_path)
+
+    # And create it again
+    os.makedirs(folder_path)
 
     file_path = os.path.join(folder_path, "results.csv")
 
