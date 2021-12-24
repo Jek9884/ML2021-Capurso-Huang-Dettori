@@ -94,7 +94,7 @@ def stoch_search(par_combo_net, par_combo_opt, train_x, train_y, metric, n_jobs,
     return best_results
 
 
-def compare_results(results, metric, topk=10):
+def compare_results(results, metric, topk=None):
     if metric.name in ["miscl. error", "nll"]:
         sign = -1
     elif metric.name in ["accuracy"]:

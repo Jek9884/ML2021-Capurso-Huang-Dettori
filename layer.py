@@ -13,7 +13,7 @@ Parameters:
 
 Attributes:
     -grad: gradient of error w.r.t. weights of the layer
-    -in_val: input value for the layer (vector)
+    -layer_in: input value for the layer (vector)
     -net: Dot product btw weights (matrix) and input (vector)
 """
 
@@ -22,22 +22,47 @@ class Layer:
 
     # Network may not pass an act_func to the last layer
     def __init__(self, n_out, n_in, init_func=None, act_func=None, bias=None,
-                 init_scale=0, debug_bool=False):
+                 init_scale=0, batch_norm=False, debug_bool=False):
 
         self.n_in = n_in  # Number of units in previous layer
         self.n_out = n_out  # Number of units in this layer
-        self.bias = bias
+
+        # Functions
         self.act_func = act_func
         self.init_func = init_func
         self.init_scale = init_scale
 
-        # Variables used to implement backpropagation
+        # Parameters
+        self.weights = None
+        self.bias = bias
+        self.batch_gamma = 1
+        self.batch_beta = 0
+
+        # Variables used to implement normal backpropagation
         self.grad_w = None
         self.grad_b = None
-        self.in_val = None
         self.net = None
 
-        # Variable used to keep track of the layer's last output
+        # Variables used to perform batch normalisation
+        self.batch_norm = batch_norm
+        self.batch_mean = None
+        self.batch_var = None
+        self.net_hat = None
+        self.batch_eps = 10**-6
+
+        # Variables used to perform batch normalisation backpropagation
+        self.grad_gamma = None
+        self.grad_beta = None
+
+        # Last inputs given to the layer
+        self.layer_in = None
+
+        # Variable representing the input of the non-linearity
+        # net in case of normal backpropagation
+        # Batch normalisation transformed net otherwise
+        self.y = None
+
+        # Variable used to keep track of the layer's non-linearity output
         self.out = None
 
         # Variable used to print some debug information
@@ -67,6 +92,9 @@ class Layer:
         else:
             self.weights = self.init_func((self.n_out, self.n_in), 0)
 
+        self.batch_gamma = 1
+        self.batch_beta = 0
+
         self.null_grad()
 
     """
@@ -74,18 +102,37 @@ class Layer:
 
         Parameters:
             -in_mat: matrix of input data
+            -training: determines if used for inference or training
 
         Returns:
             -matrix of layer's outputs
     """
 
-    def forward(self, in_mat):
+    # TODO: check for bugs btw training and plotter
+    def forward(self, in_mat, training=False):
 
-        self.in_val = in_mat
-        net_wo_bias = np.matmul(self.in_val, np.transpose(self.weights))
+        self.layer_in = in_mat
+        net_wo_bias = np.matmul(self.layer_in, np.transpose(self.weights))
         self.net = np.add(net_wo_bias, self.bias)
 
-        self.out = self.act_func(self.net)
+        if self.batch_norm:
+
+            if training:
+                self.batch_mean = np.mean(self.layer_in, axis=0)
+                self.batch_var = np.var(self.layer_in, axis=0)
+            else:
+                # TODO: implement inference
+                pass
+
+            # Standardised net
+            self.net_hat = (self.net-self.batch_mean) / np.sqrt(self.batch_var+self.batch_eps)
+            # Batch normalised net
+            self.y = self.batch_gamma*self.net_hat+self.batch_beta
+
+        else:
+            self.y = self.net
+
+        self.out = self.act_func(self.y)
 
         return self.out
 
@@ -93,44 +140,58 @@ class Layer:
         Computes layer backward
 
         Parameters:
-            -deriv_err: derivative of error w.r.t. weights of layer
-            -ext_delta: used to provide delta error from outside the func
+            -d_err_d_y: derivative of error w.r.t. the input of the non-linearity (delta)
 
         Returns:
             -deriv_err for next layer's backward
     """
 
-    def backward(self, deriv_err=None, ext_delta=None):
+    def backward(self, d_err_d_y):
 
-        if ext_delta is None:
-            # delta = deriv_err * f'(net_t)
-            delta = np.multiply(deriv_err, self.act_func.deriv(self.net))
-        elif deriv_err is None:
-            delta = ext_delta
+        if self.batch_norm:
+
+            # Used multiple times
+            inv_sqrt_var = 1/np.sqrt(self.batch_var+self.batch_eps)
+            batch_size = self.layer_in.shape[0]
+
+            self.grad_gamma = np.sum(d_err_d_y*self.net_hat, axis=0)  # Scalar output
+            self.grad_beta = np.sum(d_err_d_y, axis=0)  # Scalar output
+
+            d_err_d_net_hat = d_err_d_y * self.batch_gamma
+
+            d_var_sum_elem = d_err_d_net_hat*(self.net-self.batch_mean)*\
+                (-1/2)*inv_sqrt_var**3
+            d_err_d_batch_var = np.sum(d_var_sum_elem, axis=0)
+
+            d_err_d_batch_mean = np.sum(d_err_d_net_hat*(-inv_sqrt_var))
+
+            d_err_d_net = d_err_d_net_hat*inv_sqrt_var +\
+                d_err_d_batch_var*2*(self.net-self.batch_mean)/batch_size +\
+                d_err_d_batch_mean/batch_size
         else:
-            raise RuntimeError("layer/backward: unexpected behaviour")
+            d_err_d_net = d_err_d_y
 
         # grad += delta_i * output of previous layer (o_u)
-        self.grad_w = np.dot(np.transpose(delta), self.in_val)
-        self.grad_b = np.sum(delta, axis=0)
+        self.grad_w = np.dot(np.transpose(d_err_d_net), self.layer_in)
+        self.grad_b = np.sum(d_err_d_net, axis=0)
 
-        new_deriv_err = np.dot(delta, self.weights)
+        new_d_err_d_out = np.dot(d_err_d_net, self.weights)
 
         if self.debug_bool:
             print("Layer")
             print("Activation function: ", self.act_func.name)
-            print("\tInput: ", self.in_val)
-            print("\tExpected out: ", self.act_func(self.net))
-            print("\tNet with bias: ", self.net)
+            print("\tInput: ", self.layer_in)
+            print("\tExpected out: ", self.act_func(self.y))
+            print("\ty (net or batch-normalised net): ", self.y)
             print("\tBias: ", self.bias)
-            print("\tDelta: ", delta)
-            print("\tDeriv_err: ", deriv_err)
-            print("\tDeriv act(net): ", self.act_func.deriv(self.net))
+            print("\tDelta: ", d_err_d_y)
+            print("\tDeriv act(y): ", self.act_func.deriv(self.y))
             print("\tGrad weights: \n", self.grad_w)
             print("\tGrad bias: ", self.grad_b)
+            print("\tBatch normalisation: ", self.batch_norm)
             print()
 
-        return new_deriv_err
+        return new_d_err_d_out
 
     '''
         Zero out the gradient variables of the layer
@@ -139,6 +200,9 @@ class Layer:
 
         self.grad_w = np.zeros((self.n_out, self.n_in))
         self.grad_b = np.zeros(self.n_out)
+
+        self.grad_gamma = 0
+        self.grad_beta = 0
 
     def __str__(self):
 

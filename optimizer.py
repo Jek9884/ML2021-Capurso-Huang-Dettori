@@ -144,12 +144,12 @@ class GradientDescent:
 
         net.null_grad()
 
-        if self.momentum_val > 0 and self.nesterov:
+        if self.nesterov and self.momentum_val > 0:
             for layer in net.layers:
                 layer.weights += self.momentum_val * layer.delta_w_old
                 layer.bias += self.momentum_val * layer.delta_b_old
 
-        net.forward(sub_train_x)
+        net.forward(sub_train_x, training=True)
         net.backward(sub_train_y)
 
         self.compute_deltas(net, sub_train_x.shape[0])
@@ -196,3 +196,7 @@ class GradientDescent:
             layer.bias = layer.bias + delta_b
             layer.delta_w_old = delta_w
             layer.delta_b_old = delta_b
+
+            if layer.batch_norm:
+                layer.batch_gamma -= self.lr*layer.grad_gamma
+                layer.batch_beta -= self.lr*layer.grad_beta

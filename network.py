@@ -27,7 +27,7 @@ Attributes:
 class Network:
 
     def __init__(self, conf_layers, init_func=None, act_func=None, out_func=None,
-                 loss_func=None, bias=None, debug_bool=False, init_scale=0):
+                 loss_func=None, bias=None, init_scale=0, batch_norm=False, debug_bool=False):
 
         self.conf_layers = conf_layers
         self.init_func = init_func
@@ -36,6 +36,8 @@ class Network:
         self.loss_func = loss_func
         self.bias = bias
         self.layers = []
+        self.batch_norm = batch_norm
+
         self.debug_bool = debug_bool
 
         if self.bias is None:
@@ -53,13 +55,13 @@ class Network:
         for i in range(len(conf_layers) - 2):
             self.layers.append(Layer(conf_layers[i + 1], conf_layers[i],
                                      self.init_func, self.act_func,
-                                     self.bias[i], init_scale, debug_bool))
+                                     self.bias[i], init_scale, batch_norm, debug_bool))
 
         # init of output layer is handled at the network level to avoid numerical problems
         self.layers.append(Layer(conf_layers[-1], conf_layers[-2],
                                  self.init_func, self.out_func,
                                  self.bias[len(conf_layers) - 2], init_scale,
-                                 debug_bool))
+                                 batch_norm, debug_bool))
 
     """
         Computes network forward pass
@@ -71,13 +73,13 @@ class Network:
             -matrix of network's outputs
     """
 
-    def forward(self, in_mat):
+    def forward(self, in_mat, training=False):
 
         fw_mat = in_mat
 
         for i, layer in enumerate(self.layers):
 
-            fw_mat = layer.forward(fw_mat)
+            fw_mat = layer.forward(fw_mat, training)
 
         return fw_mat
 
@@ -100,19 +102,25 @@ class Network:
             print("\tDeriv Loss: ", self.eval_deriv_loss(exp_out))
             print()
 
-        # TODO: fix!!!
-        # derivative of error w.r.t. the output or net of the last layer
-        # depending on loss used
-        deriv_err = self.eval_deriv_loss(exp_out)
+        d_err_d_y = None
+
+        if self.loss_func.name == "nll":
+            # nll returns the derivative w.r.t the input of non-linearity
+            d_err_d_y = self.eval_deriv_loss(exp_out)
+        else:
+            d_err_d_out = self.eval_deriv_loss(exp_out)
 
         # compute derivative of error w.r.t the i-th layer
         for i in reversed(range(len(self.layers))):
 
-            # nll loss is the deriv wrt net, we already have delta
-            if i == (len(self.layers)-1) and self.loss_func.name == "nll":
-                deriv_err = self.layers[i].backward(ext_delta=deriv_err)
-            else:
-                deriv_err = self.layers[i].backward(deriv_err=deriv_err)
+            layer = self.layers[i]
+
+            if d_err_d_y is None:
+                d_err_d_y = d_err_d_out*layer.act_func.deriv(layer.y)
+
+            d_err_d_out = layer.backward(d_err_d_y)
+
+            d_err_d_y = None
 
 
     def eval_loss(self, exp_out, reduce_bool=False):

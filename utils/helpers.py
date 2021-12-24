@@ -119,7 +119,7 @@ def save_results_to_csv(folder_path, results, sep=';'):
             file.write(res_str)
 
             if res["figure"] is not None:
-                img_path = os.path.join(folder_path, f"{i}.png")
+                img_path = os.path.join(folder_path, f"{i+1}.png")
                 res["figure"].savefig(img_path)
 
 
