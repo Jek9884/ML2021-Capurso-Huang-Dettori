@@ -14,6 +14,7 @@ class Plotter:
         self.type_plots = type_plots
         self.n_cols = n_cols
         self.n_plots = 0
+        self.fig = None
 
         # Each "leaf" of the dict is a list of plotlines
         self.results_dict = {}
@@ -52,14 +53,24 @@ class Plotter:
         self.n_plots += 1
 
     def plot(self):
-        self.build_plot()
+
+        if self.fig is None:
+            self.fig = self.build_plot()
+
+        # Note: show() shows all plots created and not closed/shown
         plt.show()
 
     def save_fig(self, path):
-        fig = self.build_plot()
-        fig.save_fig(path)
+
+        if self.fig is None:
+            self.fig = self.build_plot()
+
+        self.fig.savefig(path)
 
     def build_plot(self):
+
+        if self.fig is not None:
+            return self.fig
 
         if self.results_dict == {}:
             raise RuntimeError("Plotter: no results to plot")
@@ -67,7 +78,7 @@ class Plotter:
         # Substitute lists of list with their average row-wise
         popul_distr = self.compute_stats_plotlines(self.results_dict)
 
-        if self.n_plots > 0 and popul_distr[0] > 1:
+        if self.n_plots > 0:
             self.results_dict["popul_distr"] = popul_distr
 
         plot_dim = ((len(self.results_dict) + 1) // self.n_cols, self.n_cols)
@@ -118,7 +129,9 @@ class Plotter:
         for i in range(1, n_blank_axs + 1):
             axs[-1][-i].axis('off')
 
-        return fig
+        self.fig = fig
+
+        return self.fig
 
     def add_lr_curve_datapoint(self, network, data_x, data_y, data_label="tr"):
 
@@ -203,13 +216,21 @@ class Plotter:
         # Add an empty list to each list of lists
         for k, v in plot_dict.items():
 
-            if isinstance(v, list):
+            if isinstance(v, dict):
+                popul_distr = self.compute_stats_plotlines(v, parent=k)
+
+            elif isinstance(v, list):
                 ma_matrix = convert_ragged_mat_to_ma_array(v)
+                # Compute stats
                 ma_average = np.ma.average(ma_matrix, axis=0)
                 ma_std = np.ma.std(ma_matrix, axis=0)
 
                 if popul_distr is None:
                     popul_distr = np.ma.count(ma_matrix, axis=0)
+
+                    # Needed for multi-out network
+                    if popul_distr.ndim > 1:
+                        popul_distr = popul_distr[:, 0]
 
                 plot_dict[k] = {"avg": ma_average, "std": ma_std}
 
@@ -223,7 +244,5 @@ class Plotter:
                     final_pred_idx = (range(len(last_ma_idx)), last_ma_idx)
                     plot_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
 
-            elif isinstance(v, dict):
-                popul_distr = self.compute_stats_plotlines(v, parent=k)
 
         return popul_distr

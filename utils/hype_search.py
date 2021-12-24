@@ -37,7 +37,8 @@ def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
             task_plotter = copy.deepcopy(plotter)
 
         task = delayed(eval_model)(dict_net, dict_opt, train_x, train_y, metric,
-                                   n_folds=n_folds, n_runs=n_runs, plotter=task_plotter)
+                                   n_folds=n_folds, n_runs=n_runs, plotter=task_plotter,
+                                   save_plot=True)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {len(list_tasks)}")
@@ -80,7 +81,8 @@ def stoch_search(par_combo_net, par_combo_opt, train_x, train_y, metric, n_jobs,
             task_plotter = copy.deepcopy(plotter)
 
         task = delayed(eval_model)(dict_net, dict_opt, train_x, train_y, metric,
-                                   n_folds=n_folds, n_runs=n_runs, plotter=task_plotter)
+                                   n_folds=n_folds, n_runs=n_runs, plotter=task_plotter,
+                                   save_plot=True)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {n_jobs}")
@@ -115,7 +117,8 @@ def compare_results(results, metric, topk=10):
 
 
 def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
-               val_x=None, val_y=None, n_runs=10, n_folds=0, plotter=None):
+               val_x=None, val_y=None, n_runs=10, n_folds=0, plotter=None,
+               save_plot=False):
 
     score_results_dict = {"tr": []}  # Used to compute mean and std
     train_epoch_list = []
@@ -175,7 +178,7 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
 
     figure = None
 
-    if plotter is not None:
+    if save_plot and plotter is not None:
         figure = plotter.build_plot()
 
     results = {'combo_net': par_combo_net,
