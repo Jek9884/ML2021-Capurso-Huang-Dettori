@@ -46,11 +46,11 @@ def check_gradient_layer(net, layer_idx, train_x, train_y, epsilon=10**-6):
             pert_mat2 = new_weights - eps_mat
 
             net.layers[layer_idx].weights = pert_mat1
-            net.forward(x_row)
+            net.forward(x_row, training=True)
             f1 = net.eval_loss(y_row)
 
             net.layers[layer_idx].weights = pert_mat2
-            net.forward(x_row)
+            net.forward(x_row, training=True)
             f2 = net.eval_loss(y_row)
 
             num_grad = np.squeeze((f1-f2)/(2*epsilon), axis=0)
@@ -70,7 +70,7 @@ def check_gradient_layer(net, layer_idx, train_x, train_y, epsilon=10**-6):
 
     # Analytical gradient
     net.null_grad()
-    net.forward(x_row)
+    net.forward(x_row, training=True)
     net.backward(y_row)
     an_grad = net.layers[layer_idx].grad_w
 

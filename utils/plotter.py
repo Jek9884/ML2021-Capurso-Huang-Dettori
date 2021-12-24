@@ -137,21 +137,26 @@ class Plotter:
 
         for metric in self.lr_metric_list:
 
+            training = False
+
+            if data_label == "tr":
+                training = True
+
             if metric.name == "nll":
 
                 # Cannot apply nll to a net that doesn't use it as its criterion
                 if network.loss_func.name != "nll":
                     raise ValueError("add_lr_curve_datapoint: unsupported use")
 
-                network.forward(data_x)
+                network.forward(data_x, training)
                 metric_res = network.eval_loss(data_y, reduce_bool=True)
 
             elif metric.name == "squared":
-                pred_vec = network.forward(data_x)
+                pred_vec = network.forward(data_x, training)
                 metric_res = metric(data_y, pred_vec, reduce_bool=True)
 
             elif metric.name in ["miscl. error"]:
-                pred_vec = network.forward(data_x)
+                pred_vec = network.forward(data_x, training)
                 pred_vec[pred_vec < 0.5] = 0
                 pred_vec[pred_vec >= 0.5] = 1
                 metric_res = metric(data_y, pred_vec)
@@ -198,7 +203,7 @@ class Plotter:
         if "act_val" not in self.results_dict:
             self.results_dict["act_val"] = {}
 
-        network.forward(data_x)
+        network.forward(data_x, training=True)
 
         for i, layer in enumerate(network.layers):
 
