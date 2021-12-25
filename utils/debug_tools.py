@@ -4,27 +4,34 @@ from network import Network
 
 # Implementation of gradient checker
 
-def check_gradient_net(par_combo_net, train_x, train_y):
+def check_gradient_combo(combo_net_dict, train_x, train_y):
 
-    net = Network(**par_combo_net)
+    net = Network(**combo_net_dict)
 
-    # Note: supports only "online learning"
-    for i in range(train_x.shape[0]):
+    # Note: sends entire input training set to the network (batch training)
+    for j, _ in enumerate(net.layers):
 
-        x_row = np.array([train_x[i]])
-        y_row = np.array([train_y[i]])
+        check_gradient_layer(net, j, train_x, train_y)
 
-        for j, _ in enumerate(net.layers):
 
-            if j == len(net.layers) - 1:
-                check_gradient_layer(net, j, x_row, y_row)
-            else:
-                check_gradient_layer(net, j, x_row, y_row)
+def check_gradient_net(net, train_x, train_y):
 
-def check_gradient_layer(net, layer_idx, train_x, train_y, epsilon=10**-6):
+    # Note: sends entire input training set to the network (batch training)
+    for j, _ in enumerate(net.layers):
 
-    x_row = train_x
-    y_row = train_y
+        check_gradient_layer(net, j, train_x, train_y)
+
+
+def check_gradient_layer(net, layer_idx, train_x, train_y, epsilon=10**-6,
+                         err_tol=10**-6, debug_bool=False):
+
+    # Analytical gradient computation
+    net.null_grad()
+    net.forward(train_x, training=True)
+    net.backward(train_y)
+    an_grad = net.layers[layer_idx].grad_w
+
+    # Numerical gradient computation
     weights_mat = net.layers[layer_idx].weights
     n_units = weights_mat.shape[0]
     n_feat = weights_mat.shape[1]
@@ -46,32 +53,35 @@ def check_gradient_layer(net, layer_idx, train_x, train_y, epsilon=10**-6):
             pert_mat2 = new_weights - eps_mat
 
             net.layers[layer_idx].weights = pert_mat1
-            net.forward(x_row, training=True)
-            f1 = net.eval_loss(y_row)
+            net.forward(train_x, training=True)
+            f1 = net.eval_loss(train_y)
 
             net.layers[layer_idx].weights = pert_mat2
-            net.forward(x_row, training=True)
-            f2 = net.eval_loss(y_row)
+            net.forward(train_x, training=True)
+            f2 = net.eval_loss(train_y)
 
-            num_grad = np.squeeze((f1-f2)/(2*epsilon), axis=0)
+            num_grad = (f1-f2)/(2*epsilon)
             net.layers[layer_idx].weights = weights_mat
 
             # In case of multi-head NN sum the changes relative to each weight
-            if not np.isscalar(num_grad) and len(num_grad) > 1:
+            if not np.isscalar(num_grad):
+                # Remove empty dimensions
+                num_grad = np.squeeze(num_grad)
+                # Sum the effects of the different heads
                 num_grad = np.sum(num_grad)
 
             unit_vec.append(num_grad)
 
         num_grad_mat.append(unit_vec)
 
-    print(f"Layer {layer_idx}")
-    print("Numerical grad: ")
-    print(np.array(num_grad_mat))
+    grad_diff = np.abs(an_grad-num_grad_mat)
 
-    # Analytical gradient
-    net.null_grad()
-    net.forward(x_row, training=True)
-    net.backward(y_row)
-    an_grad = net.layers[layer_idx].grad_w
+    # Check if analytical and numerical gradient are close
+    if (grad_diff> err_tol).any():
+        raise RuntimeError(f"Gradient precision is below threshold {err_tol}")
 
-    print("Analytical grad: \n", an_grad)
+    if debug_bool:
+        print(f"Layer {layer_idx}")
+        print("Numerical grad: ")
+        print(np.array(num_grad_mat))
+        print("Analytical grad: \n", an_grad)

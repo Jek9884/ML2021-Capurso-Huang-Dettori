@@ -1,12 +1,14 @@
 import numpy as np
 
+from utils.debug_tools import check_gradient_net
+
 
 class GradientDescent:
 
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
                  nesterov=False, lim_epochs=10**4, lr_decay_type=None,
                  lr_dec_lin_tau=None, lr_dec_exp_k=None, stop_crit_type='fixed',
-                 epsilon=None, patient=5):
+                 epsilon=None, patient=5, check_gradient=False):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
@@ -25,6 +27,7 @@ class GradientDescent:
         self.stop_crit_type = stop_crit_type
         self.epsilon = epsilon
         self.patient = patient
+        self.check_gradient = check_gradient
 
         # Note: train() can also be called on a partially trained model
         # Since the check has side effects we need to store the result
@@ -148,6 +151,9 @@ class GradientDescent:
             for layer in net.layers:
                 layer.weights += self.momentum_val * layer.delta_w_old
                 layer.bias += self.momentum_val * layer.delta_b_old
+
+        if self.check_gradient:
+            check_gradient_net(net, sub_train_x, sub_train_y)
 
         net.forward(sub_train_x, training=True)
         net.backward(sub_train_y)
