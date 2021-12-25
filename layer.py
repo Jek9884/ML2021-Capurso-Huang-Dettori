@@ -118,8 +118,8 @@ class Layer:
         if self.batch_norm:
 
             if training:
-                self.batch_mean = np.mean(self.layer_in, axis=0)
-                self.batch_var = np.var(self.layer_in, axis=0)
+                self.batch_mean = np.mean(self.net, axis=0)
+                self.batch_var = np.var(self.net, axis=0)
             else:
                 # TODO: implement inference
                 pass
@@ -152,7 +152,7 @@ class Layer:
 
             # Used multiple times
             inv_sqrt_var = 1/np.sqrt(self.batch_var+self.batch_eps)
-            batch_size = self.layer_in.shape[0]
+            batch_size = self.net.shape[0]
 
             self.grad_gamma = np.sum(d_err_d_y*self.net_hat, axis=0)  # Scalar output
             self.grad_beta = np.sum(d_err_d_y, axis=0)  # Scalar output
