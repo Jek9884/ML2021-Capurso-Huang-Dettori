@@ -163,7 +163,7 @@ class Layer:
                 (-1/2)*inv_sqrt_var**3
             d_err_d_batch_var = np.sum(d_var_sum_elem, axis=0)
 
-            d_err_d_batch_mean = np.sum(d_err_d_net_hat*(-inv_sqrt_var))
+            d_err_d_batch_mean = np.sum(d_err_d_net_hat*(-inv_sqrt_var), axis=0)
 
             d_err_d_net = d_err_d_net_hat*inv_sqrt_var +\
                 d_err_d_batch_var*2*(self.net-self.batch_mean)/batch_size +\
