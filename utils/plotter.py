@@ -32,6 +32,8 @@ class Plotter:
                 self.add_lr_rate_datapoint(optimizer)
             elif plt_type == "grad_norm":
                 self.add_grad_norm_datapoint(network)
+            elif plt_type == "delta_weights":
+                self.add_delta_weights_datapoint(network)
             elif plt_type == "act_val":
                 self.add_activ_val_datapoint(network, data_x)
 
@@ -93,7 +95,7 @@ class Plotter:
             cur_ax = axs[cur_row][cur_col]
 
             # Needed to handle matrix of values in these plots
-            if plt_type in ["grad_norm", "act_val"]:
+            if plt_type in ["grad_norm", "act_val", "delta_weights"]:
 
                 for n_layer, val in self.results_dict[plt_type].items():
                     cur_ax.errorbar(range(tot_epochs), val["avg"], val["std"],
@@ -197,6 +199,23 @@ class Plotter:
                 self.results_dict["grad_norm"][i] = [[]]
 
             self.results_dict["grad_norm"][i][-1].append(norm_grad)
+
+    def add_delta_weights_datapoint(self, network):
+
+        if "delta_weights" not in self.results_dict:
+            self.results_dict["delta_weights"] = {}
+
+        for i, layer in enumerate(network.layers):
+
+            # Uses frobenius norm on the joint weights (bias included) matrix
+            delta_layer = \
+                np.hstack((layer.delta_w_old, np.expand_dims(layer.delta_b_old, axis=1)))
+            norm_delta = np.linalg.norm(delta_layer)
+
+            if i not in self.results_dict["delta_weights"]:
+                self.results_dict["delta_weights"][i] = [[]]
+
+            self.results_dict["delta_weights"][i][-1].append(norm_delta)
 
     def add_activ_val_datapoint(self, network, data_x):
 
