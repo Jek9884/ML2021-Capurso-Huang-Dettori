@@ -47,7 +47,8 @@ class DataHandler:
                 other_idxs = self.index_list[0: i * batch_size]
                 n_diff_batch = batch_size - cur_batch_size
 
-                batch_idx_list += np.random.choice(other_idxs, n_diff_batch)
+                rnd_sampled_idx = np.random.choice(other_idxs, n_diff_batch)
+                batch_idx_list = np.concatenate((batch_idx_list, rnd_sampled_idx))
 
             batch_x_list.append(self.data_x[batch_idx_list])
             batch_y_list.append(self.data_y[batch_idx_list])

@@ -79,9 +79,10 @@ class GradientDescent:
         while self.train_cond or self.epoch_count < self.min_epoch:
 
             # Batch normalisation needs minibatch of fixed size
-            enforce_size = self.batch_norm
+            enforce_size = net.batch_norm
             # Already randomized
-            mb_x_list, mb_y_list = train_handler.gen_minibatch_iter(self.batch_size, enforce_size)
+            mb_x_list, mb_y_list = train_handler.gen_minibatch_iter(self.batch_size,
+                                                                    enforce_size=enforce_size)
             n_minibatch = len(mb_x_list)
             mb_count = 0
 
