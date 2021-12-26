@@ -100,7 +100,7 @@ class Plotter:
                 for n_layer, val in self.results_dict[plt_type].items():
                     cur_ax.errorbar(range(tot_epochs), val["avg"], val["std"],
                                     label=f"Layer {n_layer}", linestyle="None",
-                                    marker=".")
+                                    marker=".", alpha=0.6)
                 cur_ax.legend()
 
             elif "lr_curve" in plt_type:
