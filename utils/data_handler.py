@@ -33,6 +33,7 @@ class DataHandler:
         if n_batches == -1:
             n_batches = max_batches
         elif n_batches < 1 or n_batches > max_batches:
+
             raise ValueError("DataHandler: batch size should be >= 1 and <= l.\
                              If you want to use the full batch version use -1.")
 
@@ -41,11 +42,15 @@ class DataHandler:
             batch_idx_list = self.index_list[i * batch_size: (i + 1) * batch_size]
             cur_batch_size = len(batch_idx_list)
 
-            if cur_batch_size != batch_size and enforce_size:
-                raise ValueError("TODO: not implemented")
-            else:
-                batch_x_list.append(self.data_x[batch_idx_list])
-                batch_y_list.append(self.data_y[batch_idx_list])
+            if cur_batch_size < batch_size and enforce_size:
+
+                other_idxs = self.index_list[0: i * batch_size]
+                n_diff_batch = batch_size - cur_batch_size
+
+                batch_idx_list += np.random.choice(other_idxs, n_diff_batch)
+
+            batch_x_list.append(self.data_x[batch_idx_list])
+            batch_y_list.append(self.data_y[batch_idx_list])
 
         return batch_x_list, batch_y_list
 
