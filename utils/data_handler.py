@@ -1,6 +1,56 @@
 import numpy as np
 
 
+# Idea: split data handling from optimizer, handy for batch norm inference
+class DataHandler:
+
+    def __init__(self, data_x, data_y):
+
+        self.data_x = data_x
+        self.data_y = data_y
+
+        self.n_patterns = self.data_x.shape[0]
+        self.index_list = np.arange(self.n_patterns)
+
+
+    def gen_minibatch_iter(self, batch_size, n_batches=-1, enforce_size=False):
+
+        max_batches = int(np.ceil(self.n_patterns/batch_size))
+
+        # Shuffle indexes of data for sampling
+        np.random.shuffle(self.index_list)
+
+        # Shortcut for full batch size
+        if batch_size == -1:
+            batch_size = n_patterns
+        elif batch_size < 1:
+            raise ValueError("DataHandler: invalid batch_size given")
+
+        batch_x_list = []
+        batch_y_list = []
+
+
+        if n_batches == -1:
+            n_batches = max_batches
+        elif n_batches < 1 or n_batches > max_batches:
+            raise ValueError("DataHandler: batch size should be >= 1 and <= l.\
+                             If you want to use the full batch version use -1.")
+
+        for i in range(n_batches):
+
+            batch_idx_list = self.index_list[i * batch_size: (i + 1) * batch_size]
+            cur_batch_size = len(batch_idx_list)
+
+            if cur_batch_size != batch_size and enforce_size:
+                raise ValueError("TODO: not implemented")
+            else:
+                batch_x_list.append(self.data_x[batch_idx_list])
+                batch_y_list.append(self.data_y[batch_idx_list])
+
+        return batch_x_list, batch_y_list
+
+
+# Utilities
 def read_monk(path, norm_data=True):
     with open(path) as f:
         data = f.readlines()

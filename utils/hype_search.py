@@ -10,7 +10,7 @@ from optimizer import GradientDescent
 from utils.helpers import clean_combos
 
 
-def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
+def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
                 n_folds, n_runs=10, plotter=None):
     # Obtain a fixed order list of corresponding key-value pairs
     net_keys, net_values = zip(*par_combo_net.items())
@@ -36,7 +36,7 @@ def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
         if plotter is not None:
             task_plotter = copy.deepcopy(plotter)
 
-        task = delayed(eval_model)(dict_net, dict_opt, train_x, train_y, metric,
+        task = delayed(eval_model)(dict_net, dict_opt, train_handler, metric,
                                    n_folds=n_folds, n_runs=n_runs, plotter=task_plotter,
                                    save_plot=True)
         list_tasks.append(task)
@@ -53,7 +53,7 @@ def grid_search(par_combo_net, par_combo_opt, train_x, train_y, metric,
     return best_results
 
 
-def stoch_search(par_combo_net, par_combo_opt, train_x, train_y, metric, n_jobs,
+def stoch_search(par_combo_net, par_combo_opt, train_handler, metric, n_jobs,
                 n_folds, n_runs=10, plotter=None):
 
     par_combo = dict(par_combo_net, **par_combo_opt)
@@ -77,10 +77,11 @@ def stoch_search(par_combo_net, par_combo_opt, train_x, train_y, metric, n_jobs,
         # Used to save images
         task_plotter = None
 
+        # Use given plotter as model for all runs
         if plotter is not None:
             task_plotter = copy.deepcopy(plotter)
 
-        task = delayed(eval_model)(dict_net, dict_opt, train_x, train_y, metric,
+        task = delayed(eval_model)(dict_net, dict_opt, train_handler, metric,
                                    n_folds=n_folds, n_runs=n_runs, plotter=task_plotter,
                                    save_plot=True)
         list_tasks.append(task)
@@ -94,7 +95,7 @@ def stoch_search(par_combo_net, par_combo_opt, train_x, train_y, metric, n_jobs,
     return best_results
 
 
-def compare_results(results, metric, topk=None):
+def compare_results(results, metric, topk=50):
     if metric.name in ["miscl. error", "nll"]:
         sign = -1
     elif metric.name in ["accuracy"]:
@@ -116,8 +117,8 @@ def compare_results(results, metric, topk=None):
     return results
 
 
-def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
-               val_x=None, val_y=None, n_runs=10, n_folds=0, plotter=None,
+def eval_model(par_combo_net, par_combo_opt, train_handler, metric,
+               val_handler=None, n_runs=10, n_folds=0, plotter=None,
                save_plot=False):
 
     score_results_dict = {"tr": []}  # Used to compute mean and std
@@ -130,7 +131,7 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
         if n_folds > 0:
 
             avg_tr_res, avg_val_res, n_epochs, age = \
-                kfold_cv(par_combo_net, par_combo_opt, train_x, train_y, metric,
+                kfold_cv(par_combo_net, par_combo_opt, train_handler, metric,
                          n_folds, plotter=plotter)
 
             if "val" not in score_results_dict:
@@ -142,12 +143,11 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
             train_age_list.append(age)
 
         # Train, then test on validation/test set
-        elif val_x is not None and val_y is not None:
+        elif val_handler is not None:
 
             tr_scores, val_scores, n_epochs, age = \
-                train_eval_dataset(par_combo_net, par_combo_opt, train_x,
-                                   train_y, metric, val_x=val_x, val_y=val_y,
-                                   plotter=plotter)
+                train_eval_dataset(par_combo_net, par_combo_opt, train_handler,
+                                   metric, val_handler=val_handler, plotter=plotter)
 
             if "val" not in score_results_dict:
                 score_results_dict["val"] = []
@@ -160,8 +160,8 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
         # Train w/o validation set, used to estimate the avg performance
         else:
             tr_scores, _, n_epochs, age = \
-                train_eval_dataset(par_combo_net, par_combo_opt, train_x,
-                                   train_y, metric, plotter=plotter)
+                train_eval_dataset(par_combo_net, par_combo_opt, train_handler,
+                                   metric, plotter=plotter)
             score_results_dict["tr"].append(tr_scores[-1])
             train_epoch_list.append(n_epochs)
             train_age_list.append(age)
@@ -193,7 +193,11 @@ def eval_model(par_combo_net, par_combo_opt, train_x, train_y, metric,
     return results
 
 
-def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotter=None):
+def kfold_cv(par_combo_net, par_combo_opt, train_handler, metric, n_folds, plotter=None):
+
+    x_mat = train_handler.data_x
+    y_mat = train_handler.data_y
+
     fold_size = int(np.floor(x_mat.shape[0] / n_folds))
     pattern_idx = np.arange(x_mat.shape[0])
 
@@ -218,8 +222,8 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotte
         val_y = y_mat[i * fold_size:(i + 1) * fold_size]
 
         tr_score_list, val_score_list, n_epochs, age = \
-            train_eval_dataset(par_combo_net, par_combo_opt, train_x,
-                               train_y, metric, val_x, val_y, plotter=plotter)
+            train_eval_dataset(par_combo_net, par_combo_opt, train_handler,
+                               metric, val_handler, plotter=plotter)
 
         avg_tr_score += tr_score_list[-1]
         avg_val_score += val_score_list[-1]
@@ -234,8 +238,8 @@ def kfold_cv(par_combo_net, par_combo_opt, x_mat, y_mat, metric, n_folds, plotte
     return avg_tr_score, avg_val_score, avg_epochs, avg_age
 
 
-def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
-                       metric, val_x=None, val_y=None, plotter=None):
+def train_eval_dataset(par_combo_net, par_combo_opt, train_handler,
+                       metric, val_handler=None, plotter=None):
 
     net = Network(**par_combo_net)
     gd = GradientDescent(**par_combo_opt)
@@ -247,16 +251,18 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
 
     while train_bool:
 
-        train_bool = gd.train(net, train_x, train_y, 1, plotter=plotter)
+        # Train 1 epoch at a time
+        train_bool = gd.train(net, train_handler, 1, plotter=plotter)
 
-        epoch_res_tr_list.append(eval_dataset(net, train_x, train_y, metric))
+        epoch_res_tr_list.append(eval_dataset(net, train_handler, metric))
 
         # Check if the validation set is given as input
-        if val_x is not None and val_y is not None:
-            epoch_res_val_list.append(eval_dataset(net, val_x, val_y, metric))
+        if val_handler is not None:
+            epoch_res_val_list.append(eval_dataset(net, val_handler, metric))
 
             if plotter is not None:
-                plotter.add_lr_curve_datapoint(net, val_x, val_y, "val")
+                plotter.add_lr_curve_datapoint(net, val_handler.data_x,
+                                               val_handler.data_y, "val")
 
     if plotter is not None:
         plotter.add_new_plotline()
@@ -265,7 +271,10 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_x, train_y,
 
 
 # Hp: all outputs from metric must be arrays
-def eval_dataset(net, data_x, data_y, metric):
+def eval_dataset(net, data_handler, metric):
+
+    data_x = data_handler.data_x
+    data_y = data_handler.data_y
     net_pred = net.forward(data_x)
 
     if metric.name in ["nll", "squared"]:

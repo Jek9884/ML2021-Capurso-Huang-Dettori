@@ -67,7 +67,7 @@ class GradientDescent:
             self.delta_w_norm = np.inf
             self.count_patient = 0
 
-    def train(self, net, train_x, train_y, step_epochs=None, plotter=None):
+    def train(self, net, train_handler, step_epochs=None, plotter=None):
 
         # Allow for more flexibility in using the optimizer with different epochs
         if step_epochs is None:
@@ -75,47 +75,38 @@ class GradientDescent:
         else:
             lim_step = self.epoch_count + step_epochs
 
-        n_patterns = train_x.shape[0]
-        index_list = np.arange(n_patterns)
-
-        # Shortcut for full batch size
-        if self.batch_size == -1:
-            self.batch_size = n_patterns
 
         while self.train_cond or self.epoch_count < self.min_epoch:
 
-            np.random.shuffle(index_list)
+            # Already randomized
+            mb_x_list, mb_y_list = train_handler.gen_minibatch_iter(self.batch_size)
+            n_minibatch = len(mb_x_list)
+            mb_count = 0
 
             # Check if number of epochs requested in train() has been reached
             if self.epoch_count >= lim_step:
                 break
 
-            # All batch sizes handled the same way
-            if 1 <= self.batch_size <= n_patterns:
+            while mb_count < n_minibatch and self.train_cond:
+                mini_batch_x = mb_x_list[mb_count]
+                mini_batch_y = mb_y_list[mb_count]
 
-                n_minibatch = int(np.ceil(n_patterns / self.batch_size))
-                i = 0
+                # Depending on situation the mb size might differ from the chosen one
+                # See DataHandler parameters
+                mb_size = len(mini_batch_x)
 
-                while i < n_minibatch and self.train_cond:
-                    idx_list = index_list[i * self.batch_size: (i + 1) * self.batch_size]
-                    mini_batch_x = train_x[idx_list]
-                    mini_batch_y = train_y[idx_list]
+                self.update_weights(net, mini_batch_x, mini_batch_y)
 
-                    self.update_weights(net, mini_batch_x, mini_batch_y)
+                self.age_count += mb_size
+                self.train_cond = self.check_stop_crit()
+                mb_count += 1
 
-                    self.age_count += self.batch_size
-                    self.train_cond = self.check_stop_crit()
-                    i += 1
-
-            else:
-                raise ValueError("Batch size should be >= 1 and <= l.\
-                                 If you want to use the full batch version use -1.")
 
             # The criterion is already checked at each step
             self.train_cond = self.train_cond and self.epoch_count < self.lim_epochs
 
             if plotter is not None:
-                plotter.add_plot_datapoint(net, self, train_x, train_y)
+                plotter.add_plot_datapoint(net, self, train_handler.data_x, train_handler.data_y)
 
             self.epoch_count += 1
 
