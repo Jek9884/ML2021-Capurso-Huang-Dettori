@@ -22,7 +22,7 @@ class Layer:
 
     # Network may not pass an act_func to the last layer
     def __init__(self, n_out, n_in, init_func=None, act_func=None, bias=None,
-                 init_scale=0, batch_norm=False, debug_bool=False):
+                 init_scale=0, batch_norm=False, batch_momentum=0.99, debug_bool=False):
 
         self.n_in = n_in  # Number of units in previous layer
         self.n_out = n_out  # Number of units in this layer
@@ -45,8 +45,11 @@ class Layer:
 
         # Variables used to perform batch normalisation
         self.batch_norm = batch_norm
-        self.batch_mean = None
-        self.batch_var = None
+        self.batch_mean = None  # Training
+        self.batch_var = None  # Training
+        self.moving_mean = 0  # Inference
+        self.moving_var = 0  # Inference
+        self.batch_momentum = batch_momentum  # Inference
         self.net_hat = None
         self.batch_eps = 10**-6
 
@@ -108,7 +111,6 @@ class Layer:
             -matrix of layer's outputs
     """
 
-    # TODO: check for bugs btw training and plotter
     def forward(self, in_mat, training=False):
 
         self.layer_in = in_mat
@@ -120,12 +122,20 @@ class Layer:
             if training:
                 self.batch_mean = np.mean(self.net, axis=0)
                 self.batch_var = np.var(self.net, axis=0)
-            else:
-                # TODO: implement inference
-                pass
 
-            # Standardised net
-            self.net_hat = (self.net-self.batch_mean) / np.sqrt(self.batch_var+self.batch_eps)
+                # Standardised net
+                self.net_hat = (self.net-self.batch_mean) / np.sqrt(self.batch_var+self.batch_eps)
+
+                # Update moving stats for inference
+                self.moving_mean = self.moving_mean*self.batch_momentum +\
+                    (1-self.batch_momentum)*np.mean(self.net, axis=0)
+
+                self.moving_var = self.moving_var*self.batch_momentum +\
+                    (1-self.batch_momentum)*np.var(self.net, axis=0)
+
+            else:
+                self.net_hat = (self.net-self.moving_mean) / np.sqrt(self.moving_var+self.batch_eps)
+
             # Batch normalised net
             self.y = self.batch_gamma*self.net_hat+self.batch_beta
 

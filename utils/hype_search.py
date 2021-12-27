@@ -8,6 +8,7 @@ import utils.helpers
 from network import Network
 from optimizer import GradientDescent
 from utils.helpers import clean_combos
+from utils.data_handler import DataHandler
 
 
 def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
@@ -33,6 +34,7 @@ def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
         # Used to save images
         task_plotter = None
 
+        # Use given plotter as model for all runs
         if plotter is not None:
             task_plotter = copy.deepcopy(plotter)
 
@@ -220,6 +222,8 @@ def kfold_cv(par_combo_net, par_combo_opt, train_handler, metric, n_folds, plott
 
         val_x = x_mat[i * fold_size:(i + 1) * fold_size]
         val_y = y_mat[i * fold_size:(i + 1) * fold_size]
+
+        val_handler = DataHandler(val_x, val_y)
 
         tr_score_list, val_score_list, n_epochs, age = \
             train_eval_dataset(par_combo_net, par_combo_opt, train_handler,

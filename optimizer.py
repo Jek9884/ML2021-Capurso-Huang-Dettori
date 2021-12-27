@@ -33,9 +33,6 @@ class GradientDescent:
         # Since the check has side effects we need to store the result
         self.train_cond = True
 
-        # Min number of epochs to train for, needed to avoid 1 epoch mb
-        self.min_epoch = 2
-
         # Used to implement stop criteria
         self.delta_w_norm = None
 
@@ -76,7 +73,7 @@ class GradientDescent:
             lim_step = self.epoch_count + step_epochs
 
 
-        while self.train_cond or self.epoch_count < self.min_epoch:
+        while self.train_cond:
 
             # Batch normalisation needs minibatch of fixed size
             enforce_size = net.batch_norm
@@ -111,7 +108,8 @@ class GradientDescent:
             if plotter is not None:
                 plotter.add_plot_datapoint(net, self, train_handler.data_x, train_handler.data_y)
 
-            self.epoch_count += 1
+            if mb_count == n_minibatch:
+                self.epoch_count += 1
 
         # Used to determine if there needs to be further training
         return self.train_cond
@@ -200,3 +198,5 @@ class GradientDescent:
             if layer.batch_norm:
                 layer.batch_gamma -= self.lr*layer.grad_gamma
                 layer.batch_beta -= self.lr*layer.grad_beta
+
+

@@ -27,7 +27,8 @@ Attributes:
 class Network:
 
     def __init__(self, conf_layers, init_func=None, act_func=None, out_func=None,
-                 loss_func=None, bias=None, init_scale=0, batch_norm=False, debug_bool=False):
+                 loss_func=None, bias=None, init_scale=0, batch_norm=False, batch_momentum=0.99,
+                 debug_bool=False):
 
         self.conf_layers = conf_layers
         self.init_func = init_func
@@ -37,6 +38,7 @@ class Network:
         self.bias = bias
         self.layers = []
         self.batch_norm = batch_norm
+        self.batch_momentum = batch_momentum
 
         self.debug_bool = debug_bool
 
@@ -55,13 +57,14 @@ class Network:
         for i in range(len(conf_layers) - 2):
             self.layers.append(Layer(conf_layers[i + 1], conf_layers[i],
                                      self.init_func, self.act_func,
-                                     self.bias[i], init_scale, batch_norm, debug_bool))
+                                     self.bias[i], init_scale, self.batch_norm,
+                                     self.batch_momentum, debug_bool))
 
         # init of output layer is handled at the network level to avoid numerical problems
         self.layers.append(Layer(conf_layers[-1], conf_layers[-2],
                                  self.init_func, self.out_func,
                                  self.bias[len(conf_layers) - 2], init_scale,
-                                 batch_norm, debug_bool))
+                                 self.batch_norm, self.batch_momentum, debug_bool))
 
     """
         Computes network forward pass
