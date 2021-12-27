@@ -258,11 +258,11 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_handler,
         # Train 1 epoch at a time
         train_bool = gd.train(net, train_handler, 1, plotter=plotter)
 
-        epoch_res_tr_list.append(eval_dataset(net, train_handler, metric))
+        epoch_res_tr_list.append(eval_dataset(net, train_handler, metric, True))
 
         # Check if the validation set is given as input
         if val_handler is not None:
-            epoch_res_val_list.append(eval_dataset(net, val_handler, metric))
+            epoch_res_val_list.append(eval_dataset(net, val_handler, metric, False))
 
             if plotter is not None:
                 plotter.add_lr_curve_datapoint(net, val_handler.data_x,
@@ -275,11 +275,11 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_handler,
 
 
 # Hp: all outputs from metric must be arrays
-def eval_dataset(net, data_handler, metric):
+def eval_dataset(net, data_handler, metric, training):
 
     data_x = data_handler.data_x
     data_y = data_handler.data_y
-    net_pred = net.forward(data_x)
+    net_pred = net.forward(data_x, training)
 
     if metric.name in ["nll", "squared"]:
         res = metric(data_y, net_pred, reduce_bool=True)

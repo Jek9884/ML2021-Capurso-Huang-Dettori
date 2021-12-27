@@ -102,7 +102,6 @@ class GradientDescent:
                 self.train_cond = self.check_stop_crit()
                 mb_count += 1
 
-
             # The criterion is already checked at each step
             self.train_cond = self.train_cond and self.epoch_count < self.lim_epochs
 
