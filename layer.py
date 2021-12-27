@@ -87,13 +87,12 @@ class Layer:
         if self.init_func is None:
             # Each row is composed of the weights of the unit
             self.weights = np.ones((self.n_out, self.n_in))
-        # TODO add parameter for sparse count
 
-        elif self.init_func.name == "std" and self.init_scale != 0:
-            self.weights = self.init_func((self.n_out, self.n_in), self.init_scale, 0)
+        elif self.init_func.name == "std":
+            self.weights = self.init_func((self.n_out, self.n_in), self.init_scale)
 
         else:
-            self.weights = self.init_func((self.n_out, self.n_in), 0)
+            self.weights = self.init_func((self.n_out, self.n_in))
 
         self.batch_gamma = 1
         self.batch_beta = 0
@@ -134,6 +133,7 @@ class Layer:
                     (1-self.batch_momentum)*np.var(self.net, axis=0)
 
             else:
+                # Note: moving stats break gradient checking
                 self.net_hat = (self.net-self.moving_mean) / np.sqrt(self.moving_var+self.batch_eps)
 
             # Batch normalised net

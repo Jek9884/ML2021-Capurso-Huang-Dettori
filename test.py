@@ -156,7 +156,8 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"],
         'batch_norm': True,
-        'init_scale': 3
+        'init_scale': 3,
+        'batch_momentum': 0.99
     }
 
     dict_param_sgd = {
