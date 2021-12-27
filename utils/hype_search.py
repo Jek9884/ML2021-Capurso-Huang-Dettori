@@ -3,7 +3,6 @@ import copy
 from joblib import Parallel, delayed
 import numpy as np
 
-import ensemble
 import utils.helpers
 from network import Network
 from optimizer import GradientDescent
@@ -38,9 +37,9 @@ def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
         if plotter is not None:
             task_plotter = copy.deepcopy(plotter)
 
-        task = delayed(eval_model)(dict_net, dict_opt, train_handler, metric,
-                                   n_folds=n_folds, n_runs=n_runs, plotter=task_plotter,
-                                   save_plot=True)
+        task = delayed(eval_model_search)(dict_net, dict_opt, train_handler, metric,
+                                          n_folds=n_folds, n_runs=n_runs,
+                                          plotter=task_plotter, save_plot=True)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {len(list_tasks)}")
@@ -83,9 +82,9 @@ def stoch_search(par_combo_net, par_combo_opt, train_handler, metric, n_jobs,
         if plotter is not None:
             task_plotter = copy.deepcopy(plotter)
 
-        task = delayed(eval_model)(dict_net, dict_opt, train_handler, metric,
-                                   n_folds=n_folds, n_runs=n_runs, plotter=task_plotter,
-                                   save_plot=True)
+        task = delayed(eval_model_search)(dict_net, dict_opt, train_handler, metric,
+                                          n_folds=n_folds, n_runs=n_runs,
+                                          plotter=task_plotter, save_plot=True)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {n_jobs}")
@@ -98,12 +97,21 @@ def stoch_search(par_combo_net, par_combo_opt, train_handler, metric, n_jobs,
 
 
 def compare_results(results, metric, topk=50):
+
     if metric.name in ["miscl. error", "nll"]:
         sign = -1
     elif metric.name in ["accuracy"]:
         sign = 1
     else:
         raise ValueError(f"Metric not supported {metric.name}")
+
+    # Remove all discarded results
+    clean_results = []
+    for res in results:
+        if res is None:
+            continue
+        clean_results.append(res)
+    results = clean_results
 
     # TODO: consider adding comparison of std for best result
     # Check if the mean of validation score was computed, and use it to sort
@@ -116,6 +124,25 @@ def compare_results(results, metric, topk=50):
     if topk is not None:
         results = results[:topk]
 
+    print(f"Number of results kept: {len(results)}")
+
+    return results
+
+
+def eval_model_search(par_combo_net, par_combo_opt, train_handler, metric,
+                      val_handler=None, n_runs=10, n_folds=0, plotter=None,
+                      save_plot=False):
+
+    np.seterr(divide="raise")
+    results = None
+
+    try:
+        results = eval_model(par_combo_net, par_combo_opt, train_handler, metric,
+                   val_handler, n_runs, n_folds, plotter, save_plot)
+    except FloatingPointError as e:
+        print("FloatingPointError:", e, "(results discarded)")
+
+    np.seterr(divide="print")
     return results
 
 
