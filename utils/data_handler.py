@@ -22,7 +22,7 @@ class DataHandler:
 
         # Shortcut for full batch size
         if batch_size == -1:
-            batch_size = n_patterns
+            batch_size = self.n_patterns
         elif batch_size < 1:
             raise ValueError("DataHandler: invalid batch_size given")
 
