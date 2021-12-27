@@ -141,6 +141,7 @@ class Plotter:
 
             training = False
 
+            # Note: kinda risky, possibly TODO
             if data_label == "tr":
                 training = True
 

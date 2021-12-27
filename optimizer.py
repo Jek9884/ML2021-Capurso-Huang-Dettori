@@ -8,7 +8,7 @@ class GradientDescent:
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
                  nesterov=False, lim_epochs=10**4, lr_decay_type=None,
                  lr_dec_lin_tau=None, lr_dec_exp_k=None, stop_crit_type='fixed',
-                 epsilon=None, patient=5, check_gradient=False):
+                 epsilon=None, patient=5, norm_clipping=0, check_gradient=False):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')
@@ -27,6 +27,7 @@ class GradientDescent:
         self.stop_crit_type = stop_crit_type
         self.epsilon = epsilon
         self.patient = patient
+        self.norm_clipping = norm_clipping
         self.check_gradient = check_gradient
 
         # Note: train() can also be called on a partially trained model
@@ -156,10 +157,10 @@ class GradientDescent:
             norm_weights = []
 
             for i, layer in enumerate(net.layers):
-                grad_layer = \
+                deltaw_layer = \
                     np.hstack((layer.delta_w_old,
                                np.expand_dims(layer.delta_b_old, axis=1)))
-                norm_delta = np.linalg.norm(grad_layer)
+                norm_delta = np.linalg.norm(deltaw_layer)
 
                 norm_weights.append(norm_delta)
 
@@ -168,6 +169,7 @@ class GradientDescent:
 
     def compute_deltas(self, net, num_patt):
 
+        # LR decay techniques
         if self.lr_decay_type == "lin":
             # Avoid having an alpha > 1 due to difference in lim_epochs/tau
             alpha = min(self.epoch_count / self.lr_decay_tau, 1)
@@ -178,18 +180,34 @@ class GradientDescent:
             self.lr = self.initial_lr * exp_fact
 
         for layer in net.layers:
+
+            # Gradient norm clipping
+            if self.norm_clipping > 0:
+
+                layer_weights = np.hstack((layer.grad_w,
+                               np.expand_dims(layer.grad_b, axis=1)))
+                norm_weights = np.linalg.norm(layer_weights)
+
+                if norm_weights > self.norm_clipping:
+                    layer.grad_w = self.norm_clipping*layer.grad_w/norm_weights
+                    layer.grad_b = self.norm_clipping*layer.grad_b/norm_weights
+
+            # Take average of weights wrt number of samples
             avg_grad_w = np.divide(layer.grad_w, num_patt)
             avg_grad_b = np.divide(layer.grad_b, num_patt)
             delta_w = -1 * self.lr * avg_grad_w
             delta_b = -1 * self.lr * avg_grad_b
 
+            # Momentum
             if self.momentum_val > 0:
                 delta_w += self.momentum_val * layer.delta_w_old
                 delta_b += self.momentum_val * layer.delta_b_old
 
+            # Regularisation
             if self.reg_val > 0 and self.reg_type == 2:
                 delta_w += -2 * self.reg_val * layer.weights
 
+            # Update parameters
             layer.weights = layer.weights + delta_w
             layer.bias = layer.bias + delta_b
             layer.delta_w_old = delta_w
@@ -198,5 +216,3 @@ class GradientDescent:
             if layer.batch_norm:
                 layer.batch_gamma -= self.lr*layer.grad_gamma
                 layer.batch_beta -= self.lr*layer.grad_beta
-
-

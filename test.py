@@ -173,6 +173,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
         'epsilon': 0.01,
         'patient': 5,
         'lim_epochs': 400,
+        'norm_clipping': 8,
         'check_gradient': False
     }
 
