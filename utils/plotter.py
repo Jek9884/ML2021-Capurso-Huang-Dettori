@@ -37,6 +37,7 @@ class Plotter:
             elif plt_type == "act_val":
                 self.add_activ_val_datapoint(network, data_x)
 
+    # Accumulate the plotlines of different models to then average them
     # Ideally called at the end of a model training process
     def add_new_plotline(self, plot_dict=None):
 
@@ -248,7 +249,7 @@ class Plotter:
                 ma_matrix = convert_ragged_mat_to_ma_array(v)
                 # Compute stats
                 ma_average = np.ma.average(ma_matrix, axis=0)
-                ma_std = np.ma.std(ma_matrix, axis=0)
+                ma_std = np.ma.std(ma_matrix, axis=0, ddof=1)  # Variance bias correction
 
                 if popul_distr is None:
                     popul_distr = np.ma.count(ma_matrix, axis=0)

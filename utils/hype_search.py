@@ -202,7 +202,7 @@ def eval_model(par_combo_net, par_combo_opt, train_handler, metric,
     # Take average and std wrt runs
     for key in score_results_dict:
         mean = np.average(score_results_dict[key], axis=0)
-        std = np.std(score_results_dict[key], axis=0)
+        std = np.std(score_results_dict[key], axis=0, ddof=1)
         score_stats_dict[key] = (mean, std)
 
     figure = None
