@@ -16,9 +16,10 @@ def squared_loss_deriv(exp_val, pred_val):
 
 
 # Note: nll for now supports only a sigmoid output 
-def nll_loss_bin(exp_val, pred_val, reduce_bool=False):
-    t1 = exp_val * np.log(pred_val)
-    t2 = (1-exp_val) * np.log(1-pred_val)
+# eps value suggested by sklearn log_loss implementation
+def nll_loss_bin(exp_val, pred_val, reduce_bool=False, eps=10**-15):
+    t1 = exp_val * np.log(np.maximum(pred_val, eps))
+    t2 = (1-exp_val) * np.log(np.maximum(1-pred_val, eps))
 
     loss_vec = -np.add(t1, t2)
 
