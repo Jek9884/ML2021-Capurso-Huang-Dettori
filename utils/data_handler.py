@@ -15,16 +15,16 @@ class DataHandler:
 
     def gen_minibatch_iter(self, batch_size, n_batches=-1, enforce_size=False):
 
-        max_batches = int(np.ceil(self.n_patterns/batch_size))
-
-        # Shuffle indexes of data for sampling
-        np.random.shuffle(self.index_list)
-
         # Shortcut for full batch size
         if batch_size == -1:
             batch_size = self.n_patterns
         elif batch_size < 1:
             raise ValueError("DataHandler: invalid batch_size given")
+
+        max_batches = int(np.ceil(self.n_patterns/batch_size))
+
+        # Shuffle indexes of data for sampling
+        np.random.shuffle(self.index_list)
 
         batch_x_list = []
         batch_y_list = []
