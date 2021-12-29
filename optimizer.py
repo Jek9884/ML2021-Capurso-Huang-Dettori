@@ -106,6 +106,8 @@ class GradientDescent:
             self.train_cond = self.train_cond and self.epoch_count < self.lim_epochs
 
             if plotter is not None:
+                # Approximates the behaviour after each epoch by taking the net after the
+                # latest epoch's update
                 plotter.add_plot_datapoint(net, self, train_handler.data_x, train_handler.data_y)
 
             if mb_count == n_minibatch:

@@ -133,7 +133,7 @@ def eval_model_search(par_combo_net, par_combo_opt, train_handler, metric,
                       val_handler=None, n_runs=10, n_folds=0, plotter=None,
                       save_plot=False):
 
-    np.seterr(divide="raise")
+    np.seterr(divide="raise", over="raise")
     results = None
 
     try:
@@ -142,7 +142,7 @@ def eval_model_search(par_combo_net, par_combo_opt, train_handler, metric,
     except FloatingPointError as e:
         print("FloatingPointError:", e, "(results discarded)")
 
-    np.seterr(divide="print")
+    np.seterr(divide="print", over="print")
     return results
 
 
@@ -282,7 +282,7 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_handler,
 
     while train_bool:
 
-        # Train 1 epoch at a time
+        # Train 1 epoch at a time to plot the evolution of the lr curve
         train_bool = gd.train(net, train_handler, 1, plotter=plotter)
 
         epoch_res_tr_list.append(eval_dataset(net, train_handler, metric, True))

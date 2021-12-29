@@ -37,6 +37,7 @@ class Plotter:
             elif plt_type == "act_val":
                 self.add_activ_val_datapoint(network, data_x)
 
+    # Accumulate the plotlines of different models to then average them
     # Ideally called at the end of a model training process
     def add_new_plotline(self, plot_dict=None):
 
@@ -109,7 +110,7 @@ class Plotter:
                     val = self.results_dict[plt_type][data_label]
                     cur_ax.plot(range(tot_epochs), val["avg"], label=data_label)
                     cur_ax.plot(range(tot_epochs), [val["avg_final"]]*tot_epochs,
-                                label=f"Avg {data_label}", linestyle="dashed")
+                                label=f"Avg final {data_label}", linestyle="dashed")
                 cur_ax.legend()
 
             elif plt_type in ["lr"]:
