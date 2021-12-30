@@ -185,6 +185,11 @@ class Layer:
         self.grad_w = np.dot(np.transpose(d_err_d_net), self.layer_in)
         self.grad_b = np.sum(d_err_d_net, axis=0)
 
+        # Take the average of the gradients across patterns
+        num_patt = len(self.layer_in)
+        self.grad_w = np.divide(self.grad_w, num_patt)
+        self.grad_b = np.divide(self.grad_b, num_patt)
+
         new_d_err_d_out = np.dot(d_err_d_net, self.weights)
 
         if self.debug_bool:

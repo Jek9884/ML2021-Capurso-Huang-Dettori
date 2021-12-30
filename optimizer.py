@@ -194,10 +194,8 @@ class GradientDescent:
                     layer.grad_b = self.norm_clipping*layer.grad_b/norm_weights
 
             # Take average of weights wrt number of samples
-            avg_grad_w = np.divide(layer.grad_w, num_patt)
-            avg_grad_b = np.divide(layer.grad_b, num_patt)
-            delta_w = -1 * self.lr * avg_grad_w
-            delta_b = -1 * self.lr * avg_grad_b
+            delta_w = -1 * self.lr * layer.grad_w
+            delta_b = -1 * self.lr * layer.grad_b
 
             # Momentum
             if self.momentum_val > 0:

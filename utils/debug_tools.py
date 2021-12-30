@@ -108,6 +108,9 @@ def check_gradient_layer(net, layer_idx, train_x, train_y, epsilon=10**-6,
         num_grad_b_vec.append(num_grad)
         num_grad_w_mat.append(unit_vec)
 
+    num_patt = len(train_x)
+    num_grad_w_mat = np.divide(num_grad_w_mat, num_patt)
+    num_grad_b_vec = np.divide(num_grad_b_vec, num_patt)
 
     grad_w_diff = np.abs(an_grad_w-num_grad_w_mat)
     grad_b_diff = np.abs(an_grad_b-num_grad_b_vec)
