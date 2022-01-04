@@ -19,6 +19,9 @@ class Plotter:
         # Each "leaf" of the dict is a list of plotlines
         self.results_dict = {}
 
+        # Save some interesting parameters of the net/optimizer
+        self.param_dict = {}
+
         if "lr_curve" in self.type_plots and self.lr_metric_list is None:
             raise ValueError("To print the learning curve a metric is needed")
 
@@ -33,7 +36,7 @@ class Plotter:
             elif plt_type == "grad_norm":
                 self.add_grad_norm_datapoint(network)
             elif plt_type == "delta_weights":
-                self.add_delta_weights_datapoint(network)
+                self.add_delta_weights_datapoint(network, optimizer)
             elif plt_type == "act_val":
                 self.add_activ_val_datapoint(network, data_x)
 
@@ -89,13 +92,34 @@ class Plotter:
             cur_ax = axs[cur_row][cur_col]
 
             # Needed to handle matrix of values in these plots
-            if plt_type in ["grad_norm", "act_val", "delta_weights"]:
+            if plt_type in ["grad_norm", "act_val"]:
 
                 for n_layer, val in self.results_dict[plt_type].items():
                     cur_ax.errorbar(range(tot_epochs), val["avg"], val["std"],
                                     label=f"Layer {n_layer}", linestyle="None",
                                     marker=".", alpha=0.6)
                 cur_ax.legend()
+                cur_ax.set_ylabel(f"{plt_type}")
+
+            elif plt_type == "delta_weights":
+
+                log_eps = 10**-6
+
+                # Compute the log of the delta_weights
+                for n_layer, val in self.results_dict[plt_type].items():
+
+                    log_delta_avg = np.log(val["avg"] + log_eps)
+                    log_delta_std = np.log(val["std"] + log_eps)
+
+                    cur_ax.errorbar(range(tot_epochs), log_delta_avg, log_delta_std,
+                                    label=f"Layer {n_layer}", linestyle="None",
+                                    marker=".", alpha=0.6)
+
+                log_delta_eps = np.log(self.param_dict["delta_eps"]+log_eps)
+                cur_ax.plot(range(tot_epochs), [log_delta_eps]*tot_epochs,
+                            label="Delta eps", linestyle="dashed")
+                cur_ax.legend()
+                cur_ax.set_ylabel("log(delta_weights)")
 
             elif "lr_curve" in plt_type:
 
@@ -105,19 +129,21 @@ class Plotter:
                     cur_ax.plot(range(tot_epochs), [val["avg_final"]]*tot_epochs,
                                 label=f"Avg final {data_label}", linestyle="dashed")
                 cur_ax.legend()
+                cur_ax.set_ylabel(f"{plt_type}")
 
             elif plt_type in ["lr"]:
                 cur_ax.plot(range(tot_epochs),
                             np.around(self.results_dict[plt_type]["avg"], decimals=5))
+                cur_ax.set_ylabel(f"{plt_type}")
 
             elif plt_type == "popul_distr":
                 cur_ax.plot(range(tot_epochs), self.results_dict[plt_type])
+                cur_ax.set_ylabel(f"{plt_type}")
 
             else:
                 raise ValueError(f"Unknown plt_type ({plt_type})")
 
             cur_ax.set_xlabel("Epochs")
-            cur_ax.set_ylabel(f"{plt_type}")
 
         n_blank_axs = len(self.results_dict) % self.n_cols
 
@@ -135,7 +161,7 @@ class Plotter:
 
             training = False
 
-            # Note: kinda risky, possibly TODO
+            # Note: kinda risky
             if data_label == "tr":
                 training = True
 
@@ -195,7 +221,7 @@ class Plotter:
 
             self.results_dict["grad_norm"][i][-1].append(norm_grad)
 
-    def add_delta_weights_datapoint(self, network):
+    def add_delta_weights_datapoint(self, network, optimizer):
 
         if "delta_weights" not in self.results_dict:
             self.results_dict["delta_weights"] = {}
@@ -209,6 +235,9 @@ class Plotter:
 
             if i not in self.results_dict["delta_weights"]:
                 self.results_dict["delta_weights"][i] = [[]]
+
+            if "delta_eps" not in self.param_dict:
+                self.param_dict["delta_eps"] = optimizer.epsilon
 
             self.results_dict["delta_weights"][i][-1].append(norm_delta)
 
