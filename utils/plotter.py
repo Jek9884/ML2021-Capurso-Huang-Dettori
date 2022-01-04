@@ -72,7 +72,7 @@ class Plotter:
             return self.fig
 
         if self.results_dict == {}:
-            raise RuntimeError("Plotter: no results to plot")
+            raise RuntimeError("plotter: no results to plot")
 
         # Substitute lists of list with their average row-wise
         popul_distr = self.compute_stats_plotlines(self.results_dict)
@@ -117,17 +117,24 @@ class Plotter:
 
                 log_delta_eps = np.log(self.param_dict["delta_eps"]+log_eps)
                 cur_ax.plot(range(tot_epochs), [log_delta_eps]*tot_epochs,
-                            label="Delta eps", linestyle="dashed")
+                            label="Delta eps", linestyle="dashed", color="red")
                 cur_ax.legend()
                 cur_ax.set_ylabel("log(delta_weights)")
 
             elif "lr_curve" in plt_type:
 
                 for i, data_label in enumerate(self.results_dict[plt_type]):
+
                     val = self.results_dict[plt_type][data_label]
+
+                    # Plot all individual lines
+                    for line in val["val_mat"]:
+                        cur_ax.plot(range(tot_epochs), line, alpha=0.1, color="gray")
+
                     cur_ax.plot(range(tot_epochs), val["avg"], label=data_label)
                     cur_ax.plot(range(tot_epochs), [val["avg_final"]]*tot_epochs,
                                 label=f"Avg final {data_label}", linestyle="dashed")
+
                 cur_ax.legend()
                 cur_ax.set_ylabel(f"{plt_type}")
 
@@ -161,7 +168,7 @@ class Plotter:
 
             training = False
 
-            # Note: kinda risky
+            # Note: kinda risky approach
             if data_label == "tr":
                 training = True
 
@@ -280,7 +287,7 @@ class Plotter:
                     if popul_distr.ndim > 1:
                         popul_distr = popul_distr[:, 0]
 
-                plot_dict[k] = {"avg": ma_average, "std": ma_std}
+                plot_dict[k] = {"avg": ma_average, "std": ma_std, "val_mat": ma_matrix}
 
                 if isinstance(parent, str) and "lr_curve" in parent:
                     ma_elem_len = len(ma_matrix[0][0])
