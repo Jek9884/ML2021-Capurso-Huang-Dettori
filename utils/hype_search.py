@@ -11,7 +11,7 @@ from utils.data_handler import DataHandler
 
 
 def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
-                n_folds, n_runs=10, plotter=None):
+                n_folds, n_runs=10, val_handler=None, plotter=None, topk=50):
 
     # Obtain a fixed order list of corresponding key-value pairs
     net_keys, net_values = zip(*par_combo_net.items())
@@ -31,16 +31,10 @@ def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
         dict_net = {net_keys[i]: combo_net[i] for i in range(len(net_keys))}
         dict_opt = {opt_keys[i]: combo_opt[i] for i in range(len(opt_keys))}
 
-        # Used to save images
-        task_plotter = None
-
-        # Use given plotter as model for all runs
-        if plotter is not None:
-            task_plotter = copy.deepcopy(plotter)
-
+        # Note: the plotter is None since only the best results are plotted
         task = delayed(eval_model_search)(dict_net, dict_opt, train_handler, metric,
                                           n_folds=n_folds, n_runs=n_runs,
-                                          plotter=task_plotter, save_plot=True)
+                                          val_handler=val_handler)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {len(list_tasks)}")
@@ -50,13 +44,19 @@ def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
     results = Parallel(n_jobs=-2, verbose=50)(list_tasks)
 
     # List of best results containing: tr score, val score, combo
-    best_results = compare_results(results, metric)
+    best_results = compare_results(results, metric, topk)
+
+    # Recompute the results of the best combinations with plots
+    if plotter is not None:
+        best_results = generate_results_plot(best_results, train_handler,
+                                             metric, plotter, n_folds,
+                                             n_runs, val_handler)
 
     return best_results
 
 
 def stoch_search(par_combo_net, par_combo_opt, train_handler, metric, n_jobs,
-                n_folds, n_runs=10, plotter=None):
+                n_folds, n_runs=10, val_handler=None, plotter=None, topk=50):
 
     par_combo = dict(par_combo_net, **par_combo_opt)
     rng = np.random.default_rng()
@@ -76,29 +76,31 @@ def stoch_search(par_combo_net, par_combo_opt, train_handler, metric, n_jobs,
             elif key in par_combo_opt:
                 dict_opt[key] = par_val
 
-        # Used to save images
-        task_plotter = None
-
-        # Use given plotter as model for all runs
-        if plotter is not None:
-            task_plotter = copy.deepcopy(plotter)
-
+        # Note: the plotter is None since only the best results are plotted
         task = delayed(eval_model_search)(dict_net, dict_opt, train_handler, metric,
                                           n_folds=n_folds, n_runs=n_runs,
-                                          plotter=task_plotter, save_plot=True)
+                                          val_handler=val_handler)
         list_tasks.append(task)
 
     print(f"Number of tasks to execute: {n_jobs}")
 
     results = Parallel(n_jobs=-2, verbose=50)(list_tasks)
 
-    best_results = compare_results(results, metric)
+    best_results = compare_results(results, metric, topk)
+
+    # Recompute the results of the best combinations with plots
+    if plotter is not None:
+        best_results = generate_results_plot(best_results, train_handler,
+                                             metric, plotter, n_folds,
+                                             n_runs, val_handler)
 
     return best_results
 
 
-def compare_results(results, metric, topk=50):
+# Idea: order results and keep the k best ones
+def compare_results(results, metric, topk=None):
 
+    # Sign used to understand if min or max is better
     if metric.name in ["miscl. error", "nll"]:
         sign = -1
     elif metric.name in ["accuracy"]:
@@ -108,10 +110,13 @@ def compare_results(results, metric, topk=50):
 
     # Remove all discarded results
     clean_results = []
+
     for res in results:
         if res is None:
             continue
+
         clean_results.append(res)
+
     results = clean_results
 
     # TODO: consider adding comparison of std for best result
@@ -125,31 +130,58 @@ def compare_results(results, metric, topk=50):
     if topk is not None:
         results = results[:topk]
 
-    print(f"Number of results kept: {len(results)}")
-
     return results
 
 
+def generate_results_plot(results, train_handler, metric, plotter, n_folds,
+                          n_runs, val_handler=None):
+
+    if plotter is None:
+        raise ValueError("generate_results_plot: missing plotter")
+
+    list_tasks = []
+
+    print(f"Generating final plots ({len(results)})")
+
+    for res in results:
+
+        # Use the given plotter as model for all results
+        res_plotter = copy.deepcopy(plotter)
+
+        task = delayed(eval_model)(res["combo_net"], res["combo_opt"],
+                                       train_handler, metric, val_handler,
+                                       n_folds, n_runs, res_plotter)
+        list_tasks.append(task)
+
+    results_with_plot = Parallel(n_jobs=-2, verbose=50)(list_tasks)
+
+    # Re-order the results since the order of completion is not fixed
+    results_with_plot = compare_results(results_with_plot, metric)
+
+    return results_with_plot
+
+
+# Idea: wrapper around eval_model used only in _search methods since even if
+# a thread, fails the process will go on
 def eval_model_search(par_combo_net, par_combo_opt, train_handler, metric,
-                      val_handler=None, n_runs=10, n_folds=0, plotter=None,
-                      save_plot=False):
+                      val_handler=None, n_folds=0, n_runs=10):
 
     np.seterr(divide="raise", over="raise")
     results = None
 
     try:
-        results = eval_model(par_combo_net, par_combo_opt, train_handler, metric,
-                   val_handler, n_runs, n_folds, plotter, save_plot)
+        result = eval_model(par_combo_net, par_combo_opt, train_handler, metric,
+                   val_handler, n_folds, n_runs)
     except FloatingPointError as e:
         print("FloatingPointError:", e, "(results discarded)")
 
     np.seterr(divide="print", over="print")
-    return results
+
+    return result
 
 
 def eval_model(par_combo_net, par_combo_opt, train_handler, metric,
-               val_handler=None, n_runs=10, n_folds=0, plotter=None,
-               save_plot=False):
+               val_handler=None, n_folds=0, n_runs=10, plotter=None):
 
     score_results_dict = {"tr": []}  # Used to compute mean and std
     train_epoch_list = []
@@ -208,10 +240,10 @@ def eval_model(par_combo_net, par_combo_opt, train_handler, metric,
 
     figure = None
 
-    if save_plot and plotter is not None:
+    if plotter is not None:
         figure = plotter.build_plot()
 
-    results = {'combo_net': par_combo_net,
+    result = {'combo_net': par_combo_net,
                'combo_opt': par_combo_opt,
                'score_tr': score_stats_dict["tr"],
                'score_val': score_stats_dict["val"],
@@ -220,7 +252,7 @@ def eval_model(par_combo_net, par_combo_opt, train_handler, metric,
                'age': avg_age,
                'figure': figure}
 
-    return results
+    return result
 
 
 def kfold_cv(par_combo_net, par_combo_opt, train_handler, metric, n_folds, plotter=None):

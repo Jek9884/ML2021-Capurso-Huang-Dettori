@@ -63,13 +63,6 @@ class Plotter:
         # Note: show() shows all plots created and not closed/shown
         plt.show()
 
-    def save_fig(self, path):
-
-        if self.fig is None:
-            self.fig = self.build_plot()
-
-        self.fig.savefig(path)
-
     def build_plot(self):
 
         if self.fig is not None:
