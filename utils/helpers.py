@@ -4,7 +4,6 @@ import numpy as np
 
 
 def convert_ragged_mat_to_ma_array(ragged_mat):
-
     ma_array_list = []
 
     # First: find longest row of non-standard matrix
@@ -34,11 +33,11 @@ def convert_ragged_mat_to_ma_array(ragged_mat):
         new_row = np.insert(new_row, 0, row, axis=0)
 
         if elem_size == 0:
-            ma_mask = [False]*len_shape[0] + [True]*len_mask
+            ma_mask = [False] * len_shape[0] + [True] * len_mask
         else:
-            elem_false = [False]*elem_size
-            elem_true = [True]*elem_size
-            ma_mask = [elem_false]*len_shape[0] + [elem_true]*len_mask
+            elem_false = [False] * elem_size
+            elem_true = [True] * elem_size
+            ma_mask = [elem_false] * len_shape[0] + [elem_true] * len_mask
 
         new_ma_row = np.ma.array(new_row, mask=ma_mask)
         ma_array_list.append(new_ma_row)
@@ -47,7 +46,6 @@ def convert_ragged_mat_to_ma_array(ragged_mat):
 
 
 def result_to_str(result, sep=' '):
-
     combo_str = ''
 
     for k, v in result['combo_net'].items():
@@ -60,11 +58,11 @@ def result_to_str(result, sep=' '):
         combo_str += str(value) + sep
 
     combo_str += str(result['score_tr'][0]) + sep  # average
-    combo_str += str(result['score_tr'][1]) + sep # standard deviation
+    combo_str += str(result['score_tr'][1]) + sep  # standard deviation
 
     if result['score_val'] is not None:
         combo_str += str(result['score_val'][0]) + sep  # average
-        combo_str += str(result['score_val'][1]) + sep # standard deviation
+        combo_str += str(result['score_val'][1]) + sep  # standard deviation
 
     combo_str += str(result['epochs']) + sep
     combo_str += str(result['age']) + sep
@@ -75,7 +73,6 @@ def result_to_str(result, sep=' '):
 
 
 def get_csv_header(result, sep=' '):
-
     header = ''
 
     for key in result['combo_net']:
@@ -99,7 +96,6 @@ def get_csv_header(result, sep=' '):
 
 
 def save_results_to_csv(folder_path, results, sep=';'):
-
     # If the folder already exists, delete it
     if os.path.exists(folder_path):
         shutil.rmtree(folder_path)
@@ -119,7 +115,7 @@ def save_results_to_csv(folder_path, results, sep=';'):
             file.write(res_str)
 
             if res["figure"] is not None:
-                img_path = os.path.join(folder_path, f"{i+1}.png")
+                img_path = os.path.join(folder_path, f"{i + 1}.png")
                 res["figure"].savefig(img_path)
 
 
@@ -148,6 +144,14 @@ def clean_combos(dict_net, dict_opt, combos):
         np_combos = delete_combos(np_combos, combos_keys.index('lr_decay_type'), False,
                                   (combos_keys.index('lr_dec_exp_k'), n_decay_k))
 
+    elif None in dict_opt['lr_decay_type']:
+        n_decay_tau = len(dict_opt['lr_dec_lin_tau'])
+        n_decay_k = len(dict_opt['lr_dec_exp_k'])
+        np_combos = delete_combos(np_combos, combos_keys.index('lr_decay_type'), False,
+                                  (combos_keys.index('lr_dec_lin_tau'), n_decay_tau),
+                                  (combos_keys.index('lr_dec_exp_k'), n_decay_k))
+
+
     if 'fixed' in dict_opt['stop_crit_type']:
         n_patient = len(dict_opt['patient'])
         n_epsilon = len(dict_opt['epsilon'])
@@ -160,7 +164,6 @@ def clean_combos(dict_net, dict_opt, combos):
 
 
 def delete_combos(combos, target_idx, target_val, *dupl_fields_idx):
-
     # create an array of combos that are not affected by the cleaning process
     selected_idx = np.argwhere(combos[:, target_idx] != target_val)
     selected_idx = np.reshape(selected_idx, (len(selected_idx),))

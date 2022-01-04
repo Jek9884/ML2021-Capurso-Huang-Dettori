@@ -12,6 +12,7 @@ from utils.data_handler import DataHandler
 
 def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
                 n_folds, n_runs=10, plotter=None):
+
     # Obtain a fixed order list of corresponding key-value pairs
     net_keys, net_values = zip(*par_combo_net.items())
     opt_keys, opt_values = zip(*par_combo_opt.items())
