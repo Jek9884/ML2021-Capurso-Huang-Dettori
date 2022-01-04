@@ -155,68 +155,34 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"],
-        'batch_norm': True,
+        'batch_norm': False,
         'init_scale': 3,
         'batch_momentum': 0.99
     }
 
     dict_param_sgd = {
-        'lr': 0.4,
-        'batch_size': 5,
-        'reg_val': 0.002,
-        'momentum_val': 0.2,
-        'nesterov': False,
-        'lr_decay_type': "exp",
+        'lr': 0.9,
+        'batch_size': -1,
+        'reg_val': 0.00001,
+        'momentum_val': 0.6,
+        'nesterov': True,
+        'lr_decay_type': None,
         'lr_dec_exp_k': 0.07,
-        'lr_dec_lin_tau': 20,
+        'lr_dec_lin_tau': 50,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.01,
+        'epsilon': 0.04,
         'patient': 5,
-        'lim_epochs': 400,
-        'norm_clipping': 8,
+        'lim_epochs': 200,
+        'norm_clipping': 0.8,
         'check_gradient': False
-    }
-
-    dict_param_net_grid = {
-        'conf_layers': [[4, 2, 1]],
-        'init_func': [init_dict["std"]],
-        'act_func': [act_dict["tanh"]],
-        'out_func': [act_dict["sigm"]],
-        'loss_func': [loss_dict["nll"]],
-        'batch_norm': [True],
-        'init_scale': range(1, 20, 2)
-    }
-
-    dict_param_sgd_grid = {
-        'lr': np.logspace(-2, 0, 20),
-        'batch_size': [-1, 1, 3, 5, 10],
-        'reg_val': np.logspace(-4, 0, 20),
-        'reg_type': [2],
-        'momentum_val': np.logspace(-2, 0, 20),
-        'nesterov': [False, True],
-        'lim_epochs': [400],
-        'lr_decay_type': ["lin", None],
-        'lr_dec_lin_tau': np.logspace(0, 3, 20),
-        'stop_crit_type': ['delta_w'],
-        'epsilon': np.logspace(-2, 0, 20),
-        'patient': [5]
     }
 
     plotter_xor = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
                           [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
-#    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
-#                          train_handler, metr_dict["miscl. error"], 1000,
-#                          n_folds=0, n_runs=20, plotter=plotter_xor)
-#    path = os.path.join('.', 'results')
-#    save_results_to_csv(path, results)
-#    exit()
-
-
-    #    train_x = (train_x - np.mean(train_x, axis=0))/np.std(train_x, axis=0)
-
+#    train_x = (train_x - np.mean(train_x, axis=0))/np.std(train_x, axis=0)
     res = eval_model(dict_param_net, dict_param_sgd, train_handler,
-                     metr_dict["miscl. error"], n_folds=0, n_runs=30, plotter=plotter_xor)
+                     metr_dict["miscl. error"], n_folds=5, n_runs=20, plotter=plotter_xor)
     plotter_xor.plot()
 
     return res['score_tr'], res['score_val'], res["epochs"], res["age"]
@@ -281,30 +247,68 @@ def test_monk1():
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"],
-        'init_scale': 1,
-        'batch_norm': True
+        'init_scale': 10,
+        'batch_norm': False,
+        'batch_momentum': 0.99
     }
 
     dict_param_sgd = {
-        'lr': 0.6,
-        'batch_size': 10,
-        'reg_val': 0.000001,
+        'lr': 0.8,
+        'batch_size': 32,
+        'reg_val': 0.0015,
         'momentum_val': 0.8,
         'nesterov': False,
-        'lr_decay_type': "exp",
-        'lr_dec_exp_k': 0.00001,
-        'lr_dec_lin_tau': 1000,
+        'lr_decay_type': "lin",
+        'lr_dec_exp_k': 0.01,
+        'lr_dec_lin_tau': 300,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.01,
+        'epsilon': 0.09,
         'patient': 5,
         'lim_epochs': 300
     }
 
+    dict_param_net_grid = {
+        'conf_layers': [[17, 3, 1]],
+        'init_func': [init_dict["std"]],
+        'act_func': [act_dict["tanh"]],
+        'out_func': [act_dict["sigm"]],
+        'loss_func': [loss_dict["nll"]],
+        'batch_norm': [False],
+        'init_scale': range(1, 20, 2),
+        'batch_momentum': [0.99]
+    }
+
+    dict_param_sgd_grid = {
+        'lr': np.logspace(-2, 0, 20),
+        'batch_size': [-1, 3, 5, 10, 15, 32],
+        'reg_val': np.logspace(-3, 0, 20),
+        'reg_type': [2],
+        'momentum_val': np.logspace(-2, 0, 20),
+        'nesterov': [False, True],
+        'lim_epochs': [200],
+        'lr_decay_type': ["lin", "exp", None],
+        'lr_dec_lin_tau': np.logspace(0, 3, 20),
+        'lr_dec_exp_k': np.logspace(-2, 0, 20),
+        'stop_crit_type': ['delta_w'],
+        'epsilon': np.logspace(-3, 0, 20),
+        'patient': [5],
+        'norm_clipping': [4],
+        'check_gradient': [False]
+    }
+
+
     plotter_m1 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
                          [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
+ #   results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
+ #                         train_handler, metr_dict["miscl. error"], 2000,
+ #                         n_folds=5, n_runs=30, plotter=plotter_m1)
+ #   path = os.path.join('.', 'results', 'monk1')
+ #   save_results_to_csv(path, results)
+ #   exit()
+
     res = eval_model(dict_param_net, dict_param_sgd, train_handler,
-                     metr_dict["miscl. error"], n_folds=0, n_runs=50,
+                     metr_dict["miscl. error"], n_folds=0, n_runs=30,
                      val_handler=test_handler, plotter=plotter_m1)
     plotter_m1.plot()
 
@@ -327,30 +331,145 @@ def test_monk2():
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"],
-        'init_scale': 5
+        'init_scale': 10
     }
 
     dict_param_sgd = {
-        'lr': 0.4,
-        'batch_size': 5,
-        'reg_val': 0.00000,
-        'momentum_val': 0.5,
-        'nesterov': False,
-        'lr_decay_type': "exp",
-        'lr_dec_exp_k': 0.005,
-        'lr_dec_lin_tau': 100,
+        'lr': 0.6,
+        'batch_size': 15,
+        'reg_val': 0.00001,
+        'momentum_val': 0.7,
+        'nesterov': True,
+        'lr_decay_type': "lin",
+        'lr_dec_exp_k': 0.1,
+        'lr_dec_lin_tau': 80,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.01,
-        'patient': 10,
-        'lim_epochs': 300
+        'epsilon': 0.02,
+        'patient': 5,
+        'lim_epochs': 200
+    }
+
+    dict_param_net_grid = {
+        'conf_layers': [[17, 4, 1]],
+        'init_func': [init_dict["std"]],
+        'act_func': [act_dict["tanh"]],
+        'out_func': [act_dict["sigm"]],
+        'loss_func': [loss_dict["nll"]],
+        'batch_norm': [False],
+        'init_scale': range(1, 20, 2),
+        'batch_momentum': [0.99]
+    }
+
+    dict_param_sgd_grid = {
+        'lr': np.logspace(-2, 0, 20),
+        'batch_size': [-1, 3, 5, 10, 15, 32],
+        'reg_val': np.logspace(-3, 0, 20),
+        'reg_type': [2],
+        'momentum_val': np.logspace(-2, 0, 20),
+        'nesterov': [False, True],
+        'lim_epochs': [200],
+        'lr_decay_type': ["lin", None],
+        'lr_dec_lin_tau': np.logspace(0, 3, 20),
+        'stop_crit_type': ['delta_w'],
+        'epsilon': np.logspace(-3, 0, 20),
+        'patient': [5],
+        'norm_clipping': [4],
+        'check_gradient': [False]
     }
 
     plotter_m2 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
                          [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
+#    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
+#                          train_handler, metr_dict["miscl. error"], 2000,
+#                          n_folds=5, n_runs=30, plotter=plotter_m2)
+#    path = os.path.join('.', 'results', 'monk2')
+#    save_results_to_csv(path, results)
+#    exit()
+
     res = eval_model(dict_param_net, dict_param_sgd, train_handler,
-                     metr_dict["miscl. error"], n_folds=5, n_runs=10, plotter=plotter_m2)
+                     metr_dict["miscl. error"], n_folds=5, n_runs=30, plotter=plotter_m2)
     plotter_m2.plot()
+
+    return res['score_tr'], res['score_val'], res["epochs"], res["age"]
+
+
+def test_monk3():
+    path_train = os.path.join('datasets', 'monks-3.train')  # 122 patterns
+    path_test = os.path.join('datasets', 'monks-3.test')
+
+    train_x, train_y = read_monk(path_train, norm_data=False)
+    test_x, test_y = read_monk(path_test, norm_data=False)
+
+    train_handler = DataHandler(train_x, train_y)
+    test_handler = DataHandler(test_x, test_y)
+
+    dict_param_net = {
+        'conf_layers': [17, 4, 1],
+        'init_func': init_dict["std"],
+        'act_func': act_dict["tanh"],
+        'out_func': act_dict["sigm"],
+        'loss_func': loss_dict["nll"],
+        'init_scale': 10
+    }
+
+    dict_param_sgd = {
+        'lr': 0.1,
+        'batch_size': -1,
+        'reg_val': 0.00001,
+        'momentum_val': 0.8,
+        'nesterov': True,
+        'lr_decay_type': None,
+        'lr_dec_exp_k': 0.001,
+        'lr_dec_lin_tau': 80,
+        'stop_crit_type': 'delta_w',
+        'epsilon': 0.02,
+        'patient': 5,
+        'lim_epochs': 200
+    }
+
+    dict_param_net_grid = {
+        'conf_layers': [[17, 4, 1]],
+        'init_func': [init_dict["std"]],
+        'act_func': [act_dict["tanh"]],
+        'out_func': [act_dict["sigm"]],
+        'loss_func': [loss_dict["nll"]],
+        'batch_norm': [False],
+        'init_scale': range(1, 20, 2),
+        'batch_momentum': [0.99]
+    }
+
+    dict_param_sgd_grid = {
+        'lr': np.logspace(-2, 0, 20),
+        'batch_size': [-1, 3, 5, 10, 15, 32],
+        'reg_val': np.logspace(-3, 0, 20),
+        'reg_type': [2],
+        'momentum_val': np.logspace(-2, 0, 20),
+        'nesterov': [False, True],
+        'lim_epochs': [200],
+        'lr_decay_type': ["lin", "exp", None],
+        'lr_dec_lin_tau': np.logspace(0, 3, 20),
+        'lr_dec_exp_k': np.logspace(-2, 0, 20),
+        'stop_crit_type': ['delta_w'],
+        'epsilon': np.logspace(-3, 0, 20),
+        'patient': [5],
+        'norm_clipping': [4],
+        'check_gradient': [False]
+    }
+
+    plotter_m3 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
+                         [loss_dict["nll"], metr_dict["miscl. error"]], 2)
+
+#    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
+#                          train_handler, metr_dict["miscl. error"], 2000,
+#                          n_folds=5, n_runs=20, plotter=plotter_m3)
+#    path = os.path.join('.', 'results', 'monk3')
+#    save_results_to_csv(path, results)
+#    exit()
+
+    res = eval_model(dict_param_net, dict_param_sgd, train_handler,
+                     metr_dict["miscl. error"], n_folds=5, n_runs=20, plotter=plotter_m3)
+    plotter_m3.plot()
 
     return res['score_tr'], res['score_val'], res["epochs"], res["age"]
 
@@ -359,18 +478,22 @@ def test_monk2():
 #print("Backward test: ", backward_test())
 
 #reg_res = simple_learning_test_regression()
-#print(f"Simple regression test error: {reg_res}")
+#print(f"Simple regression error: {reg_res}")
 
 #clas1_res = simple_and_learning_test_classification()
-#print(f"Simple AND classification test error: {clas1_res}")
+#print(f"Simple AND classification error: {clas1_res}")
 
-clas2_res = simple_learning_test_classification()
-print(f"Simple classification test error: {clas2_res}")
+#clas2_res = simple_learning_test_classification()
+#print(f"Simple classification (xor) error: {clas2_res}")
 
 # Tests on monk1
-#monk1_res = test_monk1()
-#print(f"Monk 1 score on validation set error: {monk1_res}")
+monk1_res = test_monk1()
+print(f"Monk 1 error: {monk1_res}")
 
 # Tests on monk2
 #monk2_res = test_monk2()
-#print(f"Monk 2 score on validation set error: {monk2_res}")
+#print(f"Monk 2 error: {monk2_res}")
+
+# Tests on monk3
+#monk3_res = test_monk3()
+#print(f"Monk 3 error: {monk3_res}")
