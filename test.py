@@ -94,7 +94,7 @@ def simple_learning_test_regression():
 
     res = eval_model(dict_param_net, dict_param_sgd, train_handler,
                      loss_dict["squared"], n_folds=0, n_runs=30, plotter=plotter_reg)
-#    plotter_reg.plot()
+    plotter_reg.plot()
 
     return res['score_tr'], res["epochs"], res["age"]
 
@@ -134,7 +134,7 @@ def simple_and_learning_test_classification():  # Func: A and B
     res = eval_model(dict_param_net, dict_param_sgd, train_handler,
                      metr_dict["miscl. error"], n_folds=0, n_runs=10, plotter=plotter_and)
 
-#    plotter_and.plot()
+    plotter_and.plot()
 
     return res['score_tr'], res["epochs"], res["age"]
 
@@ -262,7 +262,7 @@ def test_monk1():
         'lr_dec_exp_k': 0.01,
         'lr_dec_lin_tau': 300,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.09,
+        'epsilon': 0.05,
         'patient': 5,
         'lim_epochs': 300
     }
@@ -300,16 +300,16 @@ def test_monk1():
     plotter_m1 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
                          [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
- #   results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
- #                         train_handler, metr_dict["miscl. error"], 2000,
- #                         n_folds=5, n_runs=30, plotter=plotter_m1)
- #   path = os.path.join('.', 'results', 'monk1')
- #   save_results_to_csv(path, results)
- #   exit()
+#    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
+#                          train_handler, metr_dict["miscl. error"], 1000,
+#                          n_folds=5, n_runs=30, plotter=plotter_m1, topk=50)
+#    path = os.path.join('.', 'results', 'monk1')
+#    save_results_to_csv(path, results)
+#    exit()
 
     res = eval_model(dict_param_net, dict_param_sgd, train_handler,
-                     metr_dict["miscl. error"], n_folds=0, n_runs=30,
-                     val_handler=test_handler, plotter=plotter_m1)
+                     metr_dict["miscl. error"], n_folds=5, n_runs=30,
+                     val_handler=None, plotter=plotter_m1)
     plotter_m1.plot()
 
     return res['score_tr'], res['score_val'], res["epochs"], res["age"]
