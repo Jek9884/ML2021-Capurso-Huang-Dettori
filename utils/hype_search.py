@@ -167,7 +167,7 @@ def eval_model_search(par_combo_net, par_combo_opt, train_handler, metric,
                       val_handler=None, n_folds=0, n_runs=10):
 
     np.seterr(divide="raise", over="raise")
-    results = None
+    result = None
 
     try:
         result = eval_model(par_combo_net, par_combo_opt, train_handler, metric,
