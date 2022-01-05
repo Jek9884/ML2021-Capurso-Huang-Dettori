@@ -74,13 +74,18 @@ class Plotter:
         if self.results_dict == {}:
             raise RuntimeError("plotter: no results to plot")
 
+        # Reorder results in order to have lr_curve at the start
+        lr_curve_dict = {k:self.results_dict[k] for k in sorted(self.results_dict.keys()) if "lr_curve" in k}
+        else_dict = {k:v for k, v in self.results_dict.items() if "lr_curve" not in k}
+        self.results_dict = {**lr_curve_dict, **else_dict}
+
         # Substitute lists of list with their average row-wise
         popul_distr = self.compute_stats_plotlines(self.results_dict)
 
         if self.n_plots > 0:
             self.results_dict["popul_distr"] = popul_distr
 
-        plot_dim = ((len(self.results_dict) + 1) // self.n_cols, self.n_cols)
+        plot_dim = (len(self.results_dict)//self.n_cols + 1, self.n_cols)
         fig_dim = (15, 10)
         fig, axs = plt.subplots(*plot_dim, squeeze=False, figsize=fig_dim)
         tot_epochs = len(popul_distr)
@@ -123,17 +128,15 @@ class Plotter:
 
             elif "lr_curve" in plt_type:
 
-                for i, data_label in enumerate(self.results_dict[plt_type]):
+                val = self.results_dict[plt_type]
 
-                    val = self.results_dict[plt_type][data_label]
+                # Plot all individual lines
+                for line in val["val_mat"]:
+                    cur_ax.plot(range(tot_epochs), line, alpha=0.1, color="gray")
 
-                    # Plot all individual lines
-                    for line in val["val_mat"]:
-                        cur_ax.plot(range(tot_epochs), line, alpha=0.1, color="gray")
-
-                    cur_ax.plot(range(tot_epochs), val["avg"], label=data_label)
-                    cur_ax.plot(range(tot_epochs), [val["avg_final"]]*tot_epochs,
-                                label=f"Avg final {data_label}", linestyle="dashed")
+                cur_ax.plot(range(tot_epochs), val["avg"], label="Avg score")
+                cur_ax.plot(range(tot_epochs), [val["avg_final"]]*tot_epochs,
+                            label="Avg final", linestyle="dashed")
 
                 cur_ax.legend()
                 cur_ax.set_ylabel(f"{plt_type}")
@@ -152,9 +155,9 @@ class Plotter:
 
             cur_ax.set_xlabel("Epochs")
 
-        n_blank_axs = len(self.results_dict) % self.n_cols
-
         # Hide unused plots
+        n_blank_axs = self.n_cols - len(self.results_dict) % self.n_cols
+
         for i in range(1, n_blank_axs + 1):
             axs[-1][-i].axis('off')
 
@@ -193,15 +196,12 @@ class Plotter:
             else:
                 raise ValueError("add_lr_curve_datapoint: unsupported metric")
 
-            plot_name = f"lr_curve ({metric.name})"
+            plot_name = f"lr_curve ({metric.name}) ({data_label})"
 
             if plot_name not in self.results_dict:
-                self.results_dict[plot_name] = {}
+                self.results_dict[plot_name] = [[]]
 
-            if data_label not in self.results_dict[plot_name]:
-                self.results_dict[plot_name][data_label] = [[]]
-
-            self.results_dict[plot_name][data_label][-1].append(metric_res)
+            self.results_dict[plot_name][-1].append(metric_res)
 
     def add_lr_rate_datapoint(self, optimizer):
 
@@ -289,7 +289,7 @@ class Plotter:
 
                 plot_dict[k] = {"avg": ma_average, "std": ma_std, "val_mat": ma_matrix}
 
-                if isinstance(parent, str) and "lr_curve" in parent:
+                if isinstance(k, str) and "lr_curve" in k:
                     ma_elem_len = len(ma_matrix[0][0])
                     # Take the last non-masked element of each row
                     last_ma_idx = np.ma.notmasked_edges(ma_matrix, axis=1)[1][1]

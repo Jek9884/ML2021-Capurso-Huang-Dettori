@@ -298,7 +298,7 @@ def test_monk1():
 
 
     plotter_m1 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
-                         [loss_dict["nll"], metr_dict["miscl. error"]], 2)
+                         [loss_dict["nll"], metr_dict["miscl. error"]], 4)
 
 #    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
 #                          train_handler, metr_dict["miscl. error"], 1000,
