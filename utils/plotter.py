@@ -118,11 +118,11 @@ class Plotter:
 
                     cur_ax.errorbar(range(tot_epochs), log_delta_avg, log_delta_std,
                                     label=f"Layer {n_layer}", linestyle="None",
-                                    marker=".", alpha=0.6)
+                                    marker=".", alpha=0.6, zorder=2)
 
                 log_delta_eps = np.log(self.param_dict["delta_eps"]+log_eps)
-                cur_ax.plot(range(tot_epochs), [log_delta_eps]*tot_epochs,
-                            label="Delta eps", linestyle="dashed", color="red")
+                cur_ax.plot(range(tot_epochs), [log_delta_eps]*tot_epochs, zorder=3,
+                            label="Delta eps", linestyle="dashed", color="black")
                 cur_ax.legend()
                 cur_ax.set_ylabel("log(delta_weights)")
 
