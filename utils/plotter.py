@@ -58,6 +58,25 @@ class Plotter:
 
         self.n_plots += 1
 
+    def order_plots(self):
+
+        # Reorder results in order to have lr_curve at the start
+        # and in the same order as the metric_list
+        lr_curve_dict = {}
+        for metric in self.lr_metric_list:
+            lr_curve_list = []
+
+            for plot in self.results_dict:
+                if "lr_curve" in plot and metric.name in plot:
+                    lr_curve_list.append(plot)
+
+            for curve in lr_curve_list:
+                lr_curve_dict[curve] = self.results_dict[curve]
+
+        # All non-lr_curve plots
+        else_dict = {k: v for k, v in self.results_dict.items() if "lr_curve" not in k}
+        self.results_dict = {**lr_curve_dict, **else_dict}
+
     def plot(self):
 
         if self.fig is None:
@@ -74,10 +93,7 @@ class Plotter:
         if self.results_dict == {}:
             raise RuntimeError("plotter: no results to plot")
 
-        # Reorder results in order to have lr_curve at the start
-        lr_curve_dict = {k:self.results_dict[k] for k in sorted(self.results_dict.keys()) if "lr_curve" in k}
-        else_dict = {k:v for k, v in self.results_dict.items() if "lr_curve" not in k}
-        self.results_dict = {**lr_curve_dict, **else_dict}
+        self.order_plots()
 
         # Substitute lists of list with their average row-wise
         popul_distr = self.compute_stats_plotlines(self.results_dict)

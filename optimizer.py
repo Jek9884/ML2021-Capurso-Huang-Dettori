@@ -73,7 +73,6 @@ class GradientDescent:
         else:
             lim_step = self.epoch_count + step_epochs
 
-
         while self.train_cond:
 
             # Batch normalisation needs minibatch of fixed size
@@ -186,7 +185,7 @@ class GradientDescent:
             if self.norm_clipping > 0:
 
                 layer_weights = np.hstack((layer.grad_w,
-                               np.expand_dims(layer.grad_b, axis=1)))
+                                           np.expand_dims(layer.grad_b, axis=1)))
                 norm_weights = np.linalg.norm(layer_weights)
 
                 if norm_weights > self.norm_clipping:
