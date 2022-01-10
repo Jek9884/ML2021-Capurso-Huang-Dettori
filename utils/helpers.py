@@ -114,9 +114,9 @@ def save_results_to_csv(folder_path, results, sep=';'):
             res_str = result_to_str(res, sep)
             file.write(res_str)
 
-            if res["figure"] is not None:
+            if res["plotter"] is not None:
                 img_path = os.path.join(folder_path, f"{i + 1}.png")
-                res["figure"].savefig(img_path)
+                res["plotter"].savefig(img_path)
 
 
 def clean_combos(dict_net, dict_opt, combos):
