@@ -4,10 +4,13 @@ import numpy as np
 # Idea: split data handling from optimizer, handy for batch norm inference
 class DataHandler:
 
-    def __init__(self, data_x, data_y):
+    def __init__(self, data_x, data_y, normal=False):
 
         self.data_x = data_x
         self.data_y = data_y
+
+        if normal:
+            self.data_x = normalise_data(self.data_x)
 
         self.n_patterns = self.data_x.shape[0]
         self.index_list = np.arange(self.n_patterns)
