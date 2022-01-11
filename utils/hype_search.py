@@ -115,13 +115,12 @@ def compare_results(results, metric, topk=None):
 
     results = clean_results
 
-    # TODO: consider adding comparison of std for best result
-    # Check if the mean of validation score was computed, and use it to sort
+    # Check if the validation score was computed, and use it to sort the results
     if results[0]['score_val'] is not None:
-        results = sorted(results, key=lambda i: i['score_val'][0], reverse=(sign == 1))
-    # Else sort by mean of training score
+        results = sorted(results, key=lambda i: i['score_val']["perc_50"], reverse=(sign == 1))
+    # Else sort by training score
     else:
-        results = sorted(results, key=lambda i: i['score_tr'][0], reverse=(sign == 1))
+        results = sorted(results, key=lambda i: i['score_tr']["perc_50"], reverse=(sign == 1))
 
     if topk is not None:
         results = results[:topk]
@@ -202,9 +201,18 @@ def eval_model(par_combo_net, par_combo_opt, train_handler, metric,
 
     # Take average and std wrt runs
     for key in score_results_dict:
-        mean = np.average(score_results_dict[key], axis=0)
+
+        avg = np.average(score_results_dict[key], axis=0)
         std = np.std(score_results_dict[key], axis=0)
-        score_stats_dict[key] = (mean, std)
+        perc_25 = np.percentile(score_results_dict[key], 25, axis=0)
+        perc_50 = np.percentile(score_results_dict[key], 50, axis=0)
+        perc_75 = np.percentile(score_results_dict[key], 75, axis=0)
+
+        score_stats_dict[key] = {"avg": avg,
+                                 "std": std,
+                                 "perc_25": perc_25,
+                                 "perc_50": perc_50,
+                                 "perc_75": perc_75}
 
     result = {'combo_net': par_combo_net,
               'combo_opt': par_combo_opt,

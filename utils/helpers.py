@@ -57,12 +57,18 @@ def result_to_str(result, sep=' '):
     for value in result['combo_opt'].values():
         combo_str += str(value) + sep
 
-    combo_str += str(result['score_tr'][0]) + sep  # average
-    combo_str += str(result['score_tr'][1]) + sep  # standard deviation
+    combo_str += str(result['score_tr']["avg"]) + sep
+    combo_str += str(result['score_tr']["std"]) + sep
+    combo_str += str(result['score_tr']["perc_25"]) + sep
+    combo_str += str(result['score_tr']["perc_50"]) + sep
+    combo_str += str(result['score_tr']["perc_75"]) + sep
 
     if result['score_val'] is not None:
-        combo_str += str(result['score_val'][0]) + sep  # average
-        combo_str += str(result['score_val'][1]) + sep  # standard deviation
+        combo_str += str(result['score_val']["avg"]) + sep
+        combo_str += str(result['score_val']["std"]) + sep
+        combo_str += str(result['score_tr']["perc_25"]) + sep
+        combo_str += str(result['score_tr']["perc_50"]) + sep
+        combo_str += str(result['score_tr']["perc_75"]) + sep
 
     combo_str += str(result['epochs']) + sep
     combo_str += str(result['age']) + sep
@@ -83,10 +89,16 @@ def get_csv_header(result, sep=' '):
 
     header += result['metric'] + '_tr_avg' + sep
     header += result['metric'] + '_tr_std' + sep
+    header += result['metric'] + '_tr_perc25' + sep
+    header += result['metric'] + '_tr_perc50' + sep
+    header += result['metric'] + '_tr_perc75' + sep
 
     if result['score_val'] is not None:
         header += result['metric'] + '_val_avg' + sep
         header += result['metric'] + '_val_std' + sep
+        header += result['metric'] + '_tr_perc25' + sep
+        header += result['metric'] + '_tr_perc50' + sep
+        header += result['metric'] + '_tr_perc75' + sep
 
     header += 'epochs' + sep
     header += 'age' + sep
