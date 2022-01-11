@@ -105,15 +105,15 @@ class Plotter:
         self.order_plots()
 
         # Substitute lists of list with their average row-wise
-        popul_distr = self.compute_stats_plotlines(self.results_dict)
+        model_distr = self.compute_stats_plotlines(self.results_dict)
 
         if self.n_plots > 0:
-            self.results_dict["popul_distr"] = popul_distr
+            self.results_dict["model_distr"] = model_distr
 
         plot_dim = (len(self.results_dict)//self.n_cols + 1, self.n_cols)
         fig_dim = (15, 10)
         fig, axs = plt.subplots(*plot_dim, squeeze=False, figsize=fig_dim)
-        tot_epochs = len(popul_distr)
+        tot_epochs = len(model_distr)
 
         for i, plt_type in enumerate(self.results_dict):
 
@@ -171,7 +171,7 @@ class Plotter:
                             np.around(self.results_dict[plt_type]["avg"], decimals=5))
                 cur_ax.set_ylabel(f"{plt_type}")
 
-            elif plt_type == "popul_distr":
+            elif plt_type == "model_distr":
                 cur_ax.plot(range(tot_epochs), self.results_dict[plt_type])
                 cur_ax.set_ylabel(f"{plt_type}")
 
@@ -292,12 +292,12 @@ class Plotter:
         if plot_dict is None:
             plot_dict = self.results_dict
 
-        popul_distr = None
+        model_distr = None
         # Add an empty list to each list of lists
         for k, v in plot_dict.items():
 
             if isinstance(v, dict):
-                popul_distr = self.compute_stats_plotlines(v, parent=k)
+                model_distr = self.compute_stats_plotlines(v, parent=k)
 
             elif isinstance(v, list):
                 ma_matrix = convert_ragged_mat_to_ma_array(v)
@@ -305,12 +305,12 @@ class Plotter:
                 ma_average = np.ma.average(ma_matrix, axis=0)
                 ma_std = np.ma.std(ma_matrix, axis=0)
 
-                if popul_distr is None:
-                    popul_distr = np.ma.count(ma_matrix, axis=0)
+                if model_distr is None:
+                    model_distr = np.ma.count(ma_matrix, axis=0)
 
                     # Needed for multi-out network
-                    if popul_distr.ndim > 1:
-                        popul_distr = popul_distr[:, 0]
+                    if model_distr.ndim > 1:
+                        model_distr = model_distr[:, 0]
 
                 plot_dict[k] = {"avg": ma_average, "std": ma_std, "val_mat": ma_matrix}
 
@@ -324,5 +324,4 @@ class Plotter:
                     final_pred_idx = (range(len(last_ma_idx)), last_ma_idx)
                     plot_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
 
-
-        return popul_distr
+        return model_distr
