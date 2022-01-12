@@ -119,11 +119,12 @@ class GradientDescent:
 
         elif self.stop_crit_type == 'delta_w':
 
-            # epsilon is the criterion tolerance
-            if self.delta_w_norm > self.epsilon:
+            if self.epoch_count >= self.lim_epochs:
+                complete_bool = True
+            elif self.delta_w_norm > self.epsilon:
                 complete_bool = False
             else:
-                # Number of patient reached
+                # Mx number of patient reached
                 complete_bool = self.count_patient >= self.patient
         else:
             raise ValueError('Invalid stop criteria')
