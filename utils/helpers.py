@@ -145,7 +145,10 @@ def clean_combos(dict_net, dict_opt, combos):
                                   (combos_keys.index('nesterov'), n_nesterov))
         # print("momentum ", len(np_combos))
 
-    if "lin" in dict_opt['lr_decay_type']:
+    if 'lr_decay_type' not in dict_opt:
+        pass
+
+    elif "lin" in dict_opt['lr_decay_type']:
         n_decay_tau = len(dict_opt['lr_dec_lin_tau'])
         np_combos = delete_combos(np_combos, combos_keys.index('lr_decay_type'), False,
                                   (combos_keys.index('lr_dec_lin_tau'), n_decay_tau))
@@ -164,7 +167,7 @@ def clean_combos(dict_net, dict_opt, combos):
                                   (combos_keys.index('lr_dec_exp_k'), n_decay_k))
 
 
-    if 'fixed' in dict_opt['stop_crit_type']:
+    if 'stop_crit_type' in dict_opt and 'fixed' in dict_opt['stop_crit_type']:
         n_patient = len(dict_opt['patient'])
         n_epsilon = len(dict_opt['epsilon'])
         np_combos = delete_combos(np_combos, combos_keys.index('stop_crit_type'), 'fixed',

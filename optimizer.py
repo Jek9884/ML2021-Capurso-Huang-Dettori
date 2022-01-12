@@ -30,9 +30,8 @@ class GradientDescent:
         self.norm_clipping = norm_clipping
         self.check_gradient = check_gradient
 
-        # Note: train() can also be called on a partially trained model
-        # Since the check has side effects we need to store the result
-        self.train_cond = True
+        # Used to avoid stopping training prematurely in case of delta_w crit
+        self.count_patient = 0
 
         # Used to implement stop criteria
         self.delta_w_norm = None
@@ -65,7 +64,7 @@ class GradientDescent:
             self.delta_w_norm = np.inf
             self.count_patient = 0
 
-    def train(self, net, train_handler, step_epochs=None, plotter=None):
+    def train(self, net, tr_handler, step_epochs=None, plotter=None):
 
         # Allow for more flexibility in using the optimizer with different epochs
         if step_epochs is None:
@@ -73,21 +72,21 @@ class GradientDescent:
         else:
             lim_step = self.epoch_count + step_epochs
 
-        while self.train_cond:
-
-            # Batch normalisation needs minibatch of fixed size
-            enforce_size = net.batch_norm
-            # Already randomized
-            mb_x_list, mb_y_list = train_handler.gen_minibatch_iter(self.batch_size,
-                                                                    enforce_size=enforce_size)
-            n_minibatch = len(mb_x_list)
-            mb_count = 0
+        while not self.is_training_complete():
 
             # Check if number of epochs requested in train() has been reached
             if self.epoch_count >= lim_step:
                 break
 
-            while mb_count < n_minibatch and self.train_cond:
+            # Batch normalisation needs minibatch of fixed size
+            enforce_size = net.batch_norm
+            # Already randomized
+            mb_x_list, mb_y_list = tr_handler.get_minibatch_list(self.batch_size,
+                                                                 enforce_size)
+            n_minibatch = len(mb_x_list)
+            mb_count = 0
+
+            while mb_count < n_minibatch and not self.is_training_complete():
                 mini_batch_x = mb_x_list[mb_count]
                 mini_batch_y = mb_y_list[mb_count]
 
@@ -96,45 +95,40 @@ class GradientDescent:
                 mb_size = len(mini_batch_x)
 
                 self.update_weights(net, mini_batch_x, mini_batch_y)
+                self.update_stop_crit()
 
                 self.age_count += mb_size
-                self.train_cond = self.check_stop_crit()
                 mb_count += 1
 
-            # The criterion is already checked at each step
-            self.train_cond = self.train_cond and self.epoch_count < self.lim_epochs
-
             if plotter is not None:
-                # Approximates the behaviour after each epoch by taking the net after the
-                # latest epoch's update
-                plotter.add_plot_datapoint(net, self, train_handler.data_x, train_handler.data_y)
+                # Approximates the plot by taking a screenshot of the net after
+                # each epoch
+                plotter.add_plot_datapoint(net, self, tr_handler.data_x, tr_handler.data_y)
 
             if mb_count == n_minibatch:
                 self.epoch_count += 1
 
         # Used to determine if there needs to be further training
-        return self.train_cond
+        return self.is_training_complete()
 
-    def check_stop_crit(self):
+    # Check if the stop criterion has been reached
+    def is_training_complete(self):
 
         if self.stop_crit_type == 'fixed':
-            result = True
-        elif self.stop_crit_type == 'delta_w':
-            epsilon = self.epsilon
+            complete_bool = self.epoch_count >= self.lim_epochs
 
-            if self.delta_w_norm > epsilon:
-                self.count_patient = 0
-                result = True
+        elif self.stop_crit_type == 'delta_w':
+
+            # epsilon is the criterion tolerance
+            if self.delta_w_norm > self.epsilon:
+                complete_bool = False
             else:
-                self.count_patient += 1
-                if self.count_patient >= self.patient:
-                    result = False
-                else:
-                    result = True
+                # Number of patient reached
+                complete_bool = self.count_patient >= self.patient
         else:
             raise ValueError('Invalid stop criteria')
 
-        return result
+        return complete_bool
 
     def update_weights(self, net, sub_train_x, sub_train_y):
 
@@ -153,10 +147,11 @@ class GradientDescent:
 
         self.compute_deltas(net, sub_train_x.shape[0])
 
+        # Compute the norm of the delta of the weights
         if self.stop_crit_type == 'delta_w':
             norm_weights = []
 
-            for i, layer in enumerate(net.layers):
+            for layer in net.layers:
                 deltaw_layer = \
                     np.hstack((layer.delta_w_old,
                                np.expand_dims(layer.delta_b_old, axis=1)))
@@ -176,7 +171,7 @@ class GradientDescent:
             self.lr = self.initial_lr*(1-alpha) + alpha*self.eta_tau
 
         elif self.lr_decay_type == "exp":
-            exp_fact = np.exp(-self.lr_decay_k*self.epoch_count)
+            exp_fact = np.exp(-1*self.lr_decay_k*self.epoch_count)
             self.lr = self.initial_lr * exp_fact
 
         for layer in net.layers:
@@ -214,3 +209,14 @@ class GradientDescent:
             if layer.batch_norm:
                 layer.batch_gamma -= self.lr*layer.grad_gamma
                 layer.batch_beta -= self.lr*layer.grad_beta
+
+    # Update the variables concerning the stop criterion
+    def update_stop_crit(self):
+
+        if self.stop_crit_type == 'delta_w':
+
+            # epsilon is the criterion tolerance
+            if self.delta_w_norm > self.epsilon:
+                self.count_patient = 0
+            else:
+                self.count_patient += 1

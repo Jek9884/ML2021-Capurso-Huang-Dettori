@@ -15,8 +15,8 @@ class DataHandler:
         self.n_patterns = self.data_x.shape[0]
         self.index_list = np.arange(self.n_patterns)
 
-
-    def gen_minibatch_iter(self, batch_size, n_batches=-1, enforce_size=False):
+    # enforce_size: guarantee that mini-batch will be of the requested size
+    def get_minibatch_list(self, batch_size, enforce_size=False):
 
         # Shortcut for full batch size
         if batch_size == -1:
@@ -24,21 +24,14 @@ class DataHandler:
         elif batch_size < 1:
             raise ValueError("DataHandler: invalid batch_size given")
 
-        max_batches = int(np.ceil(self.n_patterns/batch_size))
+        n_batches = int(np.ceil(self.n_patterns/batch_size))
 
         # Shuffle indexes of data for sampling
+        # This way the original data is not modified
         np.random.shuffle(self.index_list)
 
         batch_x_list = []
         batch_y_list = []
-
-
-        if n_batches == -1:
-            n_batches = max_batches
-        elif n_batches < 1 or n_batches > max_batches:
-
-            raise ValueError("DataHandler: batch size should be >= 1 and <= l.\
-                             If you want to use the full batch version use -1.")
 
         for i in range(n_batches):
 
@@ -50,8 +43,8 @@ class DataHandler:
                 other_idxs = self.index_list[0: i * batch_size]
                 n_diff_batch = batch_size - cur_batch_size
 
-                rnd_sampled_idx = np.random.choice(other_idxs, n_diff_batch)
-                batch_idx_list = np.concatenate((batch_idx_list, rnd_sampled_idx))
+                rand_sampled_idx = np.random.choice(other_idxs, n_diff_batch)
+                batch_idx_list = np.concatenate((batch_idx_list, rand_sampled_idx))
 
             batch_x_list.append(self.data_x[batch_idx_list])
             batch_y_list.append(self.data_y[batch_idx_list])

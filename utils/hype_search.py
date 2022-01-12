@@ -282,18 +282,20 @@ def train_eval_dataset(par_combo_net, par_combo_opt, train_handler,
     epoch_res_tr_list = []
     epoch_res_val_list = []
 
-    train_bool = True
+    training_complete = False
 
-    while train_bool:
+    while not training_complete:
 
         # Train 1 epoch at a time to plot the evolution of the lr curve
-        train_bool = gd.train(net, train_handler, 1, plotter=plotter)
+        training_complete = gd.train(net, train_handler, 1, plotter=plotter)
 
-        epoch_res_tr_list.append(eval_dataset(net, train_handler, metric, True))
+        tr_result = eval_dataset(net, train_handler, metric, True)
+        epoch_res_tr_list.append(tr_result)
 
         # Check if the validation set is given as input
         if val_handler is not None:
-            epoch_res_val_list.append(eval_dataset(net, val_handler, metric, False))
+            val_result = eval_dataset(net, val_handler, metric, False)
+            epoch_res_val_list.append(val_result)
 
             if plotter is not None:
                 plotter.add_lr_curve_datapoint(net, val_handler.data_x,
