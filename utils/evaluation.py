@@ -117,6 +117,9 @@ class KFoldCV:
         fold_size = int(np.floor(x_mat.shape[0] / self.n_folds))
         pattern_idx = np.arange(x_mat.shape[0])
 
+        if fold_size < 1:
+            raise ValueError("KFoldCV: fold size too big")
+
         np.random.shuffle(pattern_idx)
 
         for i in range(n_folds):
@@ -135,7 +138,8 @@ class KFoldCV:
             val_handler = DataHandler(val_x, val_y)
 
             model = ModelEvaluator(self.combo_net, self.combo_opt,
-                                   tr_handler, val_handler, self.plotter)
+                                   tr_handler, metric, val_handler,
+                                   self.plotter)
 
             self.model_list.append(model)
 
