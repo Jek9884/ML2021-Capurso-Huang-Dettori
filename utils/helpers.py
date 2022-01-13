@@ -45,6 +45,12 @@ def convert_ragged_mat_to_ma_array(ragged_mat):
     return np.ma.array(ma_array_list)
 
 
+def geomspace_round(start, stop, num, decimals=6):
+
+    geom_vals = np.geomspace(start, stop, num)
+    return np.around(geom_vals, decimals)
+
+
 def result_to_str(result, sep=' '):
     combo_str = ''
 
