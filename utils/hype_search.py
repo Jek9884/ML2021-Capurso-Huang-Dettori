@@ -5,7 +5,7 @@ import numpy as np
 
 import utils.helpers
 from utils.helpers import clean_combos
-from utils.evaluation import eval_model
+from utils.evaluation import ModelEvaluator
 
 
 def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
@@ -135,8 +135,10 @@ def eval_model_search(par_combo_net, par_combo_opt, train_handler, metric,
     result = None
 
     try:
-        result = eval_model(par_combo_net, par_combo_opt, train_handler, metric,
-                            val_handler, n_folds, n_runs, plotter)
+        ev_inst = ModelEvaluator(par_combo_net, par_combo_opt, train_handler, metric,
+                                 val_handler, n_folds, n_runs, plotter)
+        result = ev_inst.eval()
+
     except FloatingPointError as e:
         print("FloatingPointError:", e, "(results discarded)")
 
