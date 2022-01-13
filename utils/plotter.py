@@ -4,8 +4,8 @@ import numpy as np
 from utils.helpers import convert_ragged_mat_to_ma_array
 
 
-# Idea: each plotter can be used for either a model or a full eval by
-# constructing multiple plots and taking their stats
+# Idea: each plotter can be used for either a single model or a set of models
+# (ie multiple runs) by constructing multiple plots and taking their stats
 class Plotter:
 
     def __init__(self, type_plots=[], lr_metric_list=None, n_cols=1):
@@ -15,6 +15,9 @@ class Plotter:
         self.n_cols = n_cols
         self.n_plots = 0
         self.fig = None
+
+        # Indicates which plotline new information will be appended to
+        self.active_plt = 0
 
         # Each "leaf" of the dict is a list of plotlines
         self.results_dict = {}
@@ -40,6 +43,18 @@ class Plotter:
             elif plt_type == "act_val":
                 self.add_activ_val_datapoint(network, data_x)
 
+    def set_active_plotline(self, plot_id):
+
+        # + 1 since we want to avoid jumps but allow for a single plotline addition
+        if plot_id < 0 or plot_id > self.n_plots:
+            raise ValueError("Plotter/set_active_plotline: invalid plot_id")
+
+        if plot_id == self.n_plots:
+            self.add_new_plotline()
+            self.n_plots += 1
+
+        self.active_plt = plot_id
+
     # Accumulate the plotlines of different models to then average them
     # Ideally called at the end of a model training process
     def add_new_plotline(self, plot_dict=None):
@@ -56,8 +71,143 @@ class Plotter:
             elif isinstance(v, dict):
                 self.add_new_plotline(v)
 
-        self.n_plots += 1
+    def add_lr_curve_datapoint(self, network, data_x, data_y, data_label="tr"):
 
+        for metric in self.lr_metric_list:
+
+            training = False
+
+            # Note: kinda risky approach
+            if data_label == "tr":
+                training = True
+
+            if metric.name == "nll":
+
+                # Cannot apply nll to a net that doesn't use it as its criterion
+                if network.loss_func.name != "nll":
+                    raise ValueError("add_lr_curve_datapoint: unsupported use")
+
+                network.forward(data_x, training)
+                metric_res = network.eval_loss(data_y, reduce_bool=True)
+
+            elif metric.name == "squared":
+                pred_vec = network.forward(data_x, training)
+                metric_res = metric(data_y, pred_vec, reduce_bool=True)
+
+            elif metric.name in ["miscl. error"]:
+                pred_vec = network.forward(data_x, training)
+                pred_vec[pred_vec < 0.5] = 0
+                pred_vec[pred_vec >= 0.5] = 1
+                metric_res = metric(data_y, pred_vec)
+            else:
+                raise ValueError("add_lr_curve_datapoint: unsupported metric")
+
+            plot_name = f"lr_curve ({metric.name}) ({data_label})"
+
+            if plot_name not in self.results_dict:
+                self.results_dict[plot_name] = [[]]
+
+            self.results_dict[plot_name][self.active_plt].append(metric_res)
+
+    def add_lr_rate_datapoint(self, optimizer):
+
+        if "lr" not in self.results_dict:
+            self.results_dict["lr"] = [[]]
+
+        self.results_dict["lr"][self.active_plt].append(optimizer.lr)
+
+    # Note: use after a backward pass
+    def add_grad_norm_datapoint(self, network):
+
+        if "grad_norm" not in self.results_dict:
+            self.results_dict["grad_norm"] = {}
+
+        for i, layer in enumerate(network.layers):
+
+            # Uses frobenius norm on the joint weights (bias included) matrix
+            grad_layer = \
+                np.hstack((layer.grad_w, np.expand_dims(layer.grad_b, axis=1)))
+            norm_grad = np.linalg.norm(grad_layer)
+
+            if i not in self.results_dict["grad_norm"]:
+                self.results_dict["grad_norm"][i] = [[]]
+
+            self.results_dict["grad_norm"][i][self.active_plt].append(norm_grad)
+
+    def add_delta_weights_datapoint(self, network, optimizer):
+
+        if "delta_weights" not in self.results_dict:
+            self.results_dict["delta_weights"] = {}
+
+        for i, layer in enumerate(network.layers):
+
+            # Uses frobenius norm on the joint weights (bias included) matrix
+            delta_layer = \
+                np.hstack((layer.delta_w_old, np.expand_dims(layer.delta_b_old, axis=1)))
+            norm_delta = np.linalg.norm(delta_layer)
+
+            if i not in self.results_dict["delta_weights"]:
+                self.results_dict["delta_weights"][i] = [[]]
+
+            if "delta_eps" not in self.param_dict:
+                self.param_dict["delta_eps"] = optimizer.epsilon
+
+            self.results_dict["delta_weights"][i][self.active_plt].append(norm_delta)
+
+    def add_activ_val_datapoint(self, network, data_x):
+
+        if "act_val" not in self.results_dict:
+            self.results_dict["act_val"] = {}
+
+        network.forward(data_x, training=True)
+
+        for i, layer in enumerate(network.layers):
+
+            if i not in self.results_dict["act_val"]:
+                self.results_dict["act_val"][i] = [[]]
+
+            self.results_dict["act_val"][i][self.active_plt].append(np.average(layer.out))
+
+    def compute_stats_plotlines(self, plot_dict=None, parent=None):
+
+        if plot_dict is None:
+            plot_dict = self.results_dict
+
+        model_distr = None
+        # Add an empty list to each list of lists
+        for k, v in plot_dict.items():
+
+            if isinstance(v, dict):
+                model_distr = self.compute_stats_plotlines(v, parent=k)
+
+            elif isinstance(v, list):
+                ma_matrix = convert_ragged_mat_to_ma_array(v)
+                # Compute stats
+                ma_average = np.ma.average(ma_matrix, axis=0)
+                ma_std = np.ma.std(ma_matrix, axis=0)
+
+                if model_distr is None:
+                    model_distr = np.ma.count(ma_matrix, axis=0)
+
+                    # Needed for multi-out network
+                    if model_distr.ndim > 1:
+                        model_distr = model_distr[:, 0]
+
+                plot_dict[k] = {"avg": ma_average, "std": ma_std, "val_mat": ma_matrix}
+
+                if isinstance(k, str) and "lr_curve" in k:
+                    ma_elem_len = len(ma_matrix[0][0])
+                    # Take the last non-masked element of each row
+                    last_ma_idx = np.ma.notmasked_edges(ma_matrix, axis=1)[1][1]
+                    # Each idx is repeated for each element in the matrix cell
+                    last_ma_idx = last_ma_idx[::ma_elem_len]
+                    # Generate list of position in the matrix to compute average
+                    final_pred_idx = (range(len(last_ma_idx)), last_ma_idx)
+                    plot_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
+
+        return model_distr
+
+    # Plot generation functions
     def order_plots(self):
 
         # Reorder results in order to have lr_curve at the start
@@ -189,139 +339,3 @@ class Plotter:
         self.fig = fig
 
         return self.fig
-
-    def add_lr_curve_datapoint(self, network, data_x, data_y, data_label="tr"):
-
-        for metric in self.lr_metric_list:
-
-            training = False
-
-            # Note: kinda risky approach
-            if data_label == "tr":
-                training = True
-
-            if metric.name == "nll":
-
-                # Cannot apply nll to a net that doesn't use it as its criterion
-                if network.loss_func.name != "nll":
-                    raise ValueError("add_lr_curve_datapoint: unsupported use")
-
-                network.forward(data_x, training)
-                metric_res = network.eval_loss(data_y, reduce_bool=True)
-
-            elif metric.name == "squared":
-                pred_vec = network.forward(data_x, training)
-                metric_res = metric(data_y, pred_vec, reduce_bool=True)
-
-            elif metric.name in ["miscl. error"]:
-                pred_vec = network.forward(data_x, training)
-                pred_vec[pred_vec < 0.5] = 0
-                pred_vec[pred_vec >= 0.5] = 1
-                metric_res = metric(data_y, pred_vec)
-            else:
-                raise ValueError("add_lr_curve_datapoint: unsupported metric")
-
-            plot_name = f"lr_curve ({metric.name}) ({data_label})"
-
-            if plot_name not in self.results_dict:
-                self.results_dict[plot_name] = [[]]
-
-            self.results_dict[plot_name][-1].append(metric_res)
-
-    def add_lr_rate_datapoint(self, optimizer):
-
-        if "lr" not in self.results_dict:
-            self.results_dict["lr"] = [[]]
-
-        self.results_dict["lr"][-1].append(optimizer.lr)
-
-    # Note: use after a backward pass
-    def add_grad_norm_datapoint(self, network):
-
-        if "grad_norm" not in self.results_dict:
-            self.results_dict["grad_norm"] = {}
-
-        for i, layer in enumerate(network.layers):
-
-            # Uses frobenius norm on the joint weights (bias included) matrix
-            grad_layer = \
-                np.hstack((layer.grad_w, np.expand_dims(layer.grad_b, axis=1)))
-            norm_grad = np.linalg.norm(grad_layer)
-
-            if i not in self.results_dict["grad_norm"]:
-                self.results_dict["grad_norm"][i] = [[]]
-
-            self.results_dict["grad_norm"][i][-1].append(norm_grad)
-
-    def add_delta_weights_datapoint(self, network, optimizer):
-
-        if "delta_weights" not in self.results_dict:
-            self.results_dict["delta_weights"] = {}
-
-        for i, layer in enumerate(network.layers):
-
-            # Uses frobenius norm on the joint weights (bias included) matrix
-            delta_layer = \
-                np.hstack((layer.delta_w_old, np.expand_dims(layer.delta_b_old, axis=1)))
-            norm_delta = np.linalg.norm(delta_layer)
-
-            if i not in self.results_dict["delta_weights"]:
-                self.results_dict["delta_weights"][i] = [[]]
-
-            if "delta_eps" not in self.param_dict:
-                self.param_dict["delta_eps"] = optimizer.epsilon
-
-            self.results_dict["delta_weights"][i][-1].append(norm_delta)
-
-    def add_activ_val_datapoint(self, network, data_x):
-
-        if "act_val" not in self.results_dict:
-            self.results_dict["act_val"] = {}
-
-        network.forward(data_x, training=True)
-
-        for i, layer in enumerate(network.layers):
-
-            if i not in self.results_dict["act_val"]:
-                self.results_dict["act_val"][i] = [[]]
-
-            self.results_dict["act_val"][i][-1].append(np.average(layer.out))
-
-    def compute_stats_plotlines(self, plot_dict=None, parent=None):
-
-        if plot_dict is None:
-            plot_dict = self.results_dict
-
-        model_distr = None
-        # Add an empty list to each list of lists
-        for k, v in plot_dict.items():
-
-            if isinstance(v, dict):
-                model_distr = self.compute_stats_plotlines(v, parent=k)
-
-            elif isinstance(v, list):
-                ma_matrix = convert_ragged_mat_to_ma_array(v)
-                # Compute stats
-                ma_average = np.ma.average(ma_matrix, axis=0)
-                ma_std = np.ma.std(ma_matrix, axis=0)
-
-                if model_distr is None:
-                    model_distr = np.ma.count(ma_matrix, axis=0)
-
-                    # Needed for multi-out network
-                    if model_distr.ndim > 1:
-                        model_distr = model_distr[:, 0]
-
-                plot_dict[k] = {"avg": ma_average, "std": ma_std, "val_mat": ma_matrix}
-
-                if isinstance(k, str) and "lr_curve" in k:
-                    ma_elem_len = len(ma_matrix[0][0])
-                    # Take the last non-masked element of each row
-                    last_ma_idx = np.ma.notmasked_edges(ma_matrix, axis=1)[1][1]
-                    # Each idx is repeated for each element in the matrix cell
-                    last_ma_idx = last_ma_idx[::ma_elem_len]
-                    # Generate list of position in the matrix to compute average
-                    final_pred_idx = (range(len(last_ma_idx)), last_ma_idx)
-                    plot_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
-
-        return model_distr

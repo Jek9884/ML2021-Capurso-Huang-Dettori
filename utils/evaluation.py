@@ -29,7 +29,7 @@ class ComboEvaluator:
 
                 kfold_cv = KFoldCV(self.combo_net, self.combo_opt,
                                    self.tr_handler, self.metric,
-                                   self.n_folds, self.plotter)
+                                   self.n_folds, self.plotter, run_id=i)
 
                 self.cv_list.append(kfold_cv)
 
@@ -38,7 +38,8 @@ class ComboEvaluator:
 
                 tr_ts_cv = ModelEvaluator(self.combo_net, self.combo_opt,
                                           self.tr_handler, self.metric,
-                                          self.val_handler, self.plotter)
+                                          self.val_handler, self.plotter,
+                                          model_id=i)
 
                 self.cv_list.append(tr_ts_cv)
 
@@ -47,7 +48,7 @@ class ComboEvaluator:
 
                 tr_eval = ModelEvaluator(self.combo_net, self.combo_opt,
                                          self.tr_handler, self.metric,
-                                         None, self.plotter)
+                                         None, self.plotter, model_id=i)
 
                 self.cv_list.append(tr_eval)
 
@@ -95,7 +96,7 @@ class ComboEvaluator:
 class KFoldCV:
 
     def __init__(self, combo_net, combo_opt, data_handler, metric,
-                 n_folds, plotter=None):
+                 n_folds, plotter=None, run_id=0):
 
         self.combo_net = combo_net
         self.combo_opt = combo_opt
@@ -137,9 +138,11 @@ class KFoldCV:
             tr_handler = DataHandler(train_x, train_y)
             val_handler = DataHandler(val_x, val_y)
 
+            model_id = run_id * self.n_folds + i
+
             model = ModelEvaluator(self.combo_net, self.combo_opt,
                                    tr_handler, metric, val_handler,
-                                   self.plotter)
+                                   self.plotter, model_id=model_id)
 
             self.model_list.append(model)
 
@@ -160,11 +163,11 @@ class KFoldCV:
             epochs_list.append(n_epochs)
             age_list.append(age)
 
-        # Use medians to represent the results
-        avg_tr_score = np.median(tr_score_list)
-        avg_val_score = np.median(val_score_list)
-        avg_epochs = np.median(epochs_list)
-        avg_age = np.median(age_list)
+        # Use average to represent the results
+        avg_tr_score = np.average(tr_score_list)
+        avg_val_score = np.average(val_score_list)
+        avg_epochs = np.average(epochs_list)
+        avg_age = np.average(age_list)
 
         return avg_tr_score, avg_val_score, avg_epochs, avg_age
 
@@ -172,7 +175,7 @@ class KFoldCV:
 class ModelEvaluator:
 
     def __init__(self, combo_net, combo_opt, tr_handler, metric,
-                 val_handler=None, plotter=None):
+                 val_handler=None, plotter=None, model_id=0):
 
         self.net = Network(**combo_net)
         self.opt = GradientDescent(**combo_opt)
@@ -181,6 +184,7 @@ class ModelEvaluator:
         self.val_handler = val_handler
         self.metric = metric
         self.plotter = plotter
+        self.model_id = model_id
 
         self.training_complete = False
 
@@ -189,6 +193,8 @@ class ModelEvaluator:
         if step_epochs is None:
             # Guard value
             step_epochs = np.inf
+
+        self.plotter.set_active_plotline(self.model_id)
 
         step_count = 0
 
@@ -205,18 +211,18 @@ class ModelEvaluator:
 
             # Check if the validation set is given as input
             if self.val_handler is not None:
+
                 val_score = eval_dataset(self.net, self.val_handler,
                                          self.metric, False)
 
-#                if self.plotter is not None:
-#                    data_x = self.val_handler.data_x
-#                    data_y = self.val_handler.data_y
-#                    self.plotter.add_lr_curve_datapoint(self.net, data_x,
-#                                                        data_y, "val")
-            step_count += 1
+                if self.plotter is not None:
 
-#        if self.plotter is not None:
-#            self.plotter.add_new_plotline()
+                    data_x = self.val_handler.data_x
+                    data_y = self.val_handler.data_y
+
+                    self.plotter.add_lr_curve_datapoint(self.net, data_x,
+                                                        data_y, "val")
+            step_count += 1
 
         return tr_score, val_score, self.opt.epoch_count, self.opt.age_count
 
