@@ -3,9 +3,8 @@ import copy
 from joblib import Parallel, delayed
 import numpy as np
 
-import utils.helpers
 from utils.helpers import clean_combos
-from utils.evaluation import ModelEvaluator
+from utils.evaluation import ComboEvaluator
 
 
 def grid_search(par_combo_net, par_combo_opt, train_handler, metric,
@@ -126,8 +125,7 @@ def compare_results(results, metric, topk=None):
     return results
 
 
-# Idea: wrapper around eval_model used only in _search methods since even if
-# a thread, fails the process will go on
+# Idea: wrapper around ComboEvaluator used only in _search methods
 def eval_model_search(par_combo_net, par_combo_opt, train_handler, metric,
                       val_handler=None, n_folds=0, n_runs=10, plotter=None):
 
@@ -135,7 +133,7 @@ def eval_model_search(par_combo_net, par_combo_opt, train_handler, metric,
     result = None
 
     try:
-        ev_inst = ModelEvaluator(par_combo_net, par_combo_opt, train_handler, metric,
+        ev_inst = ComboEvaluator(par_combo_net, par_combo_opt, train_handler, metric,
                                  val_handler, n_folds, n_runs, plotter)
         result = ev_inst.eval()
 
