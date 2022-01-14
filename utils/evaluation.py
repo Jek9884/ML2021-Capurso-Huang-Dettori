@@ -63,9 +63,11 @@ class ComboEvaluator:
         if self.tr_complete:
             return self.last_results
 
-        # Lists of results used to compute running stats
-        tr_score_list = []
-        val_score_list = []
+        # Lists of results used to compute last step stats
+        # Can contain either a matrix of k-fold runs (row: kfold run, column: fold)
+        # or a matrix of single model scores (row: different run, column: single score)
+        tr_score_mat = []
+        val_score_mat = []
         epoch_list = []
         age_list = []
 
@@ -77,22 +79,28 @@ class ComboEvaluator:
             tr_score, val_score, n_epochs, age, tr_status = \
                 cv_eval.eval(step_epochs)
 
-            tr_score_list.append(tr_score)
+            if isinstance(cv_eval, KFoldCV):
+                tr_score_mat.append(tr_score)
+                val_score_mat.append(val_score)
 
-            if val_score is not None:
-                val_score_list.append(val_score)
+            elif isinstance(cv_eval, ModelEvaluator):
+                tr_score_mat.append([tr_score])
+
+                if val_score is not None:
+                    val_score_mat.append(val_score)
+            else:
+                raise ValueError("ComboEvaluator: unknown cross-validation method")
 
             epoch_list.append(n_epochs)
             age_list.append(age)
             tr_status_list.append(tr_status)
 
-        tr_score_stats = compute_stats(tr_score_list)
-
+        tr_score_stats = compute_stats(tr_score_mat)
         val_score_stats = None
 
         # List not empty
-        if val_score_list:
-            val_score_stats = compute_stats(val_score_list)
+        if val_score_mat:
+            val_score_stats = compute_stats(val_score_mat)
 
         avg_epochs = np.average(epoch_list)
         avg_age = np.average(age_list)
@@ -110,6 +118,8 @@ class ComboEvaluator:
 
         return self.last_results
 
+# Note: kfold returns a list of scores, one for each model/fold
+# that needs to be handled by the "layer" above
 class KFoldCV:
 
     def __init__(self, combo_net, combo_opt, data_handler, metric,
@@ -185,14 +195,11 @@ class KFoldCV:
             age_list.append(age)
             tr_status_list.append(tr_status)
 
-        # Use average to represent the results
-        avg_tr_score = np.average(tr_score_list)
-        avg_val_score = np.average(val_score_list)
         avg_epochs = np.average(epochs_list)
         avg_age = np.average(age_list)
         self.tr_complete = np.all(tr_status_list)
 
-        return avg_tr_score, avg_val_score, avg_epochs, avg_age, self.tr_complete
+        return tr_score_list, val_score_list, avg_epochs, avg_age, self.tr_complete
 
 
 class ModelEvaluator:
@@ -279,11 +286,11 @@ def eval_dataset(net, data_handler, metric, training):
 # Take stats wrt runs
 def compute_stats(score_list):
 
-    avg = np.average(score_list, axis=0)
-    std = np.std(score_list, axis=0)
-    perc_25 = np.percentile(score_list, 25, axis=0)
-    perc_50 = np.percentile(score_list, 50, axis=0)
-    perc_75 = np.percentile(score_list, 75, axis=0)
+    avg = np.average(score_list)
+    std = np.std(score_list)
+    perc_25 = np.percentile(score_list, 25)
+    perc_50 = np.percentile(score_list, 50)
+    perc_75 = np.percentile(score_list, 75)
 
     stats_dict = {"avg": avg,
                   "std": std,
