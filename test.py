@@ -10,7 +10,7 @@ from utils.data_handler import read_monk, DataHandler
 from utils.hype_search import grid_search, stoch_search
 from utils.evaluation import ComboEvaluator
 from utils.plotter import Plotter
-from utils.helpers import save_results_to_csv
+from utils.helpers import geomspace_round, save_results_to_csv
 from utils.debug_tools import check_gradient_combo
 from ensemble import Ensemble
 
@@ -188,18 +188,18 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     }
 
     dict_param_sgd_grid = {
-        'lr': np.geomspace(0.01, 1, 10),
+        'lr': geomspace_round(0.01, 1, 10),
         'batch_size': [-1, 4, 8],
-        'reg_val': np.geomspace(0.0001, 1, 5),
+        'reg_val': geomspace_round(0.0001, 1, 5),
         'reg_type': [2],
-        'momentum_val': np.geomspace(0.01, 1, 5),
+        'momentum_val': geomspace_round(0.01, 1, 5),
         'nesterov': [False, True],
         'lim_epochs': [1000],
         'lr_decay_type': ["lin", "exp", None],
-        'lr_dec_lin_tau': np.geomspace(1, 1000, 5),
-        'lr_dec_exp_k': np.geomspace(0.001, 1, 5),
+        'lr_dec_lin_tau': geomspace_round(1, 1000, 5),
+        'lr_dec_exp_k': geomspace_round(0.001, 1, 5),
         'stop_crit_type': ['delta_w'],
-        'epsilon': np.geomspace(0.001, 1, 10),
+        'epsilon': geomspace_round(0.001, 1, 10),
         'patient': [10]
     }
 
@@ -266,18 +266,18 @@ def test_monk1():
     }
 
     dict_param_sgd_grid = {
-        'lr': np.geomspace(0.01, 1, 10),
+        'lr': geomspace_round(0.01, 1, 10),
         'batch_size': [-1, 4, 8, 16, 32],
-        'reg_val': np.geomspace(0.0001, 1, 10),
+        'reg_val': geomspace_round(0.0001, 1, 10),
         'reg_type': [2],
-        'momentum_val': np.geomspace(0.01, 1, 10),
+        'momentum_val': geomspace_round(0.01, 1, 10),
         'nesterov': [False, True],
-        'lim_epochs': [200],
+        'lim_epochs': [500],
         'lr_decay_type': ["lin", "exp", None],
-        'lr_dec_lin_tau': np.geomspace(1, 1000, 10),
-        'lr_dec_exp_k': np.geomspace(0.001, 1, 10),
+        'lr_dec_lin_tau': geomspace_round(1, 1000, 10),
+        'lr_dec_exp_k': geomspace_round(0.001, 1, 10),
         'stop_crit_type': ['delta_w'],
-        'epsilon': np.geomspace(0.001, 1, 20),
+        'epsilon': geomspace_round(0.001, 1, 20),
         'patient': [5],
         'check_gradient': [False]
     }
@@ -286,8 +286,9 @@ def test_monk1():
                          [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
 #    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
-#                           train_handler, metr_dict["miscl. error"], 2000,
-#                           n_folds=5, n_runs=30, plotter=plotter_m1, topk=50)
+#                           train_handler, metr_dict["miscl. error"], 50,
+#                           n_folds=5, n_runs=20, plotter=plotter_m1, topk=5,
+#                           median_stop=None)
 #    path = os.path.join('.', 'results', 'monk1')
 #    save_results_to_csv(path, results)
 #    exit()
@@ -346,11 +347,11 @@ def test_monk2():
     }
 
     dict_param_sgd_grid = {
-        'lr': np.geomspace(0.01, 1, 5),
+        'lr': geomspace_round(0.01, 1, 5),
         'batch_size': [-1, 8, 16, 32, 64],
         'reg_type': [2],
-        'reg_val': np.geomspace(0.0001, 1, 3),
-        'momentum_val': np.geomspace(0.01, 1, 3),
+        'reg_val': geomspace_round(0.0001, 1, 3),
+        'momentum_val': geomspace_round(0.01, 1, 3),
         'lim_epochs': [500]
     }
 
@@ -420,22 +421,23 @@ def test_monk3():
     }
 
     dict_param_sgd_grid = {
-        'lr': np.logspace(-2, 0, 20),
-        'batch_size': [-1, 3, 5, 10, 15, 32],
-        'reg_val': np.logspace(-3, 0, 20),
+        'lr': geomspace_round(0.01, 1, 10),
+        'batch_size': [-1, 4, 8, 16, 32],
+        'reg_val': geomspace_round(0.0001, 1, 10),
         'reg_type': [2],
-        'momentum_val': np.logspace(-2, 0, 20),
+        'momentum_val': geomspace_round(0.01, 1, 10),
         'nesterov': [False, True],
         'lim_epochs': [200],
         'lr_decay_type': ["lin", "exp", None],
-        'lr_dec_lin_tau': np.logspace(0, 3, 20),
-        'lr_dec_exp_k': np.logspace(-2, 0, 20),
+        'lr_dec_lin_tau': geomspace_round(1, 1000, 10),
+        'lr_dec_exp_k': geomspace_round(0.001, 1, 10),
         'stop_crit_type': ['delta_w'],
-        'epsilon': np.logspace(-3, 0, 20),
+        'epsilon': geomspace_round(0.001, 1, 20),
         'patient': [5],
         'norm_clipping': [4],
         'check_gradient': [False]
     }
+
 
     plotter_m3 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
                          [loss_dict["nll"], metr_dict["miscl. error"]], 2)
@@ -463,15 +465,15 @@ def test_monk3():
 #reg_res = simple_learning_test_regression()
 #print(f"Simple regression error: {reg_res}")
 
-clas1_res = simple_and_learning_test_classification()
-print(f"Simple AND classification error: {clas1_res}")
+#clas1_res = simple_and_learning_test_classification()
+#print(f"Simple AND classification error: {clas1_res}")
 
 #clas2_res = simple_learning_test_classification()
 #print(f"Simple classification (xor) error: {clas2_res}")
 
 # Tests on monk1
-#monk1_res = test_monk1()
-#print(f"Monk 1 error: {monk1_res}")
+monk1_res = test_monk1()
+print(f"Monk 1 error: {monk1_res}")
 
 # Tests on monk2
 #monk2_res = test_monk2()
