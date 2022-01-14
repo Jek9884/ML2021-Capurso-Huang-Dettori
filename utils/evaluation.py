@@ -3,6 +3,7 @@ import numpy as np
 from network import Network
 from optimizer import GradientDescent
 from utils.data_handler import DataHandler
+from utils.helpers import convert_ragged_mat_to_ma_array
 
 
 class ComboEvaluator:
@@ -21,6 +22,10 @@ class ComboEvaluator:
 
         # List of cross-validation "instances" to run
         self.cv_list = []
+
+        self.tr_complete = False
+        # Dictionary of last results computed
+        self.last_results = None
 
         for i in range(self.n_runs):
 
@@ -54,15 +59,23 @@ class ComboEvaluator:
 
     def eval(self, step_epochs=None):
 
+        # If all models have been trained don't go further
+        if self.tr_complete:
+            return self.last_results
+
+        # Lists of results used to compute running stats
         tr_score_list = []
         val_score_list = []
         epoch_list = []
         age_list = []
 
-        for cv in self.cv_list:
+        # Keep track of all the models training
+        tr_status_list = []
 
-            tr_score, val_score, n_epochs, age = \
-                cv.eval(step_epochs)
+        for cv_eval in self.cv_list:
+
+            tr_score, val_score, n_epochs, age, tr_status = \
+                cv_eval.eval(step_epochs)
 
             tr_score_list.append(tr_score)
 
@@ -71,27 +84,31 @@ class ComboEvaluator:
 
             epoch_list.append(n_epochs)
             age_list.append(age)
+            tr_status_list.append(tr_status)
 
         tr_score_stats = compute_stats(tr_score_list)
 
         val_score_stats = None
+
         # List not empty
         if val_score_list:
             val_score_stats = compute_stats(val_score_list)
 
         avg_epochs = np.average(epoch_list)
         avg_age = np.average(age_list)
+        self.tr_complete = np.all(tr_status_list)
 
-        result = {'combo_net': self.combo_net,
-                  'combo_opt': self.combo_opt,
-                  'score_tr': tr_score_stats,
-                  'score_val': val_score_stats,
-                  'metric': self.metric.name,
-                  'epochs': avg_epochs,
-                  'age': avg_age,
-                  'plotter': self.plotter}
+        self.last_results = {'combo_net': self.combo_net,
+                             'combo_opt': self.combo_opt,
+                             'score_tr': tr_score_stats,
+                             'score_val': val_score_stats,
+                             'metric': self.metric.name,
+                             'epochs': avg_epochs,
+                             'age': avg_age,
+                             'plotter': self.plotter,
+                             'tr_complete': self.tr_complete}
 
-        return result
+        return self.last_results
 
 class KFoldCV:
 
@@ -107,6 +124,9 @@ class KFoldCV:
 
         if self.n_folds < 1:
             raise ValueError("KFoldCV: invalid number of folds")
+
+        # Indicates if all the models have been trained
+        self.tr_complete = False
 
         # One model per fold
         self.model_list = []
@@ -152,24 +172,27 @@ class KFoldCV:
         val_score_list = []
         epochs_list = []
         age_list = []
+        tr_status_list = []
 
         for model in self.model_list:
 
-            tr_score, val_score, n_epochs, age = \
+            tr_score, val_score, n_epochs, age, tr_status = \
                 model.eval(step_epochs)
 
             tr_score_list.append(tr_score)
             val_score_list.append(val_score)
             epochs_list.append(n_epochs)
             age_list.append(age)
+            tr_status_list.append(tr_status)
 
         # Use average to represent the results
         avg_tr_score = np.average(tr_score_list)
         avg_val_score = np.average(val_score_list)
         avg_epochs = np.average(epochs_list)
         avg_age = np.average(age_list)
+        self.tr_complete = np.all(tr_status_list)
 
-        return avg_tr_score, avg_val_score, avg_epochs, avg_age
+        return avg_tr_score, avg_val_score, avg_epochs, avg_age, self.tr_complete
 
 
 class ModelEvaluator:
@@ -186,7 +209,10 @@ class ModelEvaluator:
         self.plotter = plotter
         self.model_id = model_id
 
-        self.training_complete = False
+        self.tr_score = []
+        self.val_score = []
+
+        self.tr_complete = False
 
     def eval(self, step_epochs=None):
 
@@ -194,26 +220,25 @@ class ModelEvaluator:
             # Guard value
             step_epochs = np.inf
 
-        self.plotter.set_active_plotline(self.model_id)
+        if self.plotter is not None:
+            self.plotter.set_active_plotline(self.model_id)
 
         step_count = 0
 
-        tr_score = None
-        val_score = None
-
-        while not self.training_complete and step_count < step_epochs:
+        # Stop if training complete or the number of epochs specified 
+        # has been reached
+        while not self.tr_complete and step_count < step_epochs:
 
             # Train 1 epoch at a time to plot the evolution of the lr curve
-            self.training_complete = self.opt.train(self.net, self.tr_handler,
-                                                    step_epochs=1, plotter=self.plotter)
+            self.tr_complete = self.opt.train(self.net, self.tr_handler,
+                                              step_epochs=1, plotter=self.plotter)
 
-            tr_score = eval_dataset(self.net, self.tr_handler, self.metric, True)
+            self.tr_score = eval_dataset(self.net, self.tr_handler, self.metric, True)
 
             # Check if the validation set is given as input
             if self.val_handler is not None:
 
-                val_score = eval_dataset(self.net, self.val_handler,
-                                         self.metric, False)
+                self.val_score = eval_dataset(self.net, self.val_handler, self.metric, False)
 
                 if self.plotter is not None:
 
@@ -224,7 +249,9 @@ class ModelEvaluator:
                                                         data_y, "val")
             step_count += 1
 
-        return tr_score, val_score, self.opt.epoch_count, self.opt.age_count
+        return self.tr_score, self.val_score,\
+            self.opt.epoch_count, self.opt.age_count,\
+            self.tr_complete
 
 
 # Hp: all outputs from metric must be arrays
