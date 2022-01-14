@@ -33,8 +33,8 @@ def nll_loss_bin_deriv(exp_val, pred_val):
 
 
 # Loss function dictionary
-squared_loss_func = DerivableFunction(squared_loss, squared_loss_deriv, 'squared')
-nll_loss_bin_func = DerivableFunction(nll_loss_bin, nll_loss_bin_deriv, 'nll')
+squared_loss_func = DerivableFunction(squared_loss, squared_loss_deriv, 'squared', 'min')
+nll_loss_bin_func = DerivableFunction(nll_loss_bin, nll_loss_bin_deriv, 'nll', 'min')
 loss_dict = {
     'squared': squared_loss_func,
     'nll': nll_loss_bin_func

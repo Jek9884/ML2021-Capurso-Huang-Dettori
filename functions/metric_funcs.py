@@ -51,10 +51,10 @@ def recall(exp_mat, pred_mat):
 
 
 # Metric function dictionary
-acc_func = Function(accuracy, 'accuracy')
-miscl_func = Function(miscl_error, 'miscl. error')
-prec_func = Function(precision, 'precision')
-rec_func = Function(recall, 'recall')
+acc_func = Function(accuracy, 'accuracy', 'max')
+miscl_func = Function(miscl_error, 'miscl. error', 'min')
+prec_func = Function(precision, 'precision', 'max')
+rec_func = Function(recall, 'recall', 'max')
 
 metr_dict = {
     'accuracy': acc_func,
