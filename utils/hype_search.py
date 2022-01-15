@@ -98,27 +98,27 @@ def stoch_search(par_combo_net, par_combo_opt, tr_handler, metric, n_jobs,
 
 def median_stop_run(eval_list, metric, step_epochs, topk):
 
-    raise RuntimeError("Not implemented yet")
-
     if step_epochs is None:
         raise ValueError("median_stop_run: step_epochs is None")
 
     iter_count = 0
+    tr_complete = False
 
     with Parallel(n_jobs=-2, verbose=50) as parallel:
 
-        while len(eval_list) > topk:
+        while not tr_complete:
 
             print(f"Median stop: iteration {iter_count}, " +
                   f"tasks to run {len(eval_list)}, " +
-                  f"epochs check interval {step_epochs}," +
+                  f"epochs check interval {step_epochs}, " +
                   f"best to keep {topk}")
 
-            job_list = generate_jobs(eval_list, step_epochs)
+            job_list = generate_jobs(eval_list, step_epochs, True)
             res_list = parallel(job_list)
             clean_res = []
 
             # TODO: cleanup code and implement average accross epochs
+            # Cleanup None evaluators
             for res in res_list:
                 if res is None:
                     continue
@@ -126,32 +126,47 @@ def median_stop_run(eval_list, metric, step_epochs, topk):
 
             res_list = clean_res
 
-            if res_list[0].last_results['score_val'] is not None:
-                score_type = 'score_val'
-            else:
-                score_type = 'score_tr'
+            avg_list = []
+            for res in res_list:
 
-            avg_list = [ev.last_results[score_type]['avg'] for ev in res_list]
+                if res[1][2] is not None:
+                    avg_list.append(res[1][2]) # Val avg
+                else:
+                    avg_list.append(res[1][0]) # Tr avg
+
             median_avg_val = np.median(avg_list)
 
             pruned_list = []
 
             for res in res_list:
 
-                if metric.aim == 'max' and\
-                        res.last_results[score_type][metric.aim] > median_avg_val:
-                    pruned_list.append(res)
-                elif metric.aim == 'min' and\
-                        res.last_results[score_type][metric.aim] < median_avg_val:
-                    pruned_list.append(res)
+                best_score = None
 
-            print(avg_list)
-            print(median_avg_val)
+                if res[1][3] is not None:
+                    best_score = res[1][3] # Val best
+                else:
+                    best_score = res[1][1] # Tr best
+                print(best_score, median_avg_val)
+
+                if metric.aim == 'max' and best_score > median_avg_val:
+                    pruned_list.append(res[0])
+                elif metric.aim == 'min' and best_score < median_avg_val:
+                    pruned_list.append(res[0])
+
+            tr_status_list = []
+
+            for res in pruned_list:
+                tr_status_list.append(res.last_results["tr_complete"])
+
+            tr_complete = np.all(tr_status_list)
 
             eval_list = pruned_list
             iter_count += 1
 
-    return eval_list
+    best_results = compare_results(eval_list, metric, topk)
+
+    return best_results
+
 
 # Idea: run the configurations and compare the final results, no early stop
 # In order to optimise memory usage, define a chunk size and cleanup
@@ -219,18 +234,18 @@ def compare_results(results, metric, topk=None):
 
 
 # Create tasks for Parallel starting from a list of ComboEvaluator
-def generate_jobs(eval_list, step_epochs=None):
+def generate_jobs(eval_list, step_epochs=None, median_stop=False):
 
     job_list = []
 
     for ev in eval_list:
-        job_list.append(delayed(eval_combo_search)(ev, step_epochs))
+        job_list.append(delayed(eval_combo_search)(ev, step_epochs, median_stop))
 
     return job_list
 
 
 # Idea: wrapper around ComboEvaluator used only in _search methods
-def eval_combo_search(combo_eval, step_epochs=None):
+def eval_combo_search(combo_eval, step_epochs=None, median_stop=False):
 
     res = None
 
@@ -238,7 +253,12 @@ def eval_combo_search(combo_eval, step_epochs=None):
 
     try:
         combo_eval.eval(step_epochs)
-        res = combo_eval
+
+        if median_stop:
+            median_stop_stats = combo_eval.plotter.compute_median_stop_stats(combo_eval.metric)
+            res = (combo_eval, median_stop_stats)
+        else:
+            res = combo_eval
 
     except FloatingPointError as e:
         print("FloatingPointError:", e, "(results discarded)")

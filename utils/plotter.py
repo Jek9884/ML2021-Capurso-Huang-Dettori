@@ -168,6 +168,7 @@ class Plotter:
 
             self.results_dict["act_val"][i][self.active_plt].append(np.average(layer.out))
 
+    # Stats utilities functions
     def compute_stats_plotlines(self, in_dict=None, out_dict=None, node_parent=None):
 
         if in_dict is None:
@@ -213,6 +214,38 @@ class Plotter:
                     out_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
 
         return model_distr
+
+    def compute_median_stop_stats(self, metric):
+
+        running_avg_tr = None
+        best_val_tr = None
+
+        running_avg_val = None
+        best_val_val = None
+
+        for k, v in self.results_dict.items():
+
+            if "lr_curve" not in k or metric.name not in k:
+                continue
+
+            if "tr" in k:
+                mat = convert_ragged_mat_to_ma_array(v)
+                running_avg_tr = np.average(mat)
+
+                if metric.aim == "max":
+                    best_val_tr = np.max(mat)
+                elif metric.aim == "min":
+                    best_val_tr = np.min(mat)
+            elif "val" in k:
+                mat = convert_ragged_mat_to_ma_array(v)
+                running_avg_val = np.average(mat)
+
+                if metric.aim == "max":
+                    best_val_val = np.max(mat)
+                elif metric.aim == "min":
+                    best_val_val = np.min(mat)
+
+        return running_avg_tr, best_val_tr, running_avg_val, best_val_val
 
     # Plot generation functions
     def order_plots(self):
