@@ -55,13 +55,73 @@ def stoch_search(par_combo_net, par_combo_opt, tr_handler, metric, n_jobs,
                  n_folds, n_runs=10, val_handler=None, plotter=None, topk=50,
                  median_stop=None):
 
+    print("Setting up tasks...")
+    combo_eval_list = random_sample_combo(par_combo_net, par_combo_opt, tr_handler,
+                                          metric, n_jobs, n_folds, n_runs, val_handler,
+                                          plotter)
+
+    if median_stop is not None:
+        best_results = median_stop_run(combo_eval_list, metric, median_stop, topk)
+    else:
+        best_results = bruteforce_run(combo_eval_list, 200, metric, topk)
+
+    best_stats = [res.last_results for res in best_results]
+
+    return best_stats
+
+
+def hyperband_search(par_combo_net, par_combo_opt, tr_handler, metric,
+                     n_folds, n_runs=10, val_handler=None, plotter=None, topk=50,
+                     hb_R=10**3, hb_eta=3):
+
+    # Initialisation
+    s_max = int(np.log(hb_R) // np.log(hb_eta))
+    B = (s_max+1)*hb_R
+    best_results = []
+
+    with Parallel(n_jobs=-2, verbose=50) as parallel:
+
+        for s in range(s_max, -1, -1):
+
+            print(f"Resource split countdown: {s}")
+            n = int(np.ceil(B/hb_R * hb_eta**s/(s+1)))
+            r = hb_R * hb_eta ** -s
+
+            combo_eval_list = random_sample_combo(par_combo_net, par_combo_opt,
+                                                  tr_handler, metric, n, n_folds,
+                                                  n_runs, val_handler, plotter)
+
+            # Note: compared with the standard implementation, this one doesn't
+            # restart the training each time but "accumulates" epochs
+            for i in range(s+1):
+
+                n_i = np.floor(n * hb_eta**-i)
+                r_i = r * hb_eta**i
+
+                print(f"Num tasks: {len(combo_eval_list)}, num epochs: {r_i}")
+
+                jobs_list = generate_jobs(combo_eval_list, r_i)
+                results = parallel(jobs_list)
+
+                n_keep = int(n_i // hb_eta)
+                combo_eval_list = compare_results(results, metric, n_keep)
+
+                # Keep global best results found
+                best_results += combo_eval_list
+                best_results = compare_results(best_results, metric, topk)
+
+    best_stats = [res.last_results for res in best_results]
+
+    return best_stats
+
+def random_sample_combo(par_combo_net, par_combo_opt, tr_handler, metric,
+                        n_conf, n_folds, n_runs, val_handler, plotter):
+
     par_combo = dict(par_combo_net, **par_combo_opt)
     rng = np.random.default_rng()
     combo_eval_list = []
 
-    print("Setting up tasks...")
-
-    for _ in range(n_jobs):
+    for _ in range(n_conf):
 
         dict_net = {}
         dict_opt = {}
@@ -86,14 +146,7 @@ def stoch_search(par_combo_net, par_combo_opt, tr_handler, metric, n_jobs,
 
         combo_eval_list.append(c_ev)
 
-    if median_stop is not None:
-        best_results = median_stop_run(combo_eval_list, metric, median_stop, topk)
-    else:
-        best_results = bruteforce_run(combo_eval_list, 200, metric, topk)
-
-    best_stats = [res.last_results for res in best_results]
-
-    return best_stats
+    return combo_eval_list
 
 
 def median_stop_run(eval_list, metric, step_epochs, topk):
