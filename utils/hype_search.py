@@ -79,7 +79,7 @@ def hyperband_search(par_combo_net, par_combo_opt, tr_handler, metric,
     B = (s_max+1)*hb_R
     best_results = []
 
-    with Parallel(n_jobs=-2, verbose=50) as parallel:
+    with Parallel(n_jobs=-2) as parallel:
 
         for s in range(s_max, -1, -1):
 
@@ -92,7 +92,8 @@ def hyperband_search(par_combo_net, par_combo_opt, tr_handler, metric,
                                                   n_runs, val_handler, plotter)
 
             # Note: compared with the standard implementation, this one doesn't
-            # restart the training each time but "accumulates" epochs
+            # restart the training each time but "accumulates" epochs, therefore
+            # hb_R no longer represents the max amount of epochs per combo
             for i in range(s+1):
 
                 n_i = np.floor(n * hb_eta**-i)
@@ -110,6 +111,8 @@ def hyperband_search(par_combo_net, par_combo_opt, tr_handler, metric,
                 best_results += combo_eval_list
                 best_results = compare_results(best_results, metric, topk)
 
+    # Complete all training jobs if not already done
+    best_results = bruteforce_run(best_results, 200, metric, topk)
     best_stats = [res.last_results for res in best_results]
 
     return best_stats
