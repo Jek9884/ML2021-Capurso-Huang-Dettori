@@ -102,9 +102,9 @@ def get_csv_header(result, sep=' '):
     if result['score_val'] is not None:
         header += result['metric'] + '_val_avg' + sep
         header += result['metric'] + '_val_std' + sep
-        header += result['metric'] + '_tr_perc25' + sep
-        header += result['metric'] + '_tr_perc50' + sep
-        header += result['metric'] + '_tr_perc75' + sep
+        header += result['metric'] + '_val_perc25' + sep
+        header += result['metric'] + '_val_perc50' + sep
+        header += result['metric'] + '_val_perc75' + sep
 
     header += 'epochs' + sep
     header += 'age' + sep
