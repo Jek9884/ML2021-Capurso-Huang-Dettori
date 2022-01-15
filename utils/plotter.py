@@ -168,17 +168,24 @@ class Plotter:
 
             self.results_dict["act_val"][i][self.active_plt].append(np.average(layer.out))
 
-    def compute_stats_plotlines(self, plot_dict=None, parent=None):
+    def compute_stats_plotlines(self, in_dict=None, out_dict=None, node_parent=None):
 
-        if plot_dict is None:
-            plot_dict = self.results_dict
+        if in_dict is None:
+            in_dict = self.results_dict
+
+        if out_dict is None:
+            raise ValueError("compute_stats_plotlines: need to provide an out_dict")
 
         model_distr = None
         # Add an empty list to each list of lists
-        for k, v in plot_dict.items():
+        for k, v in in_dict.items():
 
             if isinstance(v, dict):
-                model_distr = self.compute_stats_plotlines(v, parent=k)
+
+                if k not in out_dict:
+                    out_dict[k] = {}
+
+                model_distr = self.compute_stats_plotlines(v, out_dict[k], k)
 
             elif isinstance(v, list):
                 ma_matrix = convert_ragged_mat_to_ma_array(v)
@@ -193,7 +200,7 @@ class Plotter:
                     if model_distr.ndim > 1:
                         model_distr = model_distr[:, 0]
 
-                plot_dict[k] = {"avg": ma_average, "std": ma_std, "val_mat": ma_matrix}
+                out_dict[k] = {"avg": ma_average, "std": ma_std}
 
                 if isinstance(k, str) and "lr_curve" in k:
                     ma_elem_len = len(ma_matrix[0][0])
@@ -203,7 +210,7 @@ class Plotter:
                     last_ma_idx = last_ma_idx[::ma_elem_len]
                     # Generate list of position in the matrix to compute average
                     final_pred_idx = (range(len(last_ma_idx)), last_ma_idx)
-                    plot_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
+                    out_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
 
         return model_distr
 
@@ -254,18 +261,19 @@ class Plotter:
 
         self.order_plots()
 
+        stats_dict = {}
         # Substitute lists of list with their average row-wise
-        model_distr = self.compute_stats_plotlines(self.results_dict)
+        model_distr = self.compute_stats_plotlines(self.results_dict, stats_dict)
 
         if self.n_plots > 0:
-            self.results_dict["model_distr"] = model_distr
+            stats_dict["model_distr"] = model_distr
 
-        plot_dim = (len(self.results_dict)//self.n_cols + 1, self.n_cols)
+        plot_dim = (len(stats_dict)//self.n_cols + 1, self.n_cols)
         fig_dim = (15, 10)
         fig, axs = plt.subplots(*plot_dim, squeeze=False, figsize=fig_dim)
         tot_epochs = len(model_distr)
 
-        for i, plt_type in enumerate(self.results_dict):
+        for i, plt_type in enumerate(stats_dict):
 
             cur_row = i // self.n_cols
             cur_col = i % self.n_cols
@@ -274,7 +282,7 @@ class Plotter:
             # Needed to handle matrix of values in these plots
             if plt_type in ["grad_norm", "act_val"]:
 
-                for n_layer, val in self.results_dict[plt_type].items():
+                for n_layer, val in stats_dict[plt_type].items():
                     cur_ax.errorbar(range(tot_epochs), val["avg"], val["std"],
                                     label=f"Layer {n_layer}", linestyle="None",
                                     marker=".", alpha=0.6)
@@ -286,7 +294,7 @@ class Plotter:
                 log_eps = 10**-6
 
                 # Compute the log of the delta_weights
-                for n_layer, val in self.results_dict[plt_type].items():
+                for n_layer, val in stats_dict[plt_type].items():
 
                     log_delta_avg = np.log(val["avg"] + log_eps)
                     log_delta_std = np.log(val["std"] + log_eps)
@@ -303,14 +311,15 @@ class Plotter:
 
             elif "lr_curve" in plt_type:
 
-                val = self.results_dict[plt_type]
+                lr_stats = stats_dict[plt_type]
 
                 # Plot all individual lines
-                for line in val["val_mat"]:
-                    cur_ax.plot(range(tot_epochs), line, alpha=0.1, color="gray")
+                for line in self.results_dict[plt_type]:
+                    line_len = len(line)
+                    cur_ax.plot(range(line_len), line, alpha=0.1, color="gray")
 
-                cur_ax.plot(range(tot_epochs), val["avg"], label="Avg score")
-                cur_ax.plot(range(tot_epochs), [val["avg_final"]]*tot_epochs,
+                cur_ax.plot(range(tot_epochs), lr_stats["avg"], label="Avg score")
+                cur_ax.plot(range(tot_epochs), [lr_stats["avg_final"]]*tot_epochs,
                             label="Avg final", linestyle="dashed")
 
                 cur_ax.legend()
@@ -318,11 +327,11 @@ class Plotter:
 
             elif plt_type in ["lr"]:
                 cur_ax.plot(range(tot_epochs),
-                            np.around(self.results_dict[plt_type]["avg"], decimals=5))
+                            np.around(stats_dict[plt_type]["avg"], decimals=5))
                 cur_ax.set_ylabel(f"{plt_type}")
 
             elif plt_type == "model_distr":
-                cur_ax.plot(range(tot_epochs), self.results_dict[plt_type])
+                cur_ax.plot(range(tot_epochs), stats_dict[plt_type])
                 cur_ax.set_ylabel(f"{plt_type}")
 
             else:
@@ -331,7 +340,7 @@ class Plotter:
             cur_ax.set_xlabel("Epochs")
 
         # Hide unused plots
-        n_blank_axs = self.n_cols - len(self.results_dict) % self.n_cols
+        n_blank_axs = self.n_cols - len(stats_dict) % self.n_cols
 
         for i in range(1, n_blank_axs + 1):
             axs[-1][-i].axis('off')
