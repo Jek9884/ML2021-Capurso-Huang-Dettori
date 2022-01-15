@@ -2,6 +2,7 @@ import numpy as np
 from network import Network
 from optimizer import GradientDescent
 
+
 class Ensemble:
 
     def __init__(self, combo, comp_func='mode', n_models=100, bagging=False):

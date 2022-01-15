@@ -24,7 +24,7 @@ class DataHandler:
         elif batch_size < 1:
             raise ValueError("DataHandler: invalid batch_size given")
 
-        n_batches = int(np.ceil(self.n_patterns/batch_size))
+        n_batches = int(np.ceil(self.n_patterns / batch_size))
 
         # Shuffle indexes of data for sampling
         # This way the original data is not modified
@@ -39,7 +39,6 @@ class DataHandler:
             cur_batch_size = len(batch_idx_list)
 
             if cur_batch_size < batch_size and enforce_size:
-
                 other_idxs = self.index_list[0: i * batch_size]
                 n_diff_batch = batch_size - cur_batch_size
 
@@ -80,8 +79,33 @@ def read_monk(path, norm_data=True):
     return patterns, targets
 
 
-def one_hot_encode(patterns):
+def read_cup(path, ts_set=False, norm_data=False):
+    with open(path) as f:
+        data = f.readlines()
+        targets = []
+        patterns = []
 
+    for line in data:
+        if line[0] == '#':
+            continue
+        elem = line.split(',')
+        elem = elem[1:]
+        if ts_set:
+            patterns.append(elem)
+        else:
+            targets.append(elem[-2:])
+            patterns.append(elem[:-2])
+
+    patterns = np.array(patterns, dtype=float)
+    targets = np.array(targets, dtype=float)
+
+    if norm_data:
+        patterns = normalise_data(patterns)
+
+    return patterns, targets
+
+
+def one_hot_encode(patterns):
     final_patt = None
 
     for i in range(patterns.shape[1]):
@@ -92,8 +116,8 @@ def one_hot_encode(patterns):
         feat_mat = np.zeros((patterns.shape[0], num_values_var))
 
         for val in unique_vals:
-            #Note: could be a dangerous approach
-            feat_mat[cur_col == val, val-1] = 1
+            # Note: could be a dangerous approach
+            feat_mat[cur_col == val, val - 1] = 1
 
         if final_patt is None:
             final_patt = feat_mat
