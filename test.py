@@ -6,8 +6,8 @@ from functions.loss_funcs import loss_dict
 from functions.act_funcs import act_dict
 from functions.init_funcs import init_dict
 from functions.metric_funcs import metr_dict
-from utils.data_handler import read_monk, DataHandler
-from utils.hype_search import grid_search, stoch_search
+from utils.data_handler import read_monk, DataHandler, read_cup
+from utils.hype_search import grid_search, stoch_search, hyperband_search
 from utils.evaluation import ComboEvaluator
 from utils.plotter import Plotter
 from utils.helpers import geomspace_round, save_results_to_csv
@@ -206,12 +206,12 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     plotter_xor = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
                           [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
-#    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
-#                           train_handler, metr_dict["miscl. error"], 200,
-#                           n_folds=0, n_runs=20, plotter=plotter_xor, topk=20)
-#    path = os.path.join('.', 'results', 'xor')
-#    save_results_to_csv(path, results)
-#    exit()
+    #    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
+    #                           train_handler, metr_dict["miscl. error"], 200,
+    #                           n_folds=0, n_runs=20, plotter=plotter_xor, topk=20)
+    #    path = os.path.join('.', 'results', 'xor')
+    #    save_results_to_csv(path, results)
+    #    exit()
 
     evaluator = ComboEvaluator(dict_param_net, dict_param_sgd, train_handler,
                                metr_dict["miscl. error"], n_folds=0, n_runs=30,
@@ -221,6 +221,7 @@ def simple_learning_test_classification():  # Func: (A or B) xor (C or D)
     plotter_xor.plot()
 
     return res['score_tr'], res['score_val'], res["epochs"], res["age"]
+
 
 def test_monk1():
     path_train = os.path.join('datasets', 'monks-1.train')  # 124 patterns
@@ -261,44 +262,42 @@ def test_monk1():
         'init_func': [init_dict["std"]],
         'act_func': [act_dict["tanh"]],
         'out_func': [act_dict["sigm"]],
-        'loss_func': [loss_dict["nll"]],
-        'init_scale': range(1, 20, 2)
+        'loss_func': [loss_dict["nll"]]
     }
 
+    # 'init_scale': range(1, 20, 2),
+
     dict_param_sgd_grid = {
-        'lr': geomspace_round(0.01, 1, 10),
-        'batch_size': [-1, 4, 8, 16, 32],
-        'reg_val': geomspace_round(0.0001, 1, 10),
+        'lr': np.geomspace(0.1, 0.6, 4),
+        'batch_size': [8, 16],
+        'reg_val': np.geomspace(0.0001, 0.01, 3),
         'reg_type': [2],
-        'momentum_val': geomspace_round(0.01, 1, 10),
+        'momentum_val': np.geomspace(0.001, 1, 4),
         'nesterov': [False, True],
-        'lim_epochs': [500],
-        'lr_decay_type': ["lin", "exp", None],
-        'lr_dec_lin_tau': geomspace_round(1, 1000, 10),
-        'lr_dec_exp_k': geomspace_round(0.001, 1, 10),
+        'lim_epochs': [300],
+        'lr_decay_type': ["lin"],
+        'lr_dec_lin_tau': np.geomspace(10, 1000, 3),
         'stop_crit_type': ['delta_w'],
-        'epsilon': geomspace_round(0.001, 1, 20),
-        'patient': [5],
-        'check_gradient': [False]
+        'epsilon': np.geomspace(0.001, 0.1, 5),
+        'patient': [5]
     }
 
     plotter_m1 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
                          [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
-#    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
-#                           train_handler, metr_dict["miscl. error"], 50,
-#                           n_folds=5, n_runs=20, plotter=plotter_m1, topk=5,
-#                           median_stop=None)
-#    path = os.path.join('.', 'results', 'monk1')
-#    save_results_to_csv(path, results)
-#    exit()
+    res = hyperband_search(dict_param_net_grid, dict_param_sgd_grid,
+                           train_handler, metr_dict["miscl. error"],
+                           n_folds=5, n_runs=10, plotter=plotter_m1, topk=50,
+                           hb_R=10000)
+    path = os.path.join('.', 'results', 'monk1')
+    save_results_to_csv(path, res)
 
-    evaluator = ComboEvaluator(dict_param_net, dict_param_sgd, train_handler,
-                               metr_dict["miscl. error"], n_folds=5, n_runs=20,
-                               val_handler=None, plotter=plotter_m1)
-    res = evaluator.eval()
+    #    evaluator = ComboEvaluator(dict_param_net, dict_param_sgd, train_handler,
+    #                               metr_dict["miscl. error"], n_folds=5, n_runs=20,
+    #                               val_handler=None, plotter=plotter_m1)
+    #    res = evaluator.eval()
 
-    plotter_m1.plot()
+    #    plotter_m1.plot()
 
     return res['score_tr'], res['score_val'], res["epochs"], res["age"]
 
@@ -358,12 +357,12 @@ def test_monk2():
     plotter_m2 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
                          [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
-#    results = grid_search(dict_param_net_grid, dict_param_sgd_grid,
-#                          train_handler, metr_dict["miscl. error"],
-#                          n_folds=5, n_runs=5, plotter=plotter_m2)
-#    path = os.path.join('.', 'results', 'monk2')
-#    save_results_to_csv(path, results)
-#    exit()
+    #    results = grid_search(dict_param_net_grid, dict_param_sgd_grid,
+    #                          train_handler, metr_dict["miscl. error"],
+    #                          n_folds=5, n_runs=5, plotter=plotter_m2)
+    #    path = os.path.join('.', 'results', 'monk2')
+    #    save_results_to_csv(path, results)
+    #    exit()
 
     evaluator = ComboEvaluator(dict_param_net, dict_param_sgd, train_handler,
                                metr_dict["miscl. error"], n_folds=5, n_runs=30,
@@ -438,16 +437,15 @@ def test_monk3():
         'check_gradient': [False]
     }
 
-
     plotter_m3 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
                          [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
-#    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
-#                          train_handler, metr_dict["miscl. error"], 2000,
-#                          n_folds=5, n_runs=20, plotter=plotter_m3)
-#    path = os.path.join('.', 'results', 'monk3')
-#    save_results_to_csv(path, results)
-#    exit()
+    #    results = stoch_search(dict_param_net_grid, dict_param_sgd_grid,
+    #                          train_handler, metr_dict["miscl. error"], 2000,
+    #                          n_folds=5, n_runs=20, plotter=plotter_m3)
+    #    path = os.path.join('.', 'results', 'monk3')
+    #    save_results_to_csv(path, results)
+    #    exit()
 
     evaluator = ComboEvaluator(dict_param_net, dict_param_sgd, train_handler,
                                metr_dict["miscl. error"], n_folds=5, n_runs=20,
@@ -459,26 +457,111 @@ def test_monk3():
     return res['score_tr'], res['score_val'], res["epochs"], res["age"]
 
 
-#print("Forward test: ", forward_test())
-#print("Backward test: ", backward_test())
+def test_cup():
+    path_train = os.path.join('datasets', 'cup_tr.csv')  # 1188 patterns
+    path_test = os.path.join('datasets', 'cup_ts.csv')
 
-#reg_res = simple_learning_test_regression()
-#print(f"Simple regression error: {reg_res}")
+    train_x, train_y = read_cup(path_train, norm_data=False)
+    test_x, test_y = read_cup(path_test, norm_data=False)
 
-#clas1_res = simple_and_learning_test_classification()
-#print(f"Simple AND classification error: {clas1_res}")
+    train_handler = DataHandler(train_x, train_y)
+    test_handler = DataHandler(test_x, test_y)
 
-#clas2_res = simple_learning_test_classification()
-#print(f"Simple classification (xor) error: {clas2_res}")
+    dict_param_net = {
+        'conf_layers': [17, 3, 1],
+        'init_func': init_dict["std"],
+        'act_func': act_dict["tanh"],
+        'out_func': act_dict["sigm"],
+        'loss_func': loss_dict["nll"],
+        'init_scale': 10
+    }
+
+    dict_param_sgd = {
+        'lr': 0.3,
+        'batch_size': 64,
+        'reg_val': 0.0001,
+        'momentum_val': 0.6,
+        'nesterov': False,
+        'lr_decay_type': "lin",
+        'lr_dec_exp_k': 0.01,
+        'lr_dec_lin_tau': 500,
+        'stop_crit_type': 'delta_w',
+        'epsilon': 0.005,
+        'patient': 10,
+        'lim_epochs': 500
+    }
+
+    dict_param_net_grid = {
+        'conf_layers': [[10, 5, 2]],
+        'init_func': [init_dict["std"]],
+        'act_func': [act_dict["tanh"]],
+        'out_func': [act_dict["sigm"]],
+        'loss_func': [loss_dict["nll"]],
+        'batch_norm': [False],
+        'batch_momentum': [0.99]
+    }
+
+    dict_param_sgd_grid = {
+        'lr': geomspace_round(0.1, 1, 10),
+        'batch_size': [-1, 32, 64, 128],
+        'reg_val': geomspace_round(0.0001, 0.01, 5),
+        'reg_type': [2],
+        'momentum_val': geomspace_round(0.001, 1, 5),
+        'nesterov': [False, True],
+        'lim_epochs': [1000],
+        'lr_decay_type': ["lin", "exp", None],
+        'lr_dec_lin_tau': geomspace_round(0, 1000, 5),
+        'lr_dec_exp_k': geomspace_round(0.001, 1, 5),
+        'stop_crit_type': ['delta_w'],
+        'epsilon': geomspace_round(0.0001, 1, 10),
+        'patient': [10],
+        'check_gradient': [False]
+    }
+
+    plotter_m1 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
+                         [loss_dict["nll"], metr_dict["miscl. error"]], 2)
+
+    res = hyperband_search(dict_param_net_grid, dict_param_sgd_grid,
+                           train_handler, metr_dict["miscl. error"],
+                           n_folds=5, n_runs=5, plotter=plotter_m1, topk=20,
+                           hb_R=5000)
+    path = os.path.join('.', 'results', 'cup')
+    save_results_to_csv(path, res)
+
+    #    evaluator = ComboEvaluator(dict_param_net, dict_param_sgd, train_handler,
+    #                               metr_dict["miscl. error"], n_folds=5, n_runs=20,
+    #                               val_handler=None, plotter=plotter_m1)
+    #    res = evaluator.eval()
+
+    #    plotter_m1.plot()
+
+    return res['score_tr'], res['score_val'], res["epochs"], res["age"]
+
+
+# print("Forward test: ", forward_test())
+# print("Backward test: ", backward_test())
+
+# reg_res = simple_learning_test_regression()
+# print(f"Simple regression error: {reg_res}")
+
+# clas1_res = simple_and_learning_test_classification()
+# print(f"Simple AND classification error: {clas1_res}")
+
+# clas2_res = simple_learning_test_classification()
+# print(f"Simple classification (xor) error: {clas2_res}")
 
 # Tests on monk1
-monk1_res = test_monk1()
-print(f"Monk 1 error: {monk1_res}")
+# monk1_res = test_monk1()
+# print(f"Monk 1 error: {monk1_res}")
 
 # Tests on monk2
-#monk2_res = test_monk2()
-#print(f"Monk 2 error: {monk2_res}")
+# monk2_res = test_monk2()
+# print(f"Monk 2 error: {monk2_res}")
 
 # Tests on monk3
-#monk3_res = test_monk3()
-#print(f"Monk 3 error: {monk3_res}")
+# monk3_res = test_monk3()
+# print(f"Monk 3 error: {monk3_res}")
+
+# Tests on cup
+cup_res = test_cup()
+print(f"Cup error: {cup_res}")
