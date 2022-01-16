@@ -113,25 +113,44 @@ def get_csv_header(result, sep=' '):
     return header
 
 
-def save_results_to_csv(folder_path, results, sep=';'):
-    # If the folder already exists, delete it
-    if os.path.exists(folder_path):
-        shutil.rmtree(folder_path)
+def save_results(folder_path, results, csv_sep=';'):
+    # If the folder doesn't exist, create it
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 
-    # And create it again
+    list_runs_str = os.listdir(folder_path)
+    last_run = 1
+
+    for run in list_runs_str:
+
+        try:
+            cur_run = int(run)
+
+            if cur_run > last_run:
+                last_run = cur_run
+
+        except ValueError as ex:
+            print(f"Invalid run name found in {folder_path}, {ex}")
+
+    # Create a new run with next biggest integer as name
+    last_run = str(last_run + 1)
+
+    # Give a subfolder to each run
+    folder_path = os.path.join(folder_path, last_run)
     os.makedirs(folder_path)
 
     file_path = os.path.join(folder_path, "results.csv")
 
     with open(file_path, 'w', newline='') as file:
 
-        header = get_csv_header(results[0], sep)
+        header = get_csv_header(results[0], csv_sep)
         file.write(header)
 
         for i, res in enumerate(results):
-            res_str = result_to_str(res, sep)
+            res_str = result_to_str(res, csv_sep)
             file.write(res_str)
 
+            # Save plots if available
             if res["plotter"] is not None:
                 img_path = os.path.join(folder_path, f"{i + 1}.png")
                 res["plotter"].savefig(img_path)
