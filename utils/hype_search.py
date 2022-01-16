@@ -104,8 +104,7 @@ def hyperband_search(par_combo_net, par_combo_opt, tr_handler, metric,
 
                 print(f"Num tasks: {len(combo_eval_list)}, num epochs: {r_i}")
 
-                jobs_list = generate_jobs(combo_eval_list, r_i)
-                results = parallel(jobs_list)
+                results = parallel(generate_jobs(combo_eval_list, r_i))
 
                 n_keep = int(n_i // hb_eta)
                 combo_eval_list = compare_results(results, metric, n_keep)
@@ -175,8 +174,7 @@ def median_stop_run(eval_list, metric, step_epochs, topk):
                   f"epochs check interval {step_epochs}, " +
                   f"best to keep {topk}")
 
-            job_list = generate_jobs(eval_list, step_epochs, True)
-            res_list = parallel(job_list)
+            res_list = parallel(generate_jobs(eval_list, step_epochs, True))
             clean_res = []
 
             # TODO: cleanup code and implement average accross epochs
@@ -257,8 +255,7 @@ def bruteforce_run(eval_list, chunk_size, metric, topk):
 
             print(f"Number of tasks left: {len(eval_list[cur_start:])}")
 
-            job_list = generate_jobs(chunk_list)
-            res_list += parallel(job_list)
+            res_list += parallel(generate_jobs(chunk_list))
 
             # Keep the best results
             res_list = compare_results(res_list, metric, topk)
@@ -300,7 +297,9 @@ def generate_jobs(eval_list, step_epochs=None, median_stop=False):
 
     job_list = []
 
-    for ev in eval_list:
+    # In case of exception the garbage collector will remove the object
+    while eval_list:
+        ev = eval_list.pop()
         job_list.append(delayed(eval_combo_search)(ev, step_epochs, median_stop))
 
     return job_list
