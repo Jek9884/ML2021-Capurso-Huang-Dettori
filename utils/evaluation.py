@@ -216,8 +216,8 @@ class ModelEvaluator:
         self.plotter = plotter
         self.model_id = model_id
 
-        self.tr_score = []
-        self.val_score = []
+        self.tr_score = None
+        self.val_score = None
 
         self.tr_complete = False
 
