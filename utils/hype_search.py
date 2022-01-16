@@ -33,7 +33,10 @@ def grid_search(par_combo_net, par_combo_opt, tr_handler, metric, n_folds,
         # Use the given plotter as model for all results
         # All datapoints are collected, but the plots are generated
         # only for the best results at save-time/show-time
-        res_plotter = copy.deepcopy(plotter)
+        res_plotter = None
+
+        if plotter is not None:
+            res_plotter = copy.deepcopy(plotter)
 
         c_ev = ComboEvaluator(dict_net, dict_opt, tr_handler, metric,
                               n_folds=n_folds, n_runs=n_runs,
@@ -141,7 +144,10 @@ def random_sample_combo(par_combo_net, par_combo_opt, tr_handler, metric,
         # Use the given plotter as model for all results
         # All datapoints are collected, but the plots are generated
         # only for the best results at save-time/show-time
-        res_plotter = copy.deepcopy(plotter)
+        res_plotter = None
+
+        if plotter is not None:
+            res_plotter = copy.deepcopy(plotter)
 
         c_ev = ComboEvaluator(dict_net, dict_opt, tr_handler, metric,
                               n_folds=n_folds, n_runs=n_runs,
