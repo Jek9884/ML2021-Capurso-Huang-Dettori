@@ -90,7 +90,8 @@ def hyperband_search(par_combo_net, par_combo_opt, tr_handler, metric,
             for i in range(s+1):
 
                 n_i = np.floor(n * hb_eta**-i)
-                r_i = r * hb_eta**i
+                # Implementation detail: the number of epochs is roundup
+                r_i = int(np.ceil(r * hb_eta**i))
 
                 print(f"Num tasks: {len(combo_eval_list)}, num epochs: {r_i}")
 
