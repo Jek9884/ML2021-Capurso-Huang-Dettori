@@ -1,5 +1,5 @@
 import itertools as it
-import copy
+import copy, random
 from joblib import Parallel, delayed
 import numpy as np
 
@@ -113,7 +113,6 @@ def random_sample_combo(par_combo_net, par_combo_opt, tr_handler, metric,
                         n_conf, n_folds, n_runs, val_handler, plotter):
 
     par_combo = dict(par_combo_net, **par_combo_opt)
-    rng = np.random.default_rng()
     combo_eval_list = []
 
     for _ in range(n_conf):
@@ -123,7 +122,7 @@ def random_sample_combo(par_combo_net, par_combo_opt, tr_handler, metric,
 
         for key, arr in par_combo.items():
 
-            par_val = rng.choice(arr)
+            par_val = random.choice(arr)
 
             if key in par_combo_net:
                 dict_net[key] = par_val
