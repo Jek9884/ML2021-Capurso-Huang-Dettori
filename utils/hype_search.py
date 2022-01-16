@@ -8,8 +8,7 @@ from utils.evaluation import ComboEvaluator
 
 
 def grid_search(par_combo_net, par_combo_opt, tr_handler, metric, n_folds,
-                n_runs=10, val_handler=None, plotter=None, topk=50,
-                median_stop=None):
+                n_runs=10, val_handler=None, plotter=None, topk=50):
 
     # Obtain a fixed order list of corresponding key-value pairs
     net_keys, net_values = zip(*par_combo_net.items())
@@ -44,30 +43,21 @@ def grid_search(par_combo_net, par_combo_opt, tr_handler, metric, n_folds,
 
         combo_eval_list.append(c_ev)
 
-    if median_stop is not None:
-        best_results = median_stop_run(combo_eval_list, metric, median_stop, topk)
-    else:
-        best_results = bruteforce_run(combo_eval_list, 200, metric, topk)
-
+    best_results = bruteforce_run(combo_eval_list, 200, metric, topk)
     best_stats = [res.last_results for res in best_results]
 
     return best_stats
 
 
 def stoch_search(par_combo_net, par_combo_opt, tr_handler, metric, n_jobs,
-                 n_folds, n_runs=10, val_handler=None, plotter=None, topk=50,
-                 median_stop=None):
+                 n_folds, n_runs=10, val_handler=None, plotter=None, topk=50):
 
     print("Setting up tasks...")
     combo_eval_list = random_sample_combo(par_combo_net, par_combo_opt, tr_handler,
                                           metric, n_jobs, n_folds, n_runs, val_handler,
                                           plotter)
 
-    if median_stop is not None:
-        best_results = median_stop_run(combo_eval_list, metric, median_stop, topk)
-    else:
-        best_results = bruteforce_run(combo_eval_list, 200, metric, topk)
-
+    best_results = bruteforce_run(combo_eval_list, 200, metric, topk)
     best_stats = [res.last_results for res in best_results]
 
     return best_stats
@@ -157,77 +147,6 @@ def random_sample_combo(par_combo_net, par_combo_opt, tr_handler, metric,
     return combo_eval_list
 
 
-def median_stop_run(eval_list, metric, step_epochs, topk):
-
-    if step_epochs is None:
-        raise ValueError("median_stop_run: step_epochs is None")
-
-    iter_count = 0
-    tr_complete = False
-
-    with Parallel(n_jobs=-2, verbose=50) as parallel:
-
-        while not tr_complete:
-
-            print(f"Median stop: iteration {iter_count}, " +
-                  f"tasks to run {len(eval_list)}, " +
-                  f"epochs check interval {step_epochs}, " +
-                  f"best to keep {topk}")
-
-            res_list = parallel(generate_jobs(eval_list, step_epochs, True))
-            clean_res = []
-
-            # TODO: cleanup code and implement average accross epochs
-            # Cleanup None evaluators
-            for res in res_list:
-                if res is None:
-                    continue
-                clean_res.append(res)
-
-            res_list = clean_res
-
-            avg_list = []
-            for res in res_list:
-
-                if res[1][2] is not None:
-                    avg_list.append(res[1][2]) # Val avg
-                else:
-                    avg_list.append(res[1][0]) # Tr avg
-
-            median_avg_val = np.median(avg_list)
-
-            pruned_list = []
-
-            for res in res_list:
-
-                best_score = None
-
-                if res[1][3] is not None:
-                    best_score = res[1][3] # Val best
-                else:
-                    best_score = res[1][1] # Tr best
-                print(best_score, median_avg_val)
-
-                if metric.aim == 'max' and best_score > median_avg_val:
-                    pruned_list.append(res[0])
-                elif metric.aim == 'min' and best_score < median_avg_val:
-                    pruned_list.append(res[0])
-
-            tr_status_list = []
-
-            for res in pruned_list:
-                tr_status_list.append(res.last_results["tr_complete"])
-
-            tr_complete = np.all(tr_status_list)
-
-            eval_list = pruned_list
-            iter_count += 1
-
-    best_results = compare_results(eval_list, metric, topk)
-
-    return best_results
-
-
 # Idea: run the configurations and compare the final results, no early stop
 # In order to optimise memory usage, define a chunk size and cleanup
 # the results after chunk size tasks are completed
@@ -293,20 +212,20 @@ def compare_results(results, metric, topk=None):
 
 
 # Create tasks for Parallel starting from a list of ComboEvaluator
-def generate_jobs(eval_list, step_epochs=None, median_stop=False):
+def generate_jobs(eval_list, step_epochs=None):
 
     job_list = []
 
     # In case of exception the garbage collector will remove the object
     while eval_list:
         ev = eval_list.pop()
-        job_list.append(delayed(eval_combo_search)(ev, step_epochs, median_stop))
+        job_list.append(delayed(eval_combo_search)(ev, step_epochs))
 
     return job_list
 
 
 # Idea: wrapper around ComboEvaluator used only in _search methods
-def eval_combo_search(combo_eval, step_epochs=None, median_stop=False):
+def eval_combo_search(combo_eval, step_epochs=None):
 
     res = None
 
@@ -314,12 +233,7 @@ def eval_combo_search(combo_eval, step_epochs=None, median_stop=False):
 
     try:
         combo_eval.eval(step_epochs)
-
-        if median_stop:
-            median_stop_stats = combo_eval.plotter.compute_median_stop_stats(combo_eval.metric)
-            res = (combo_eval, median_stop_stats)
-        else:
-            res = combo_eval
+        res = combo_eval
 
     except FloatingPointError as e:
         print("FloatingPointError:", e, "(results discarded)")
