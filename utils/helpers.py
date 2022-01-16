@@ -113,7 +113,9 @@ def get_csv_header(result, sep=' '):
     return header
 
 
-def save_results(folder_path, results, csv_sep=';'):
+# Save all information related to the hyperparameter search results
+def save_search_results(folder_path, results, search_net_dict,
+                        search_opt_dict, csv_sep=';'):
     # If the folder doesn't exist, create it
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
@@ -141,6 +143,7 @@ def save_results(folder_path, results, csv_sep=';'):
 
     file_path = os.path.join(folder_path, "results.csv")
 
+    # Save results in results.csv
     with open(file_path, 'w', newline='') as file:
 
         header = get_csv_header(results[0], csv_sep)
@@ -150,10 +153,24 @@ def save_results(folder_path, results, csv_sep=';'):
             res_str = result_to_str(res, csv_sep)
             file.write(res_str)
 
-            # Save plots if available
+            # Save plots if a plotter is available
             if res["plotter"] is not None:
                 img_path = os.path.join(folder_path, f"{i + 1}.png")
                 res["plotter"].savefig(img_path)
+
+
+    # Save the search configuration used
+    file_path = os.path.join(folder_path, "search.conf")
+
+    with open(file_path, 'w', newline='') as file:
+        file.write("Network search configuration:\n")
+
+        for k, v in search_net_dict.items():
+            file.write(str(k) + ": " + str(v) + "\n")
+
+        file.write("\nOptimizer search configuration:\n")
+        for k, v in search_opt_dict.items():
+            file.write(str(k) + ": " + str(v) + "\n")
 
 
 def clean_combos(dict_net, dict_opt, combos):
