@@ -32,7 +32,7 @@ class Plotter:
 
         for plt_type in self.type_plots:
 
-            if plt_type == "lr_curve":
+            if plt_type == "lr_curve" or plt_type == "log_lr_curve":
                 self.add_lr_curve_datapoint(network, data_x, data_y)
             elif plt_type == "lr":
                 self.add_lr_rate_datapoint(optimizer)
@@ -274,6 +274,9 @@ class Plotter:
         fig, axs = plt.subplots(*plot_dim, squeeze=False, figsize=fig_dim)
         tot_epochs = len(model_distr)
 
+        # Used to avoid log(0) problem
+        log_eps = 10**-6
+
         for i, plt_type in enumerate(stats_dict):
 
             cur_row = i // self.n_cols
@@ -292,7 +295,6 @@ class Plotter:
 
             elif plt_type == "delta_weights":
 
-                log_eps = 10**-6
 
                 # Compute the log of the delta_weights
                 for n_layer, val in stats_dict[plt_type].items():
@@ -314,17 +316,38 @@ class Plotter:
 
                 lr_stats = stats_dict[plt_type]
 
-                # Plot all individual lines
-                for line in self.results_dict[plt_type]:
-                    line_len = len(line)
-                    cur_ax.plot(range(line_len), line, alpha=0.1, color="gray")
+                if "log_lr_curve" in self.type_plots and "lr_curve" in self.type_plots:
+                    raise ValueError("build_plot: only one between " +
+                                     "lr_curve and log_lr_curve supported at the same time")
 
-                cur_ax.plot(range(tot_epochs), lr_stats["avg"], label="Avg score")
-                cur_ax.plot(range(tot_epochs), [lr_stats["avg_final"]]*tot_epochs,
-                            label="Avg final", linestyle="dashed")
+                if "log_lr_curve" in self.type_plots:
+                    # Plot all individual lines
+                    for line in self.results_dict[plt_type]:
+                        line_len = len(line)
+                        cur_ax.plot(range(line_len), np.log(np.add(line, log_eps)),
+                                    alpha=0.1, color="gray")
+
+                    cur_ax.plot(range(tot_epochs), np.log(lr_stats["avg"]+log_eps),
+                                label="Avg score")
+                    cur_ax.plot(range(tot_epochs),
+                                [np.log(lr_stats["avg_final"]+log_eps)]*tot_epochs,
+                                label="Avg final", linestyle="dashed")
+
+                    cur_ax.set_ylabel(f"log_{plt_type}")
+
+                else:
+                    # Plot all individual lines
+                    for line in self.results_dict[plt_type]:
+                        line_len = len(line)
+                        cur_ax.plot(range(line_len), line, alpha=0.1, color="gray")
+
+                    cur_ax.plot(range(tot_epochs), lr_stats["avg"], label="Avg score")
+                    cur_ax.plot(range(tot_epochs), [lr_stats["avg_final"]]*tot_epochs,
+                                label="Avg final", linestyle="dashed")
+
+                    cur_ax.set_ylabel(f"{plt_type}")
 
                 cur_ax.legend()
-                cur_ax.set_ylabel(f"{plt_type}")
 
             elif plt_type in ["lr"]:
                 cur_ax.plot(range(tot_epochs),
