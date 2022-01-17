@@ -21,11 +21,13 @@ Attributes:
 class Layer:
 
     # Network may not pass an act_func to the last layer
-    def __init__(self, n_out, n_in, init_func=None, act_func=None, bias=None,
+    def __init__(self, n_out, n_in, init_func=None, act_func=None, bias_init=None,
                  init_scale=0, batch_norm=False, batch_momentum=0.99, debug_bool=False):
 
         self.n_in = n_in  # Number of units in previous layer
         self.n_out = n_out  # Number of units in this layer
+
+        self.bias_init = bias_init
 
         # Functions
         self.act_func = act_func
@@ -34,9 +36,9 @@ class Layer:
 
         # Parameters
         self.weights = None
-        self.bias = bias
-        self.batch_gamma = 1
-        self.batch_beta = 0
+        self.bias = None
+        self.batch_gamma = None
+        self.batch_beta = None
 
         # Variables used to implement normal backpropagation
         self.grad_w = None
@@ -94,8 +96,13 @@ class Layer:
         else:
             self.weights = self.init_func((self.n_out, self.n_in))
 
-        self.batch_gamma = 1
-        self.batch_beta = 0
+        if self.bias_init is None:
+            self.bias = np.zeros((self.n_out,))
+        else:
+            self.bias = np.full((self.n_out,), self.bias_init, dtype=np.float64)
+
+        self.batch_gamma = np.full((self.n_out,), 1, dtype=np.float64)
+        self.batch_beta = np.full((self.n_out,), 1, dtype=np.float64)
 
         self.null_grad()
 

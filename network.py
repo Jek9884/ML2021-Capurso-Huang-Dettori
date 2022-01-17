@@ -63,8 +63,9 @@ class Network:
         # init of output layer is handled at the network level to avoid numerical problems
         self.layers.append(Layer(conf_layers[-1], conf_layers[-2],
                                  self.init_func, self.out_func,
-                                 self.bias[len(conf_layers) - 2], init_scale,
-                                 self.batch_norm, self.batch_momentum, debug_bool))
+                                 self.bias[-1], init_scale,
+                                 self.batch_norm, self.batch_momentum,
+                                 debug_bool))
 
     """
         Computes network forward pass
