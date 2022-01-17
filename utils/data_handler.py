@@ -4,7 +4,7 @@ import numpy as np
 # Idea: split data handling from optimizer, handy for batch norm inference
 class DataHandler:
 
-    def __init__(self, data_x, data_y, normal_x=False, normal_y=False):
+    def __init__(self, data_x, data_y):
 
         self.data_x = data_x
         self.data_y = data_y
@@ -15,14 +15,40 @@ class DataHandler:
         self.avg_y = None
         self.std_y = None
 
-        if normal_x:
-            self.data_x, self.avg_x, self.std_x = normalise_data(self.data_x)
-
-        if normal_y:
-            self.data_y, self.avg_y, self.std_y = normalise_data(self.data_y)
-
         self.n_patterns = self.data_x.shape[0]
         self.index_list = np.arange(self.n_patterns)
+
+    def normalise_x(self):
+
+        if self.avg_x is not None or self.std_x is not None:
+            raise ValueError("normalise_x: data already normalised")
+
+        self.data_x, self.avg_x, self.std_x = normalise_data(self.data_x)
+
+    def denormalise_x(self):
+
+        if self.avg_x is None or self.std_x is None:
+            raise ValueError("denormalise_x: data is not normalised")
+
+        self.data_x = self.data_x * self.std_x + self.avg_x
+        self.avg_x = None
+        self.std_x = None
+
+    def normalise_y(self):
+
+        if self.avg_y is not None or self.std_y is not None:
+            raise ValueError("normalise_y: data already normalised")
+
+        self.data_y, self.avg_y, self.std_y = normalise_data(self.data_y)
+
+    def denormalise_y(self):
+
+        if self.avg_y is None or self.std_y is None:
+            raise ValueError("denormalise_y: data is not normalised")
+
+        self.data_y = self.data_y * self.std_y + self.avg_y
+        self.avg_y = None
+        self.std_y = None
 
     # enforce_size: guarantee that mini-batch will be of the requested size
     def get_minibatch_list(self, batch_size, enforce_size=False):
