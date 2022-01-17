@@ -72,9 +72,9 @@ def result_to_str(result, sep=' '):
     if result['score_val'] is not None:
         combo_str += str(result['score_val']["avg"]) + sep
         combo_str += str(result['score_val']["std"]) + sep
-        combo_str += str(result['score_tr']["perc_25"]) + sep
-        combo_str += str(result['score_tr']["perc_50"]) + sep
-        combo_str += str(result['score_tr']["perc_75"]) + sep
+        combo_str += str(result['score_val']["perc_25"]) + sep
+        combo_str += str(result['score_val']["perc_50"]) + sep
+        combo_str += str(result['score_val']["perc_75"]) + sep
 
     combo_str += str(result['epochs']) + sep
     combo_str += str(result['age']) + sep
