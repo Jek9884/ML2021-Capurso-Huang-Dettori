@@ -152,10 +152,7 @@ def random_sample_combo(par_combo_net, par_combo_opt, tr_handler, metric,
 # the results after chunk size tasks are completed
 def bruteforce_run(eval_list, chunk_size, metric, topk):
 
-    if topk > chunk_size:
-        raise ValueError("bruteforce_run: topk is too big compared to chunk_size")
-
-    res_list = []
+    best_list = []
     n_evals = len(eval_list)
 
     if chunk_size == -1:
@@ -174,12 +171,12 @@ def bruteforce_run(eval_list, chunk_size, metric, topk):
 
             print(f"Number of tasks left: {len(eval_list[cur_start:])}")
 
-            res_list += parallel(generate_jobs(chunk_list))
+            res_list = parallel(generate_jobs(chunk_list))
 
             # Keep the best results
-            res_list = compare_results(res_list, metric, topk)
+            best_list = compare_results(best_list + res_list, metric, topk)
 
-    return res_list
+    return best_list
 
 
 # Idea: order results and keep the k best ones
