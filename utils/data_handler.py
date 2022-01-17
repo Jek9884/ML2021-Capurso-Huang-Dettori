@@ -4,13 +4,22 @@ import numpy as np
 # Idea: split data handling from optimizer, handy for batch norm inference
 class DataHandler:
 
-    def __init__(self, data_x, data_y, normal=False):
+    def __init__(self, data_x, data_y, normal_x=False, normal_y=False):
 
         self.data_x = data_x
         self.data_y = data_y
 
-        if normal:
-            self.data_x = normalise_data(self.data_x)
+        self.avg_x = None
+        self.std_x = None
+
+        self.avg_y = None
+        self.std_y = None
+
+        if normal_x:
+            self.data_x, self.avg_x, self.std_x = normalise_data(self.data_x)
+
+        if normal_y:
+            self.data_y, self.avg_y, self.std_y = normalise_data(self.data_y)
 
         self.n_patterns = self.data_x.shape[0]
         self.index_list = np.arange(self.n_patterns)
@@ -52,7 +61,7 @@ class DataHandler:
 
 
 # Utilities
-def read_monk(path, norm_data=True):
+def read_monk(path):
     with open(path) as f:
         data = f.readlines()
         targets = []
@@ -70,16 +79,13 @@ def read_monk(path, norm_data=True):
 
         targets = np.array(targets, dtype=int, ndmin=2)
 
-        if norm_data:
-            patterns = normalise_data(patterns)
-
         if targets.shape[0] == 1:
             targets = targets.transpose()
 
     return patterns, targets
 
 
-def read_cup(path, ts_set=False, norm_data=False):
+def read_cup(path, ts_set=False):
     with open(path) as f:
         data = f.readlines()
         targets = []
@@ -98,9 +104,6 @@ def read_cup(path, ts_set=False, norm_data=False):
 
     patterns = np.array(patterns, dtype=float)
     targets = np.array(targets, dtype=float)
-
-    if norm_data:
-        patterns = normalise_data(patterns)
 
     return patterns, targets
 
@@ -132,4 +135,4 @@ def normalise_data(patterns):
     patterns_std = np.std(patterns, axis=0)
     patterns_norm = np.divide(np.subtract(patterns, patterns_mean), patterns_std)
 
-    return patterns_norm
+    return patterns_norm, patterns_mean, patterns_std
