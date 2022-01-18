@@ -121,7 +121,7 @@ def save_search_results(folder_path, results, search_net_dict,
         os.makedirs(folder_path)
 
     list_runs_str = os.listdir(folder_path)
-    last_run = 1
+    last_run = 0
 
     for run in list_runs_str:
 
