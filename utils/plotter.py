@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from utils.helpers import convert_ragged_mat_to_ma_array
+from functions.loss_funcs import loss_dict
+from functions.metric_funcs import metr_dict
 
 
 # Idea: each plotter can be used for either a single model or a set of models
@@ -81,26 +83,18 @@ class Plotter:
             if data_label == "tr":
                 training = True
 
-            if metric.name == "nll":
+            if metric.name in loss_dict:
 
-                # Cannot apply nll to a net that doesn't use it as its criterion
-                if network.loss_func.name != "nll":
-                    raise ValueError("add_lr_curve_datapoint: unsupported use")
-
-                network.forward(data_x, training)
-                metric_res = network.eval_loss(data_y, reduce_bool=True)
-
-            elif metric.name == "squared":
                 pred_vec = network.forward(data_x, training)
                 metric_res = metric(data_y, pred_vec, reduce_bool=True)
 
-            elif metric.name in ["miscl. error"]:
+            elif metric.name in metr_dict:
                 pred_vec = network.forward(data_x, training)
                 pred_vec[pred_vec < 0.5] = 0
                 pred_vec[pred_vec >= 0.5] = 1
                 metric_res = metric(data_y, pred_vec)
             else:
-                raise ValueError("add_lr_curve_datapoint: unsupported metric")
+                raise ValueError(f"add_lr_curve_datapoint: unsupported metric {metric.name}")
 
             plot_name = f"lr_curve ({metric.name}) ({data_label})"
 
@@ -204,7 +198,7 @@ class Plotter:
                 out_dict[k] = {"avg": ma_average, "std": ma_std}
 
                 if isinstance(k, str) and "lr_curve" in k:
-                    ma_elem_len = len(ma_matrix[0][0])
+                    ma_elem_len = len(ma_matrix[0])
                     # Take the last non-masked element of each row
                     last_ma_idx = np.ma.notmasked_edges(ma_matrix, axis=1)[1][1]
                     # Each idx is repeated for each element in the matrix cell

@@ -90,6 +90,18 @@ def check_gradient_layer(net, layer_idx, train_x, train_y, eps=10**-6,
     grad_w_diff = np.abs(an_grad_w-num_grad_w_mat)
     grad_b_diff = np.abs(an_grad_b-num_grad_b_vec)
 
+    if debug_bool:
+        # Weights
+        print(f"Layer {layer_idx}")
+        print("Numerical grad_w: ")
+        print(np.array(num_grad_w_mat))
+        print("Analytical grad_w: \n", an_grad_w)
+
+        # Bias
+        print("Numerical grad_b: ")
+        print(np.array(num_grad_b_vec))
+        print("Analytical grad_b: \n", an_grad_b)
+
     # Check if analytical and numerical gradient are close
     if (grad_w_diff > err_tol).any() or (grad_b_diff > err_tol).any():
         raise RuntimeError(f"Gradient precision is below threshold {err_tol}")
@@ -100,12 +112,6 @@ def check_gradient_layer(net, layer_idx, train_x, train_y, eps=10**-6,
 
         if (grad_gamma_diff > err_tol).any() or (grad_beta_diff > err_tol).any():
             raise RuntimeError(f"Gradient precision is below threshold {err_tol} (batch norm)")
-
-    if debug_bool:
-        print(f"Layer {layer_idx}")
-        print("Numerical grad: ")
-        print(np.array(num_grad_w_mat))
-        print("Analytical grad: \n", an_grad_w)
 
 
 def compute_num_grad_mat(net, layer_idx, pos_x, pos_y, train_x, train_y,
@@ -133,14 +139,8 @@ def compute_num_grad_mat(net, layer_idx, pos_x, pos_y, train_x, train_y,
     num_grad_mat = (f1-f2)/(2*eps)
     setattr(net.layers[layer_idx], prop_str, backup_mat)
 
-    # In case of multi-head NN sum the changes relative to each weight
-    if not np.isscalar(num_grad_mat):
-        # Remove empty dimensions
-        num_grad_mat = np.squeeze(num_grad_mat)
-        # Sum the effects of the different heads
-        num_grad_mat = np.sum(num_grad_mat)
-
-    return num_grad_mat
+    # Singleton array to scalar
+    return num_grad_mat.item()
 
 
 def compute_num_grad_vec(net, layer_idx, pos, train_x, train_y, backup_vec,
@@ -167,11 +167,5 @@ def compute_num_grad_vec(net, layer_idx, pos, train_x, train_y, backup_vec,
     num_grad_vec = (f1-f2)/(2*eps)
     setattr(net.layers[layer_idx], prop_str, backup_vec)
 
-    # In case of multi-head NN sum the changes relative to each unit
-    if not np.isscalar(num_grad_vec):
-        # Remove empty dimensions
-        num_grad_vec = np.squeeze(num_grad_vec)
-        # Sum the effects of the different heads
-        num_grad_vec = np.sum(num_grad_vec)
-
-    return num_grad_vec
+    # Singleton array to scalar
+    return num_grad_vec.item()

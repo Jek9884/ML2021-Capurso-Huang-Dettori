@@ -286,11 +286,11 @@ def eval_dataset(net, data_handler, metric, training):
 # Take stats wrt runs
 def compute_stats(score_list):
 
-    avg = np.average(score_list)
-    std = np.std(score_list)
-    perc_25 = np.percentile(score_list, 25)
-    perc_50 = np.percentile(score_list, 50)
-    perc_75 = np.percentile(score_list, 75)
+    avg = np.average(score_list, axis=0)
+    std = np.std(score_list, axis=0)
+    perc_25 = np.percentile(score_list, 25, axis=0)
+    perc_50 = np.percentile(score_list, 50, axis=0)
+    perc_75 = np.percentile(score_list, 75, axis=0)
 
     stats_dict = {"avg": avg,
                   "std": std,

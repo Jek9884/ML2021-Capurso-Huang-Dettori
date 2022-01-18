@@ -23,7 +23,6 @@ Attributes:
 
 """
 
-
 class Network:
 
     def __init__(self, conf_layers, init_func=None, act_func=None, out_func=None,
@@ -41,6 +40,9 @@ class Network:
         self.batch_momentum = batch_momentum
 
         self.debug_bool = debug_bool
+
+        if out_func.name != "sigm" and loss_func.name == "nll":
+            raise ValueError("Network: {out_func.name}/nll combination not supported")
 
         if self.bias is None:
             # Init layer bias with heuristic value based on act/out func
@@ -129,36 +131,14 @@ class Network:
 
     def eval_loss(self, exp_out, reduce_bool=False):
 
-        res = None
-        out_layer = self.layers[-1]
-
-        # If used to avoid surprises
-        if self.loss_func.name == "nll" and out_layer.act_func.name == "sigm":
-            res = self.loss_func(exp_out, self.layers[-1].out, reduce_bool)
-
-        elif self.loss_func.name in ["squared"]:
-            res = self.loss_func(exp_out, self.layers[-1].out, reduce_bool)
-
-        else:
-            raise ValueError(f"network: unknown loss conf {self.loss_func.name}")
+        res = self.loss_func(exp_out, self.layers[-1].out, reduce_bool)
 
         return res
 
 
     def eval_deriv_loss(self, exp_out):
 
-        res = None
-        out_layer = self.layers[-1]
-
-        # If used to avoid surprises
-        if self.loss_func.name == "nll" and out_layer.act_func.name == "sigm":
-            res = self.loss_func.deriv(exp_out, out_layer.out)
-
-        elif self.loss_func.name in ["squared"]:
-            res = self.loss_func.deriv(exp_out, out_layer.out)
-
-        else:
-            raise ValueError(f"network: unknown loss {self.loss_func.name}")
+        res = self.loss_func.deriv(exp_out, self.layers[-1].out)
 
         return res
 
