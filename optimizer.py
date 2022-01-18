@@ -188,7 +188,6 @@ class GradientDescent:
                     layer.grad_w = self.norm_clipping*layer.grad_w/norm_weights
                     layer.grad_b = self.norm_clipping*layer.grad_b/norm_weights
 
-            # Take average of weights wrt number of samples
             delta_w = -1 * self.lr * layer.grad_w
             delta_b = -1 * self.lr * layer.grad_b
 

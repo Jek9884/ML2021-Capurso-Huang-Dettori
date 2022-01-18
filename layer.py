@@ -220,11 +220,11 @@ class Layer:
     '''
     def null_grad(self):
 
-        self.grad_w = np.zeros((self.n_out, self.n_in))
-        self.grad_b = np.zeros(self.n_out)
+        self.grad_w = None
+        self.grad_b = None
 
-        self.grad_gamma = 0
-        self.grad_beta = 0
+        self.grad_gamma = None
+        self.grad_beta = None
 
     def __str__(self):
 
