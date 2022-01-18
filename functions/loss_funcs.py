@@ -30,7 +30,8 @@ def euclidean_loss_deriv(exp_val, pred_val):
     loss_num = np.subtract(pred_val, exp_val)
     loss_den = euclidean_loss(exp_val, pred_val)
 
-    return loss_num/loss_den
+    # Add an empty dimension to the denominator to make divide work
+    return np.divide(loss_num, loss_den[:, None])
 
 # Note: nll for now supports only a sigmoid output 
 # eps value suggested by sklearn log_loss implementation

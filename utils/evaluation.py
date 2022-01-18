@@ -4,6 +4,8 @@ from network import Network
 from optimizer import GradientDescent
 from utils.data_handler import DataHandler
 from utils.helpers import convert_ragged_mat_to_ma_array
+from functions.loss_funcs import loss_dict
+from functions.metric_funcs import metr_dict
 
 
 class ComboEvaluator:
@@ -268,10 +270,10 @@ def eval_dataset(net, data_handler, metric, training):
     data_y = data_handler.data_y
     net_pred = net.forward(data_x, training)
 
-    if metric.name in ["nll", "squared"]:
+    if metric.name in loss_dict:
         score = metric(data_y, net_pred, reduce_bool=True)
 
-    elif metric.name in ["miscl. error"]:
+    elif metric.name in metr_dict:
         # Note: it works only with classification
         net_pred[net_pred < 0.5] = 0
         net_pred[net_pred >= 0.5] = 1
