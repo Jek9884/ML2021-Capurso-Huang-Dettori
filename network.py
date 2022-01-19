@@ -49,7 +49,8 @@ class Network:
             bias_dict = {"identity": 0,
                          "sigm": 0.5,
                          "tanh": 0,
-                         "relu": 0.1}
+                         "relu": 0.1,
+                         "lrelu": 0.1}
 
             act_bias = [bias_dict[act_func.name]]*(len(conf_layers)-2)
             out_bias = bias_dict[out_func.name]

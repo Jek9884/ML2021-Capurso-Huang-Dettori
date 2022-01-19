@@ -45,7 +45,7 @@ identity_act_func = DerivableFunction(identity, identity_deriv, 'identity')
 sigm_act_func = DerivableFunction(sigm, sigm_deriv, 'sigm')
 tanh_act_func = DerivableFunction(tanh, tanh_deriv, 'tanh')
 relu_act_func = DerivableFunction(relu, relu_deriv, 'relu')
-lrelu_act_func = DerivableFunction(lrelu, lrelu_deriv, 'relu')
+lrelu_act_func = DerivableFunction(lrelu, lrelu_deriv, 'lrelu')
 
 act_dict = {
     'identity': identity_act_func,
