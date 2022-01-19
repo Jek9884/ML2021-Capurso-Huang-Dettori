@@ -33,14 +33,24 @@ def relu(x):
 def relu_deriv(x):
     return np.maximum(np.sign(x), 0)
 
+# Leaky relu
+def lrelu(x):
+    return np.where(x > 0, x, x * 0.01)
+
+def lrelu_deriv(x):
+    return np.where(x > 0, 1, 0.01)
+
 # Activation function dictionary
 identity_act_func = DerivableFunction(identity, identity_deriv, 'identity')
 sigm_act_func = DerivableFunction(sigm, sigm_deriv, 'sigm')
 tanh_act_func = DerivableFunction(tanh, tanh_deriv, 'tanh')
 relu_act_func = DerivableFunction(relu, relu_deriv, 'relu')
+lrelu_act_func = DerivableFunction(lrelu, lrelu_deriv, 'relu')
+
 act_dict = {
     'identity': identity_act_func,
     'sigm': sigm_act_func,
     'tanh': tanh_act_func,
-    'relu': relu_act_func
+    'relu': relu_act_func,
+    'lrelu': lrelu_act_func
 }
