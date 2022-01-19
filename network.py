@@ -27,7 +27,7 @@ class Network:
 
     def __init__(self, conf_layers, init_func=None, act_func=None, out_func=None,
                  loss_func=None, bias=None, init_scale=0, batch_norm=False, batch_momentum=0.99,
-                 debug_bool=False):
+                 dropout=False, dropout_in_rate=0.8, dropout_hid_rate=0.5, debug_bool=False):
 
         self.conf_layers = conf_layers
         self.init_func = init_func
@@ -36,8 +36,13 @@ class Network:
         self.loss_func = loss_func
         self.bias = bias
         self.layers = []
+
         self.batch_norm = batch_norm
         self.batch_momentum = batch_momentum
+
+        self.dropout = dropout
+        self.dropout_in_rate = dropout_in_rate
+        self.dropout_hid_rate = dropout_hid_rate
 
         self.debug_bool = debug_bool
 
@@ -56,19 +61,25 @@ class Network:
             out_bias = bias_dict[out_func.name]
             self.bias = [*act_bias, out_bias]
 
-        # layers init
-        for i in range(len(conf_layers) - 2):
-            self.layers.append(Layer(conf_layers[i + 1], conf_layers[i],
-                                     self.init_func, self.act_func,
-                                     self.bias[i], init_scale, self.batch_norm,
-                                     self.batch_momentum, debug_bool))
+        # Initialise layers
+        for i in range(0, len(conf_layers) - 1):
 
-        # init of output layer is handled at the network level to avoid numerical problems
-        self.layers.append(Layer(conf_layers[-1], conf_layers[-2],
-                                 self.init_func, self.out_func,
-                                 self.bias[-1], init_scale,
-                                 self.batch_norm, self.batch_momentum,
-                                 debug_bool))
+            # Defaults
+            act_func = self.act_func
+            dropout_rate = self.dropout_hid_rate
+
+            # Special cases
+            if i == 0:
+                dropout_rate = self.dropout_in_rate
+
+            if i == (len(conf_layers) - 2):
+                act_func = self.out_func
+
+            self.layers.append(Layer(conf_layers[i + 1], conf_layers[i],
+                                     self.init_func, act_func, self.bias[i],
+                                     init_scale, self.batch_norm,
+                                     self.batch_momentum, self.dropout,
+                                     dropout_rate, self.debug_bool))
 
     """
         Computes network forward pass
@@ -115,6 +126,7 @@ class Network:
             # nll returns the derivative w.r.t the input of non-linearity
             d_err_d_y = self.eval_deriv_loss(exp_out)
         else:
+            # Other losses return the derivative w.r.t the out of the net
             d_err_d_out = self.eval_deriv_loss(exp_out)
 
         # compute derivative of error w.r.t the i-th layer

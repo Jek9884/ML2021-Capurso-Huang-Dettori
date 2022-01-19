@@ -22,11 +22,15 @@ class Layer:
 
     # Network may not pass an act_func to the last layer
     def __init__(self, n_out, n_in, init_func=None, act_func=None, bias_init=None,
-                 init_scale=0, batch_norm=False, batch_momentum=0.99, debug_bool=False):
+                 init_scale=0, batch_norm=False, batch_momentum=0.99, dropout=False,
+                 dropout_rate=0.5, debug_bool=False):
 
-        self.n_in = n_in  # Number of units in previous layer
-        self.n_out = n_out  # Number of units in this layer
+        # Number of units in previous layer
+        self.n_in = n_in
+        # Number of units in this layer
+        self.n_out = n_out
 
+        # Initial value for bias
         self.bias_init = bias_init
 
         # Functions
@@ -40,7 +44,7 @@ class Layer:
         self.batch_gamma = None
         self.batch_beta = None
 
-        # Variables used to implement normal backpropagation
+        # Variables used to implement standard backpropagation
         self.grad_w = None
         self.grad_b = None
         self.net = None
@@ -59,18 +63,25 @@ class Layer:
         self.grad_gamma = None
         self.grad_beta = None
 
+        # Dropout hyper parameters
+        self.dropout = dropout
+        self.dropout_rate = dropout_rate
+
+        # Dropout mask matrix (unit id, input id)
+        self.dropout_mask = None
+
         # Last inputs given to the layer
         self.layer_in = None
 
         # Variable representing the input of the non-linearity
-        # net in case of normal backpropagation
-        # Batch normalisation transformed net otherwise
+        # net in the case of normal backpropagation
+        # The transformed net in case of Batch normalisation
         self.y = None
 
         # Variable used to keep track of the layer's non-linearity output
         self.out = None
 
-        # Variable used to print some debug information
+        # Variable used to decide to print debug information
         self.debug_bool = debug_bool
 
         self.reset_parameters()
@@ -90,12 +101,14 @@ class Layer:
             # Each row is composed of the weights of the unit
             self.weights = np.ones((self.n_out, self.n_in))
 
+        # Specify init scale in case of standard initialisation
         elif self.init_func.name == "std":
             self.weights = self.init_func((self.n_out, self.n_in), self.init_scale)
 
         else:
             self.weights = self.init_func((self.n_out, self.n_in))
 
+        # Default value for bias is a vector of 0, unless otherwise specified
         if self.bias_init is None:
             self.bias = np.zeros((self.n_out,))
         else:
@@ -120,17 +133,24 @@ class Layer:
     def forward(self, in_mat, training=False):
 
         self.layer_in = in_mat
+
+        if training and self.dropout:
+            self.dropout_mask = np.random.binomial(1, self.dropout_rate,
+                                                   size=self.layer_in.shape)
+            self.layer_in *= self.dropout_mask
+
         net_wo_bias = np.matmul(self.layer_in, np.transpose(self.weights))
         self.net = np.add(net_wo_bias, self.bias)
 
-        if self.batch_norm:
+        if training:
 
-            if training:
+            if self.batch_norm:
                 self.batch_mean = np.mean(self.net, axis=0)
                 self.batch_var = np.var(self.net, axis=0)
 
                 # Standardised net
-                self.net_hat = (self.net-self.batch_mean) / np.sqrt(self.batch_var+self.batch_eps)
+                self.net_hat = (self.net-self.batch_mean) / \
+                    np.sqrt(self.batch_var+self.batch_eps)
 
                 # Update moving stats for inference
                 self.moving_mean = self.moving_mean*self.batch_momentum +\
@@ -139,15 +159,24 @@ class Layer:
                 self.moving_var = self.moving_var*self.batch_momentum +\
                     (1-self.batch_momentum)*np.var(self.net, axis=0)
 
-            else:
-                # Note: moving stats break gradient checking
-                self.net_hat = (self.net-self.moving_mean) / np.sqrt(self.moving_var+self.batch_eps)
+                # Batch normalised net
+                self.y = self.batch_gamma*self.net_hat+self.batch_beta
 
-            # Batch normalised net
-            self.y = self.batch_gamma*self.net_hat+self.batch_beta
+            else:
+                self.y = self.net
 
         else:
-            self.y = self.net
+
+            if self.batch_norm:
+                # Note: moving stats break gradient checking
+                self.net_hat = (self.net-self.moving_mean) / \
+                    np.sqrt(self.moving_var+self.batch_eps)
+
+                # Batch normalised net
+                self.y = self.batch_gamma*self.net_hat+self.batch_beta
+
+            else:
+                self.y = self.net
 
         self.out = self.act_func(self.y)
 
