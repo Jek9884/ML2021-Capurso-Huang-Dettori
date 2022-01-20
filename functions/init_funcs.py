@@ -24,6 +24,13 @@ def norm_weight_init(shape):
 
     return init_matrix
 
+
+# He init (for linear rectifiers)
+def he_weight_init(shape):
+    init_matrix = np.random.normal(0, np.sqrt(2/shape[1]), size=shape)
+
+    return init_matrix
+
 # Weight initialisation dictionary
 std_init_func = Function(std_weight_init, "std")
 norm_init_func = Function(norm_weight_init, "norm")
