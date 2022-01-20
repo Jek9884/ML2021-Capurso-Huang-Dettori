@@ -31,10 +31,13 @@ def he_weight_init(shape):
 
     return init_matrix
 
+
 # Weight initialisation dictionary
 std_init_func = Function(std_weight_init, "std")
 norm_init_func = Function(norm_weight_init, "norm")
+he_init_func = Function(he_weight_init, "he")
 init_dict = {
     'std': std_init_func,
-    'norm': norm_init_func
+    'norm': norm_init_func,
+    'he': he_init_func
 }
