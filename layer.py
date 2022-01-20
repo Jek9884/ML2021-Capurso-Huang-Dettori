@@ -134,7 +134,9 @@ class Layer:
         if training and self.dropout:
             dropout_mask = np.random.binomial(1, self.dropout_rate,
                                               size=self.layer_in.shape)
-            self.layer_in = self.layer_in * dropout_mask
+            # Used to implement inverted dropout
+            dropout_scale = 1 / (1-self.dropout_rate)
+            self.layer_in = self.layer_in * dropout_mask * dropout_scale
 
         net_wo_bias = np.matmul(self.layer_in, np.transpose(self.weights))
         self.net = np.add(net_wo_bias, self.bias)
