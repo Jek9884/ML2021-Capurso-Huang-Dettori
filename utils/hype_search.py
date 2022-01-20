@@ -43,6 +43,7 @@ def grid_search(par_combo_net, par_combo_opt, tr_handler, metric, n_folds,
 
         combo_eval_list.append(c_ev)
 
+    # The chunk_size of 200 has been chosen empirically
     best_results = bruteforce_run(combo_eval_list, 200, metric, topk)
     best_stats = [res.last_results for res in best_results]
 
@@ -214,8 +215,7 @@ def generate_jobs(eval_list, step_epochs=None):
     job_list = []
 
     # In case of exception the garbage collector will remove the object
-    while eval_list:
-        ev = eval_list.pop()
+    for ev in eval_list:
         job_list.append(delayed(eval_combo_search)(ev, step_epochs))
 
     return job_list

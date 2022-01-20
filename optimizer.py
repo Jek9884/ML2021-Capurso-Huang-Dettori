@@ -206,6 +206,10 @@ class GradientDescent:
             layer.delta_w_old = delta_w
             layer.delta_b_old = delta_b
 
+            if layer.dropout:
+                layer.weights *= layer.dropout_rate
+                layer.bias *= layer.dropout_rate
+
             if layer.batch_norm:
                 layer.batch_gamma -= self.lr*layer.grad_gamma
                 layer.batch_beta -= self.lr*layer.grad_beta

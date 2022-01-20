@@ -67,9 +67,6 @@ class Layer:
         self.dropout = dropout
         self.dropout_rate = dropout_rate
 
-        # Dropout mask matrix (unit id, input id)
-        self.dropout_mask = None
-
         # Last inputs given to the layer
         self.layer_in = None
 
@@ -135,9 +132,9 @@ class Layer:
         self.layer_in = in_mat
 
         if training and self.dropout:
-            self.dropout_mask = np.random.binomial(1, self.dropout_rate,
-                                                   size=self.layer_in.shape)
-            self.layer_in *= self.dropout_mask
+            dropout_mask = np.random.binomial(1, self.dropout_rate,
+                                              size=self.layer_in.shape)
+            self.layer_in = self.layer_in * dropout_mask
 
         net_wo_bias = np.matmul(self.layer_in, np.transpose(self.weights))
         self.net = np.add(net_wo_bias, self.bias)
