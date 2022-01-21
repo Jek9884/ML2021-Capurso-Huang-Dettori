@@ -23,7 +23,7 @@ class Layer:
     # Network may not pass an act_func to the last layer
     def __init__(self, n_out, n_in, init_func=None, act_func=None, bias_init=None,
                  init_scale=0, batch_norm=False, batch_momentum=0.99, dropout=False,
-                 dropout_rate=0.5, debug_bool=False):
+                 dropout_keep=0.5, debug_bool=False):
 
         # Number of units in previous layer
         self.n_in = n_in
@@ -65,7 +65,7 @@ class Layer:
 
         # Dropout hyper parameters
         self.dropout = dropout
-        self.dropout_rate = dropout_rate
+        self.dropout_keep = dropout_keep
 
         # Last inputs given to the layer
         self.layer_in = None
@@ -132,10 +132,10 @@ class Layer:
         self.layer_in = in_mat
 
         if training and self.dropout:
-            dropout_mask = np.random.binomial(1, self.dropout_rate,
+            dropout_mask = np.random.binomial(1, self.dropout_keep,
                                               size=self.layer_in.shape)
             # Used to implement inverted dropout
-            dropout_scale = 1 / (1-self.dropout_rate)
+            dropout_scale = 1 / self.dropout_keep
             self.layer_in = self.layer_in * dropout_mask * dropout_scale
 
         net_wo_bias = np.matmul(self.layer_in, np.transpose(self.weights))
