@@ -1,7 +1,24 @@
 import numpy as np
 
+"""
+    DataHandler
+    
+    Idea: split data handling from optimizer, handy for batch norm inference
+    
+    Parameters:
+        -data_x: input patterns
+        -data_y: targets
+        
+    Attributes:
+        -avg_x: input features average across patterns 
+        -std_x: standard deviation of input features across patterns
+        -avg_y: input features average across targets
+        -std_y: standard deviation of input features across targets
+        -n_patterns: number of patterns
+        -index_list: list of patterns idx, used to avoid shuffling the dataset itself
+"""
 
-# Idea: split data handling from optimizer, handy for batch norm inference
+
 class DataHandler:
 
     def __init__(self, data_x, data_y):
@@ -50,10 +67,17 @@ class DataHandler:
         self.avg_y = None
         self.std_y = None
 
-    # enforce_size: guarantee that mini-batch will be of the requested size
+    """
+        Sample a minibatch list
+        
+        Parameters:
+            -batch_size: batch dimension
+            -enforce_size: guarantee that mini-batch will be of the requested size
+    """
+
     def get_minibatch_list(self, batch_size, enforce_size=False):
 
-        # Shortcut for full batch size
+        # shortcut for full batch size
         if batch_size == -1:
             batch_size = self.n_patterns
         elif batch_size < 1:
@@ -61,8 +85,8 @@ class DataHandler:
 
         n_batches = int(np.ceil(self.n_patterns / batch_size))
 
-        # Shuffle indexes of data for sampling
-        # This way the original data is not modified
+        # shuffle indexes of data for sampling
+        # this way the original data is not modified
         np.random.shuffle(self.index_list)
 
         batch_x_list = []
@@ -87,6 +111,15 @@ class DataHandler:
 
 
 # Utilities
+
+"""
+    Read the monk dataset. Returns a list of patterns and a list of targets
+    
+    Parameters:
+        -path: path of the monk dataset
+"""
+
+
 def read_monk(path):
     with open(path) as f:
         data = f.readlines()
@@ -111,6 +144,15 @@ def read_monk(path):
     return patterns, targets
 
 
+"""
+    Read the cup dataset. Returns a list of patterns and a list of targets
+    
+    Parameters:
+        -path: path of the cup dataset
+        -ts_set: boolean value indicating if the path refers to test or training set
+"""
+
+
 def read_cup(path, ts_set=False):
     with open(path) as f:
         data = f.readlines()
@@ -132,6 +174,14 @@ def read_cup(path, ts_set=False):
     targets = np.array(targets, dtype=float)
 
     return patterns, targets
+
+
+"""
+    Apply one-hot encoding to the input patterns. Returns the encoded patterns 
+    
+    Parameters:
+        -patterns: input patterns to encode
+"""
 
 
 def one_hot_encode(patterns):

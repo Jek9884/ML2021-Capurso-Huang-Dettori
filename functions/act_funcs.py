@@ -1,5 +1,6 @@
 import numpy as np
-from functions.function import Function, DerivableFunction
+from functions.function import DerivableFunction
+
 
 # Activation functions
 def identity(x):
@@ -30,15 +31,19 @@ def tanh_deriv(x):
 def relu(x):
     return np.maximum(x, 0)
 
+
 def relu_deriv(x):
     return np.maximum(np.sign(x), 0)
+
 
 # Leaky relu
 def lrelu(x):
     return np.where(x > 0, x, x * 0.01)
 
+
 def lrelu_deriv(x):
     return np.where(x > 0, 1, 0.01)
+
 
 # Activation function dictionary
 identity_act_func = DerivableFunction(identity, identity_deriv, 'identity')

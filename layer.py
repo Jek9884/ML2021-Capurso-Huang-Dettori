@@ -1,36 +1,55 @@
 import numpy as np
 
 """
-Layer class
-
-Parameters:
-    -n_out: number of units of the layer
-    -n_in: number of input weights
-    -init_func: weights init function
-    -act_func: activation function object (DerivableFunction)
-    -bias: starting value for bias
-    -debug_bool: print debug information from the layer
-
-Attributes:
-    -grad: gradient of error w.r.t. weights of the layer
-    -layer_in: input value for the layer (vector)
-    -net: Dot product btw weights (matrix) and input (vector)
+    Layer class
+    
+    Parameters:
+        -n_out: number of units of the layer
+        -n_in: number of inputs to the layer
+        -init_func: weights init function
+        -act_func: activation function object (DerivableFunction)
+        -bias_init: bias initialization value
+        -init_scale: scale of uniform distribution in std weight init
+        -batch_norm: boolean for batch normalization activation
+        -batch_momentum: momentum value for the moving avg of batch normalization (testing mode)
+        -dropout: boolean for dropout activation
+        -dropout_keep: probability of keeping a unit
+        -debug_bool: print debug information from the layer
+    
+    Attributes:
+        -weights: matrix of weights of the layer (excluding bias)
+        -bias: bias vector of the layer
+        -batch_gamma: vector of gamma values for batch normalization
+        -batch_beta: vector of beta values for batch normalization
+        -grad_w: gradient of error w.r.t. weights
+        -grad_b: gradient of error w.r.t. bias
+        -net: dot product btw weights matrix and input matrix
+        -delta_w_old: difference between current and previous weights (for momentum)
+        -delta_b_old: difference between current and previous bias (for momentum)
+        -batch_mean: vector of means of units w.r.t. the patterns (batch normalization training) 
+        -batch_var: vector of variance of units w.r.t. the patterns (batch normalization training)
+        -moving_mean: vector of moving avg of means of units (batch normalization inference)
+        -moving_var: vector of moving avg of variance of units (batch normalization inference)
+        -net_hat: standardized net (batch normalization)
+        -batch_eps: constant used for stability of batch normalization (avoid dividing by 0)
+        -grad_gamma: gradient of error w.r.t. batch_gamma
+        -grad_beta: gradient of error w.r.t. batch_beta
+        -layer_in: input value for the layer (vector)
+        -y: Variable representing the input of the non-linearity: 
+                -net in the case of normal backpropagation
+                -the transformed net in case of batch normalisation
+        -out: output of the layer's non-linearity
 """
 
 
 class Layer:
 
-    # Network may not pass an act_func to the last layer
     def __init__(self, n_out, n_in, init_func=None, act_func=None, bias_init=None,
                  init_scale=0, batch_norm=False, batch_momentum=0.99, dropout=False,
                  dropout_keep=0.5, debug_bool=False):
 
-        # Number of units in previous layer
         self.n_in = n_in
-        # Number of units in this layer
         self.n_out = n_out
-
-        # Initial value for bias
         self.bias_init = bias_init
 
         # Functions
@@ -38,7 +57,7 @@ class Layer:
         self.init_func = init_func
         self.init_scale = init_scale
 
-        # Parameters
+        # Layer parameters
         self.weights = None
         self.bias = None
         self.batch_gamma = None
@@ -48,6 +67,8 @@ class Layer:
         self.grad_w = None
         self.grad_b = None
         self.net = None
+        self.delta_w_old = None
+        self.delta_b_old = None
 
         # Variables used to perform batch normalisation
         self.batch_norm = batch_norm
@@ -67,18 +88,12 @@ class Layer:
         self.dropout = dropout
         self.dropout_keep = dropout_keep
 
-        # Last inputs given to the layer
         self.layer_in = None
 
-        # Variable representing the input of the non-linearity
-        # net in the case of normal backpropagation
-        # The transformed net in case of Batch normalisation
         self.y = None
 
-        # Variable used to keep track of the layer's non-linearity output
         self.out = None
 
-        # Variable used to decide to print debug information
         self.debug_bool = debug_bool
 
         self.reset_parameters()
@@ -86,7 +101,7 @@ class Layer:
     '''
         Reset the parameters of the layer
 
-        Used instead of generating a new network
+        Used instead of generating a new layer
     '''
     def reset_parameters(self):
 
@@ -117,20 +132,19 @@ class Layer:
         self.null_grad()
 
     """
-        Computes layer forward pass
+        Computes layer forward pass. Returns matrix of layer's outputs
 
         Parameters:
             -in_mat: matrix of input data
-            -training: determines if used for inference or training
-
-        Returns:
-            -matrix of layer's outputs
+            -training:  boolean used to distinguish between training and inference mode for 
+                batch_norm and dropout purposes
     """
 
     def forward(self, in_mat, training=False):
 
         self.layer_in = in_mat
 
+        # dropout implementation
         if training and self.dropout:
             dropout_mask = np.random.binomial(1, self.dropout_keep,
                                               size=self.layer_in.shape)
@@ -143,22 +157,23 @@ class Layer:
 
         if training:
 
+            # batch normalization implementation
             if self.batch_norm:
                 self.batch_mean = np.mean(self.net, axis=0)
                 self.batch_var = np.var(self.net, axis=0)
 
-                # Standardised net
+                # standardised net
                 self.net_hat = (self.net-self.batch_mean) / \
                     np.sqrt(self.batch_var+self.batch_eps)
 
-                # Update moving stats for inference
+                # update moving stats for inference
                 self.moving_mean = self.moving_mean*self.batch_momentum +\
                     (1-self.batch_momentum)*np.mean(self.net, axis=0)
 
                 self.moving_var = self.moving_var*self.batch_momentum +\
                     (1-self.batch_momentum)*np.var(self.net, axis=0)
 
-                # Batch normalised net
+                # batch normalised net
                 self.y = self.batch_gamma*self.net_hat+self.batch_beta
 
             else:
@@ -167,11 +182,11 @@ class Layer:
         else:
 
             if self.batch_norm:
-                # Note: moving stats break gradient checking
+                # note: moving stats break gradient checking
                 self.net_hat = (self.net-self.moving_mean) / \
                     np.sqrt(self.moving_var+self.batch_eps)
 
-                # Batch normalised net
+                # batch normalised net
                 self.y = self.batch_gamma*self.net_hat+self.batch_beta
 
             else:
@@ -182,13 +197,11 @@ class Layer:
         return self.out
 
     """
-        Computes layer backward
+        Computes layer backward. Returns derivative of error w.r.t. the output of the next 
+        (w.r.t. backward order) layer for next layer's backward
 
         Parameters:
             -d_err_d_y: derivative of error w.r.t. the input of the non-linearity (delta)
-
-        Returns:
-            -deriv_err for next layer's backward
     """
 
     def backward(self, d_err_d_y):
@@ -199,8 +212,8 @@ class Layer:
             inv_sqrt_var = 1/np.sqrt(self.batch_var+self.batch_eps)
             batch_size = self.net.shape[0]
 
-            self.grad_gamma = np.sum(d_err_d_y*self.net_hat, axis=0)  # Scalar output
-            self.grad_beta = np.sum(d_err_d_y, axis=0)  # Scalar output
+            self.grad_gamma = np.sum(d_err_d_y*self.net_hat, axis=0)  # scalar output
+            self.grad_beta = np.sum(d_err_d_y, axis=0)  # scalar output
 
             d_err_d_net_hat = d_err_d_y * self.batch_gamma
 
@@ -220,7 +233,7 @@ class Layer:
         self.grad_w = np.dot(np.transpose(d_err_d_net), self.layer_in)
         self.grad_b = np.sum(d_err_d_net, axis=0)
 
-        # Take the average of the gradients across patterns
+        # take the average of the gradients across patterns
         num_patt = len(self.layer_in)
         self.grad_w = np.divide(self.grad_w, num_patt)
         self.grad_b = np.divide(self.grad_b, num_patt)

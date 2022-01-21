@@ -1,27 +1,28 @@
-import numpy as np
 from layer import Layer
-from functions.act_funcs import identity_act_func
-from functools import partial
 
 """
-
-Network class
-
-Parameters:
-    -conf_layers: vector containing for each position the corresponding number of units in that layer.
-            The first position contains the size of the input vectors.
-    -init_func: weights init function
-    -act_func: activation function object (DerivableFunction)
-    -out_func: output function object (DerivableFunction)
-    -loss_func: loss function object (DerivableFunction)
-    -bias: vector containing the starting values for each layer's bias
-    -debug_bool: print debug information from network and layers
-
-Attributes:
-    -out: Output vector of network
-    -layers: list of network's layers objects
-
+    Network class
+    
+    Parameters:
+        -conf_layers: vector containing for each position the corresponding number of units in that layer.
+                The first position contains the size of the input vectors.
+        -init_func: weights init function
+        -act_func: activation function object (DerivableFunction)
+        -out_func: output function object (DerivableFunction)
+        -loss_func: loss function object (DerivableFunction)
+        -bias: vector containing the starting values for each layer's bias
+        -init_scale: scale of uniform distribution in std weight init
+        -batch_norm: boolean for batch normalization activation
+        -batch_momentum: momentum value for the moving avg of batch normalization (inference mode)
+        -dropout: boolean for dropout activation
+        -dropout_in_keep: probability of keeping an input unit
+        -dropout_hid_keep: probability of keeping an hidden unit
+        -debug_bool: print debug information from network and layers
+    
+    Attributes:
+        -layers: list of network's layers objects
 """
+
 
 class Network:
 
@@ -49,7 +50,7 @@ class Network:
         if out_func.name != "sigm" and loss_func.name == "nll":
             raise ValueError("Network: {out_func.name}/nll combination not supported")
 
-        if 0>dropout_in_keep>1 or 0>dropout_hid_keep>1:
+        if 0 > dropout_in_keep > 1 or 0 > dropout_hid_keep > 1:
             raise ValueError("Network: invalid values for dropout probabilities")
 
         if self.bias is None:
@@ -60,7 +61,7 @@ class Network:
                          "relu": 0.1,
                          "lrelu": 0.1}
 
-            act_bias = [bias_dict[act_func.name]]*(len(conf_layers)-2)
+            act_bias = [bias_dict[act_func.name]] * (len(conf_layers) - 2)
             out_bias = bias_dict[out_func.name]
             self.bias = [*act_bias, out_bias]
 
@@ -85,13 +86,12 @@ class Network:
                                      dropout_keep, self.debug_bool))
 
     """
-        Computes network forward pass
+        Computes network forward pass. Returns matrix of network's outputs
 
         Parameters:
             -in_mat: matrix of input data
-
-        Returns:
-            -matrix of network's outputs
+            -training: boolean used to distinguish between training and inference mode for 
+                batch_norm and dropout purposes
     """
 
     def forward(self, in_mat, training=False):
@@ -99,17 +99,14 @@ class Network:
         fw_mat = in_mat
 
         for i, layer in enumerate(self.layers):
-
             fw_mat = layer.forward(fw_mat, training)
 
         return fw_mat
-
 
     """
         Computes network backward
 
         Parameters:
-            -cur_out: matrix of forward results
             -exp_out: matrix of expected results
     """
 
@@ -123,6 +120,7 @@ class Network:
             print("\tDeriv Loss: ", self.eval_deriv_loss(exp_out))
             print()
 
+        # Derivative of the error w.r.t. output of the net/layer
         d_err_d_y = None
 
         if self.loss_func.name == "nll":
@@ -138,12 +136,19 @@ class Network:
             layer = self.layers[i]
 
             if d_err_d_y is None:
-                d_err_d_y = d_err_d_out*layer.act_func.deriv(layer.y)
+                d_err_d_y = d_err_d_out * layer.act_func.deriv(layer.y)
 
             d_err_d_out = layer.backward(d_err_d_y)
 
             d_err_d_y = None
 
+    """
+        Evaluate loss function
+        
+        Parameters:
+            -exp_out: expected results
+            -reduce_bool: boolean to return the reduction (avg) of the loss func result
+    """
 
     def eval_loss(self, exp_out, reduce_bool=False):
 
@@ -151,6 +156,12 @@ class Network:
 
         return res
 
+    """    
+        Evaluate derivative of loss function
+    
+        Parameter:
+            -exp_out: expected results
+    """
 
     def eval_deriv_loss(self, exp_out):
 
@@ -158,10 +169,10 @@ class Network:
 
         return res
 
+    '''
+        Reset network parameters dependant on training/set on initialization
+    '''
 
-    '''
-        Reset network parameters dependent on training
-    '''
     def reset_parameters(self):
 
         for layer in self.layers:

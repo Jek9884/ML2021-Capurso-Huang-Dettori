@@ -1,10 +1,23 @@
 import numpy as np
 from functions.function import Function
 
-# Hp: all outputs must be numpy.ndarray
+"""
+    Metric functions
+    
+    Assumptions:
+        -all outputs must be numpy.ndarray
+"""
+
+"""
+    Compute the binary confusion matrix. Returns the values of confusion matrix (TP,TN,FP,FN)
+    
+    Parameters:
+        -exp_vec: vector of expected results
+        -pred_vec: vector of predicted results
+"""
+
 
 def compute_confusion_matrix_bin(exp_vec, pred_vec):
-
     exp_vec = np.asarray(exp_vec)
     pred_vec = np.asarray(pred_vec)
     len_ex = exp_vec.shape[0]
@@ -27,27 +40,47 @@ def compute_confusion_matrix_bin(exp_vec, pred_vec):
 
     return tp, tn, fp, fn
 
-def accuracy(exp_mat, pred_mat):
 
+"""
+    Accuracy metric
+"""
+
+
+def accuracy(exp_mat, pred_mat):
     tp, tn, fp, fn = compute_confusion_matrix_bin(exp_mat, pred_mat)
 
-    return np.array((tp+tn)/(tp+tn+fp+fn), ndmin=1)
+    return np.array((tp + tn) / (tp + tn + fp + fn), ndmin=1)
+
+
+"""
+    Misclassification error
+"""
+
 
 def miscl_error(exp_mat, pred_mat):
-
     return np.array(1 - accuracy(exp_mat, pred_mat), ndmin=1)
 
-def precision(exp_mat, pred_mat):
 
+"""
+    Precision metric
+"""
+
+
+def precision(exp_mat, pred_mat):
     tp, tn, fp, fn = compute_confusion_matrix_bin(exp_mat, pred_mat)
 
-    return np.array(tp/(tp+fp), ndmin=1)
+    return np.array(tp / (tp + fp), ndmin=1)
+
+
+"""
+    Recall metrix
+"""
+
 
 def recall(exp_mat, pred_mat):
-
     tp, tn, fp, fn = compute_confusion_matrix_bin(exp_mat, pred_mat)
 
-    return np.array(tp/(tp+fn), ndmin=1)
+    return np.array(tp / (tp + fn), ndmin=1)
 
 
 # Metric function dictionary

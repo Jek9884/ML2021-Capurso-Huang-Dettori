@@ -3,9 +3,27 @@ import numpy as np
 from network import Network
 from optimizer import GradientDescent
 from utils.data_handler import DataHandler
-from utils.helpers import convert_ragged_mat_to_ma_array
 from functions.loss_funcs import loss_dict
 from functions.metric_funcs import metr_dict
+
+"""
+    ComboEvaluator
+    
+    Parameters:
+        -combo_net: combo of hyperparameters for network
+        -combo_opt: combo of hyperparameters for the optimizer
+        -tr_handler: object containing both train_x and train_y (instance of DataHandler)
+        -metric: metric used to evaluate combo
+        -val_handler: object containing both valid_x and valid_y (instance of DataHandler) 
+        -n_folds: k value for the k-fold validation
+        -n_runs: number of runs to perform
+        -plotter: object that handles models plots
+        
+    Attributes:
+        -cv_list: list of cross-validation tasks to run
+        -tr_complete: boolean specifying if the training is complete
+        -last_results: dictionary of last results computed
+"""
 
 
 class ComboEvaluator:
@@ -22,16 +40,15 @@ class ComboEvaluator:
         self.n_runs = n_runs
         self.plotter = plotter
 
-        # List of cross-validation "instances" to run
         self.cv_list = []
 
         self.tr_complete = False
-        # Dictionary of last results computed
+
         self.last_results = None
 
         for i in range(self.n_runs):
 
-            # Use kfold cv
+            # use kfold cv
             if self.n_folds > 0:
 
                 kfold_cv = KFoldCV(self.combo_net, self.combo_opt,
@@ -40,7 +57,7 @@ class ComboEvaluator:
 
                 self.cv_list.append(kfold_cv)
 
-            # Use a train-test split cv
+            # use a train-test split cv
             elif self.val_handler is not None:
 
                 tr_ts_cv = ModelEvaluator(self.combo_net, self.combo_opt,
@@ -50,7 +67,7 @@ class ComboEvaluator:
 
                 self.cv_list.append(tr_ts_cv)
 
-            # Evaluate model on only the training set
+            # evaluate model on only the training set
             else:
 
                 tr_eval = ModelEvaluator(self.combo_net, self.combo_opt,
@@ -59,21 +76,28 @@ class ComboEvaluator:
 
                 self.cv_list.append(tr_eval)
 
+    """
+        Evaluate the cross validation tasks. Returns the results of the evaluation
+        
+        Parameters:
+            -step_epochs: number of epochs for which to run cross-validation tasks
+    """
+
     def eval(self, step_epochs=None):
 
-        # If all models have been trained don't go further
+        # if all models have been trained don't go further
         if self.tr_complete:
             return self.last_results
 
-        # Lists of results used to compute last step stats
-        # Can contain either a matrix of k-fold runs (row: kfold run, column: fold)
+        # lists of results used to compute last step stats
+        # can contain either a matrix of k-fold runs (row: kfold run, column: fold)
         # or a matrix of single model scores (row: different run, column: single score)
         tr_score_mat = []
         val_score_mat = []
         epoch_list = []
         age_list = []
 
-        # Keep track of all the models training
+        # keep track of all the models training
         tr_status_list = []
 
         for cv_eval in self.cv_list:
@@ -100,7 +124,7 @@ class ComboEvaluator:
         tr_score_stats = compute_stats(tr_score_mat)
         val_score_stats = None
 
-        # List not empty
+        # list not empty
         if val_score_mat:
             val_score_stats = compute_stats(val_score_mat)
 
@@ -120,8 +144,27 @@ class ComboEvaluator:
 
         return self.last_results
 
-# Note: kfold returns a list of scores, one for each model/fold
-# that needs to be handled by the "layer" above
+
+"""
+    KFoldCV
+    
+
+    
+    Parameters:
+        -combo_net: combo of hyperparameters for the network
+        -combo_opt: combo of hyperparameters for the optimizer
+        -data_handler: object containing both inputs and targets (instance of DataHandler)
+        -metric: metric function used to evaluate the performance of a model
+        -n_folds: k value for the k-fold validation
+        -plotter: object that handles models plots
+        -run_id: id used to identify a specific run (used for Plotter)
+        
+    Attributes:
+        -tr_complete: boolean specifying if the training is complete
+        -model_list: list of models of kfold, one per fold
+"""
+
+
 class KFoldCV:
 
     def __init__(self, combo_net, combo_opt, data_handler, metric,
@@ -137,13 +180,13 @@ class KFoldCV:
         if self.n_folds < 1:
             raise ValueError("KFoldCV: invalid number of folds")
 
-        # Indicates if all the models have been trained
+        # indicates if all the models have been trained
         self.tr_complete = False
 
-        # One model per fold
+        # one model per fold
         self.model_list = []
 
-        # Init folds_list with all models
+        # init folds_list with all models
         x_mat = data_handler.data_x
         y_mat = data_handler.data_y
 
@@ -156,7 +199,7 @@ class KFoldCV:
         np.random.shuffle(pattern_idx)
 
         for i in range(n_folds):
-            # Everything except i*fold_size:(i+1)*fold_size segment
+            # everything except i*fold_size:(i+1)*fold_size segment
             train_idx = np.concatenate(
                 (pattern_idx[:i * fold_size],
                  pattern_idx[(i + 1) * fold_size:]), axis=0)
@@ -178,6 +221,13 @@ class KFoldCV:
 
             self.model_list.append(model)
 
+    """
+        Evaluate the kfold task. Returns a list of scores, one for each model/fold needs to be further handled
+        
+        Parameters:
+            -step_epochs: number of epochs for which to run cross-validation tasks
+    """
+
     def eval(self, step_epochs=None):
 
         tr_score_list = []
@@ -187,7 +237,6 @@ class KFoldCV:
         tr_status_list = []
 
         for model in self.model_list:
-
             tr_score, val_score, n_epochs, age, tr_status = \
                 model.eval(step_epochs)
 
@@ -202,6 +251,25 @@ class KFoldCV:
         self.tr_complete = np.all(tr_status_list)
 
         return tr_score_list, val_score_list, avg_epochs, avg_age, self.tr_complete
+
+
+"""
+    ModelEvaluator
+    
+    
+    Parameters:
+        -combo_net: combo of hyperparameters for the network
+        -combo_opt: combo of hyperparameters for the optimizer
+        -tr_handler: object containing both train_x and train_y (instance of DataHandler)
+        -metric: metric used to evaluate combo
+        -val_handler: object containing both valid_x and valid_y (instance of DataHandler) 
+        -plotter: object that handles models plots
+        -model_id: id used to identify a specific model/plotline (used for Plotter)
+        
+    Attributes:
+        -tr_complete: boolean specifying if the training is complete
+        -model_list: list of models of kfold, one per fold
+"""
 
 
 class ModelEvaluator:
@@ -223,10 +291,17 @@ class ModelEvaluator:
 
         self.tr_complete = False
 
+    """
+        Evaluate a single model. Returns the results of the evaluation
+
+        Parameters:
+            -step_epochs: number of epochs for which to run the model
+    """
+
     def eval(self, step_epochs=None):
 
         if step_epochs is None:
-            # Guard value
+            # guard value
             step_epochs = np.inf
 
         if self.plotter is not None:
@@ -234,24 +309,22 @@ class ModelEvaluator:
 
         step_count = 0
 
-        # Stop if training complete or the number of epochs specified 
-        # has been reached
+        # stop if training complete or the number of epochs specified has been reached
         while not self.tr_complete and step_count < step_epochs:
 
-            # Train 1 epoch at a time to plot the evolution of the lr curve
+            # train 1 epoch at a time to plot the evolution of the lr curve
             self.tr_complete = self.opt.train(self.net, self.tr_handler,
                                               step_epochs=1, plotter=self.plotter)
 
-            # Evaluate tr set as if using the trained model
+            # evaluate tr set as if using the trained model
             self.tr_score = eval_dataset(self.net, self.tr_handler, self.metric, False)
 
-            # Check if the validation set is given as input
+            # check if the validation set is given as input
             if self.val_handler is not None:
 
                 self.val_score = eval_dataset(self.net, self.val_handler, self.metric, False)
 
                 if self.plotter is not None:
-
                     data_x = self.val_handler.data_x
                     data_y = self.val_handler.data_y
 
@@ -259,14 +332,24 @@ class ModelEvaluator:
                                                         data_y, "val")
             step_count += 1
 
-        return self.tr_score, self.val_score,\
-            self.opt.epoch_count, self.opt.age_count,\
-            self.tr_complete
+        return self.tr_score, self.val_score, \
+               self.opt.epoch_count, self.opt.age_count, \
+               self.tr_complete
 
 
 # Hp: all outputs from metric must be arrays
-def eval_dataset(net, data_handler, metric, training):
+"""
+    Evaluate the given dataset. Returns the score of the evaluation
+    
+    Parameters:
+        -net: network used to evaluate
+        -data_handler: object containing both inputs and targets (instance of DataHandler)
+        -metric: metric used to evaluate combo
+        -training: boolean specifying if the network is in training or inference mode
+"""
 
+
+def eval_dataset(net, data_handler, metric, training):
     data_x = data_handler.data_x
     data_y = data_handler.data_y
     net_pred = net.forward(data_x, training)
@@ -286,10 +369,16 @@ def eval_dataset(net, data_handler, metric, training):
     return score
 
 
-# Take stats wrt runs
-def compute_stats(score_list):
+"""
+    Compute stats of the predictions across runs. Returns a dictionary of stats
+    
+    Parameters:
+        -score_list: list of scores to compute stats from
+"""
 
-    # Take the stats across all the models trained
+
+def compute_stats(score_list):
+    # take the stats across all the models trained
     avg = np.average(score_list)
     std = np.std(score_list)
     perc_25 = np.percentile(score_list, 25)

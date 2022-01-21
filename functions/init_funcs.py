@@ -1,11 +1,20 @@
 import numpy as np
-from functions.function import Function, DerivableFunction
+from functions.function import Function
+
+# weight initialisation functions (layer-wise, assume a shape (unit, feature))
+
+"""
+    Standard initialization of weights matrix
+    
+    Parameters:
+        -shape: shape of the weights matrix
+        -scale: width of the uniform distribution
+"""
 
 
-# Weight initialisation functions (layer-wise, assume a shape (unit, feature))
 def std_weight_init(shape, scale=0):
 
-    # Defaults to number of nodes in layer as scale for uniform distr
+    # defaults to number of nodes in layer as scale for uniform distr
     if scale == 0:
         scale = shape[1]
 
@@ -16,7 +25,11 @@ def std_weight_init(shape, scale=0):
     return init_matrix
 
 
-# Xavier init
+"""
+    Xavier init
+"""
+
+
 def norm_weight_init(shape):
     init_matrix = np.random.uniform(low=-np.sqrt(6 / (shape[0] + shape[1])),
                                     high=np.sqrt(6 / (shape[0] + shape[1])),
@@ -25,9 +38,13 @@ def norm_weight_init(shape):
     return init_matrix
 
 
-# He init (for linear rectifiers)
+"""
+    He init (for linear rectifiers)    
+"""
+
+
 def he_weight_init(shape):
-    init_matrix = np.random.normal(0, np.sqrt(2/shape[1]), size=shape)
+    init_matrix = np.random.normal(0, np.sqrt(2 / shape[1]), size=shape)
 
     return init_matrix
 

@@ -1,6 +1,17 @@
 import numpy as np
 import os
 
+"""
+    Split the cup dataset in a reproducible way
+    
+    Parameters:
+        -in_path: path of the cup dataset
+        -out_tr_path: path where to save the training set
+        -out_ts_path: path where to save the test set
+        -tr_ratio: ratio of data to use for training 
+"""
+
+
 def cup_split(in_path, out_tr_path, out_ts_path, tr_ratio):
     seed = 42
     rng = np.random.default_rng(seed)
@@ -33,7 +44,7 @@ def cup_split(in_path, out_tr_path, out_ts_path, tr_ratio):
 
 
 cup_path = os.path.join('.', 'ML-CUP21-TR.csv')
-out_tr_path = os.path.join('.', 'cup_tr.csv')
-out_ts_path = os.path.join('.', 'cup_ts.csv')
+tr_path = os.path.join('.', 'cup_tr.csv')
+ts_path = os.path.join('.', 'cup_ts.csv')
 
-cup_split(cup_path, out_tr_path, out_ts_path, 0.8)
+cup_split(cup_path, tr_path, ts_path, 0.8)
