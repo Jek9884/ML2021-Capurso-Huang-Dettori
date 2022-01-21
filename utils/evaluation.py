@@ -242,7 +242,8 @@ class ModelEvaluator:
             self.tr_complete = self.opt.train(self.net, self.tr_handler,
                                               step_epochs=1, plotter=self.plotter)
 
-            self.tr_score = eval_dataset(self.net, self.tr_handler, self.metric, True)
+            # Evaluate tr set as if using the trained model
+            self.tr_score = eval_dataset(self.net, self.tr_handler, self.metric, False)
 
             # Check if the validation set is given as input
             if self.val_handler is not None:
