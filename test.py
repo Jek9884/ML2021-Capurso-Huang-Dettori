@@ -283,22 +283,22 @@ def test_monk2():
         'act_func': act_dict["tanh"],
         'out_func': act_dict["sigm"],
         'loss_func': loss_dict["nll"],
-        'init_scale': 10
+        'init_scale': 7
     }
 
     dict_param_sgd = {
-        'lr': 0.6,
-        'batch_size': 15,
-        'reg_val': 0.00001,
-        'momentum_val': 0.7,
-        'nesterov': True,
+        'lr': 0.2,
+        'batch_size': 8,
+        'reg_val': 0.0001,
+        'momentum_val': 0.001,
+        'nesterov': False,
         'lr_decay_type': "lin",
         'lr_dec_exp_k': 0.1,
-        'lr_dec_lin_tau': 80,
+        'lr_dec_lin_tau': 1000,
         'stop_crit_type': 'delta_w',
-        'epsilon': 0.02,
-        'patient': 5,
-        'lim_epochs': 200
+        'epsilon': 0.0005,
+        'patient': 10,
+        'lim_epochs': 500
     }
 
     dict_param_net_grid = {
@@ -326,24 +326,23 @@ def test_monk2():
         'patient': [10]
     }
 
-    plotter_m2 = Plotter(["lr_curve", "log_lr_curve", "lr", "act_val",
-                          "grad_norm", "delta_weights", "log_delta_weights"],
+    plotter_m2 = Plotter(["lr_curve", "lr", "act_val", "grad_norm", "log_delta_weights"],
                          [loss_dict["nll"], metr_dict["miscl. error"]], 2)
 
-    results = hyperband_search(dict_param_net_grid, dict_param_sgd_grid,
-                               train_handler, metr_dict["miscl. error"],
-                               n_folds=5, n_runs=3, plotter=plotter_m2, topk=50,
-                               hb_r=5)
-    path = os.path.join('.', 'results', 'monk2')
-    save_search_results(path, results, dict_param_net_grid, dict_param_sgd_grid)
+#    results = hyperband_search(dict_param_net_grid, dict_param_sgd_grid,
+#                               train_handler, metr_dict["miscl. error"],
+#                               n_folds=5, n_runs=3, plotter=plotter_m2, topk=50,
+#                               hb_r=5000)
+#    path = os.path.join('.', 'results', 'monk2')
+#    save_search_results(path, results, dict_param_net_grid, dict_param_sgd_grid)
 
-#    evaluator = ComboEvaluator(dict_param_net, dict_param_sgd, train_handler,
-#                               metr_dict["miscl. error"], n_folds=5, n_runs=30,
-#                               plotter=plotter_m2)
-#    res = evaluator.eval()
-#    plotter_m2.plot()
+    evaluator = ComboEvaluator(dict_param_net, dict_param_sgd, train_handler,
+                               metr_dict["miscl. error"], n_folds=5, n_runs=3,
+                               plotter=plotter_m2)
+    res = evaluator.eval()
+    plotter_m2.plot()
 
-#    return res['score_tr'], res['score_val'], res["epochs"], res["age"]
+    return res['score_tr'], res['score_val'], res["epochs"], res["age"]
 
 
 def test_monk3():
@@ -497,7 +496,8 @@ def test_cup():
     # Try max-norm
     # DENORMALISE TARGETS AFTER!
 
-    plotter_cup = Plotter(["log_lr_curve", "lr", "act_val", "grad_norm", "delta_weights"],
+    plotter_cup = Plotter(["lr_curve", "log_lr_curve", "lr", "act_val",
+                           "grad_norm", "log_delta_weights"],
                           [loss_dict["euclidean"]], 2)
 
     results = hyperband_search(dict_param_net_grid, dict_param_sgd_grid,
@@ -534,13 +534,13 @@ def test_cup():
 #print(f"Monk 1 error: {monk1_res}")
 
 # Tests on monk2
-monk2_res = test_monk2()
-print(f"Monk 2 error: {monk2_res}")
+#monk2_res = test_monk2()
+#print(f"Monk 2 error: {monk2_res}")
 
 # Tests on monk3
 #monk3_res = test_monk3()
 #print(f"Monk 3 error: {monk3_res}")
 
 # Tests on cup
-#cup_res = test_cup()
-#print(f"Cup error: {cup_res}")
+cup_res = test_cup()
+print(f"Cup error: {cup_res}")

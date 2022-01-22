@@ -15,10 +15,11 @@ from functions.metric_funcs import metr_dict
         -type_plots: list of types of plots to create
             Values:
                 -lr_curve: plot the learning curve
-                -log_lr_curve: plot the learning curve in logarithmic scale
+                -log_lr_curve: plot the learning curve in log scale
                 -lr: plot the values of lr across time
                 -grad_norm: plot the norm of the gradient per layer
                 -delta_weights: plot the norm of the changing weights per layer 
+                -log_delta_weights: plot the norm of the changing weights per layer in log scale
                 -act_val: values of activation function per layer
                 
         -lr_metric_list: list of metric functions to generate the lr curve
@@ -30,6 +31,7 @@ from functions.metric_funcs import metr_dict
         -active_plt: id of currently selected plot/model to update
         -results_dict: tree of dictionaries containing the requested plots
         -param_dict: dictionary containing relevant constants
+        -data_labels: list of labels of datasets used to evaluate net
 """
 
 
@@ -38,7 +40,8 @@ class Plotter:
     def __init__(self, type_plots=None, lr_metric_list=None, n_cols=1):
 
         if type_plots is None:
-            raise ValueError("type_plots must differ from None value")
+            raise ValueError("plotter: type_plots must differ from None value")
+
         self.lr_metric_list = lr_metric_list
         self.type_plots = type_plots
         self.n_cols = n_cols
@@ -53,8 +56,10 @@ class Plotter:
 
         self.param_dict = {}
 
+        self.data_labels = []
+
         if "lr_curve" in self.type_plots and self.lr_metric_list is None:
-            raise ValueError("To print the learning curve a metric is needed")
+            raise ValueError("plotter: to print the learning curve a metric is needed")
 
     """
         Add to results_dict the requested plots
@@ -68,18 +73,16 @@ class Plotter:
 
     def add_plot_datapoint(self, network, optimizer, data_x, data_y):
 
-        for plt_type in self.type_plots:
-
-            if plt_type == "lr_curve" or plt_type == "log_lr_curve":
-                self.add_lr_curve_datapoint(network, data_x, data_y)
-            elif plt_type == "lr":
-                self.add_lr_rate_datapoint(optimizer)
-            elif plt_type == "grad_norm":
-                self.add_grad_norm_datapoint(network)
-            elif plt_type == "delta_weights":
-                self.add_delta_weights_datapoint(network, optimizer)
-            elif plt_type == "act_val":
-                self.add_activ_val_datapoint(network, data_x)
+        if "lr_curve" in self.type_plots or "log_lr_curve" in self.type_plots:
+            self.add_lr_curve_datapoint(network, data_x, data_y)
+        if "lr" in self.type_plots:
+            self.add_lr_rate_datapoint(optimizer)
+        if "grad_norm" in self.type_plots:
+            self.add_grad_norm_datapoint(network)
+        if "delta_weights" in self.type_plots or "log_delta_weights" in self.type_plots:
+            self.add_delta_weights_datapoint(network, optimizer)
+        if "act_val" in self.type_plots:
+            self.add_activ_val_datapoint(network, data_x)
 
     """
         Select active model/plotline
@@ -133,6 +136,9 @@ class Plotter:
 
     def add_lr_curve_datapoint(self, network, data_x, data_y, data_label="tr"):
 
+        if data_label not in self.data_labels:
+            self.data_labels.append(data_label)
+
         for metric in self.lr_metric_list:
 
             training = False
@@ -180,7 +186,7 @@ class Plotter:
         Note: use after a backward pass
         
         Parameters:
-            -network: network to plot 
+            -network: network to plot
     """
 
     def add_grad_norm_datapoint(self, network):
@@ -256,11 +262,12 @@ class Plotter:
         Recursively compute the stats of the types of plots across plotlines/models
         
         Parameters:
-            -in_dict: for recursive purpose
+            -in_dict: dictionary from which to start the recursion
             -out_dict: dictionary in which to save the results
+            -log_bool: boolean used to apply natural log to the results
     """
 
-    def compute_stats_plotlines(self, in_dict=None, out_dict=None):
+    def compute_stats_plotlines(self, in_dict=None, out_dict=None, log_bool=False):
 
         if in_dict is None:
             in_dict = self.results_dict
@@ -268,7 +275,9 @@ class Plotter:
         if out_dict is None:
             raise ValueError("compute_stats_plotlines: need to provide an out_dict")
 
-        model_distr = None
+        # used to avoid log(0) problem
+        log_eps = 10 ** -6
+
         # add an empty list to each list of lists
         for k, v in in_dict.items():
 
@@ -277,7 +286,7 @@ class Plotter:
                 if k not in out_dict:
                     out_dict[k] = {}
 
-                model_distr = self.compute_stats_plotlines(v, out_dict[k], k)
+                self.compute_stats_plotlines(v, out_dict[k], log_bool)
 
             elif isinstance(v, list):
                 ma_matrix = convert_ragged_mat_to_ma_array(v)
@@ -285,15 +294,15 @@ class Plotter:
                 ma_average = np.ma.average(ma_matrix, axis=0)
                 ma_std = np.ma.std(ma_matrix, axis=0)
 
-                if model_distr is None:
-                    model_distr = np.ma.count(ma_matrix, axis=0)
+                if log_bool:
+                    ma_average = np.log(ma_average + log_eps)
+                    ma_std = np.log(ma_std + log_eps)
 
-                    # needed for multi-out network
-                    if model_distr.ndim > 1:
-                        model_distr = model_distr[:, 0]
+                # return only data from masked array
+                out_dict[k] = {"avg": ma_average.data, "std": ma_std.data}
 
-                out_dict[k] = {"avg": ma_average, "std": ma_std}
-
+                # compute the avg of all the model's final prediction
+                # reminder: not all models terminate at the same epoch
                 if isinstance(k, str) and "lr_curve" in k:
                     ma_elem_len = len(ma_matrix[0])
                     # take the last non-masked element of each row
@@ -302,32 +311,208 @@ class Plotter:
                     last_ma_idx = last_ma_idx[::ma_elem_len]
                     # generate list of position in the matrix to compute average
                     final_pred_idx = (range(len(last_ma_idx)), last_ma_idx)
-                    out_dict[k]["avg_final"] = np.average(ma_matrix[final_pred_idx])
+
+                    final_average = np.average(ma_matrix[final_pred_idx])
+
+                    if log_bool:
+                        final_average = np.log(final_average + log_eps)
+
+                    out_dict[k]["avg_final"] = final_average
+
+    """
+        Recursively compute the number of models still active per epoch
+        
+        Parameters:
+            -in_dict: dictionary from which to start the recursion
+    """
+
+    def compute_models_distr(self, in_dict=None):
+
+        if in_dict is None:
+            in_dict = self.results_dict
+
+        model_distr = None
+
+        for k, v in in_dict.items():
+
+            if model_distr is not None:
+                break
+
+            if isinstance(v, dict):
+                model_distr = self.compute_models_distr(v)
+
+            # Use the first list of lists encountered to compute distr
+            elif isinstance(v, list):
+                ma_matrix = convert_ragged_mat_to_ma_array(v)
+
+                if model_distr is None:
+                    model_distr = np.ma.count(ma_matrix, axis=0)
+
+                    # needed for multi-out network
+                    if model_distr.ndim > 1:
+                        model_distr = model_distr[:, 0]
 
         return model_distr
+
 
     # plot generation functions
 
     """
-        Reorder results in order to have lr_curve at the start and in the same order as the metric_list
+        Build the dictionary containing each requested plot's data. Returns the dict
     """
 
-    def order_plots(self):
+    def build_plot_dict(self):
 
-        lr_curve_dict = {}
-        for metric in self.lr_metric_list:
-            lr_curve_list = []
+        plot_dict = {}
 
-            for plot in self.results_dict:
-                if "lr_curve" in plot and metric.name in plot:
-                    lr_curve_list.append(plot)
+        for lr_curve_type in ["lr_curve", "log_lr_curve"]:
 
-            for curve in lr_curve_list:
-                lr_curve_dict[curve] = self.results_dict[curve]
+            if lr_curve_type not in self.type_plots:
+                continue
 
-        # all non-lr_curve plots
-        else_dict = {k: v for k, v in self.results_dict.items() if "lr_curve" not in k}
-        self.results_dict = {**lr_curve_dict, **else_dict}
+            for metric in self.lr_metric_list:
+                for label in self.data_labels:
+                    plot_name = f"{lr_curve_type} ({metric.name}) ({label})"
+                    results_name = f"lr_curve ({metric.name}) ({label})"
+
+                    log_bool = "log" in lr_curve_type
+
+                    res_dict = {plot_name: self.results_dict[results_name]}
+                    self.compute_stats_plotlines(res_dict, res_dict, log_bool)
+                    plot_dict[plot_name] = res_dict[plot_name]
+
+        for plt_type in ["lr", "act_val", "grad_norm"]:
+            if plt_type in self.type_plots:
+                res_dict = {plt_type: self.results_dict[plt_type]}
+                self.compute_stats_plotlines(res_dict, res_dict)
+                plot_dict[plt_type] = res_dict[plt_type]
+
+        for delta_type in ["delta_weights", "log_delta_weights"]:
+
+            if delta_type not in self.type_plots:
+                continue
+
+            log_bool = "log" in delta_type
+
+            res_dict = {delta_type: self.results_dict["delta_weights"]}
+            self.compute_stats_plotlines(res_dict, res_dict, log_bool)
+            plot_dict[delta_type] = res_dict[delta_type]
+
+        return plot_dict
+ 
+
+    """
+        Build the figure containing each requested plot. Returns the figure
+    """
+
+    def build_plot(self):
+
+        if self.fig is not None:
+            return self.fig
+
+        if self.results_dict == {}:
+            raise RuntimeError("plotter: no results to plot")
+
+        # used to avoid log(0) problem
+        log_eps = 10 ** -6
+
+        plot_dict = self.build_plot_dict()
+
+        model_distr = self.compute_models_distr()
+        tot_epochs = len(model_distr)
+
+        if self.n_models > 0:
+            plot_dict["model_distr"] = model_distr
+
+        # The subplots are dynamically generated step by step
+        fig_dim = (15, 10)
+        plot_dim = (len(plot_dict) // self.n_cols + 1, self.n_cols)
+        fig, axs = plt.subplots(*plot_dim, squeeze=False, figsize=fig_dim)
+
+        for i, plt_type in enumerate(plot_dict):
+
+            cur_row = i // self.n_cols
+            cur_col = i % self.n_cols
+            cur_ax = axs[cur_row][cur_col]
+
+            # needed to handle matrix of values in these plots
+            if plt_type in ["grad_norm", "act_val"]:
+
+                for n_layer, val in plot_dict[plt_type].items():
+                    cur_ax.errorbar(range(tot_epochs), val["avg"], val["std"],
+                                    label=f"Layer {n_layer}", linestyle="None",
+                                    marker=".", alpha=0.6)
+                cur_ax.legend()
+                cur_ax.set_ylabel(f"{plt_type}")
+
+            elif "delta_weights" in plt_type:
+
+                # compute the log of the delta_weights
+                for n_layer, val in plot_dict[plt_type].items():
+
+                    cur_ax.errorbar(range(tot_epochs), val["avg"], val["std"],
+                                    label=f"Layer {n_layer}", linestyle="None",
+                                    marker=".", alpha=0.6, zorder=2)
+
+                delta_eps = self.param_dict["delta_eps"]
+
+                if "log" in plt_type:
+                    delta_eps = np.log(delta_eps + log_eps)
+
+                cur_ax.plot(range(tot_epochs), [delta_eps] * tot_epochs, zorder=3,
+                            label="Delta eps", linestyle="dashed", color="black")
+                cur_ax.legend()
+                cur_ax.set_ylabel(plt_type)
+
+            elif "lr_curve" in plt_type:
+
+                lr_stats = plot_dict[plt_type]
+
+                if "log" in plt_type:
+                    # Remove "log_" from plt_type
+                    lines_list = self.results_dict[plt_type.split("_", 1)[1]]
+
+                    # Plot all individual lines
+                    for line in lines_list:
+                        line_len = len(line)
+                        cur_ax.plot(range(line_len), np.log(np.add(line, log_eps)),
+                                    alpha=0.1, color="gray")
+                else:
+                    # plot all individual lines
+                    for line in self.results_dict[plt_type]:
+                        line_len = len(line)
+                        cur_ax.plot(range(line_len), line, alpha=0.1, color="gray")
+
+                cur_ax.plot(range(tot_epochs), lr_stats["avg"], label="Avg score")
+                cur_ax.plot(range(tot_epochs), [lr_stats["avg_final"]] * tot_epochs,
+                            label="Avg final", linestyle="dashed")
+
+                cur_ax.set_ylabel(plt_type)
+                cur_ax.legend()
+
+            elif plt_type in ["lr"]:
+                cur_ax.plot(range(tot_epochs),
+                            np.around(plot_dict[plt_type]["avg"], decimals=5))
+                cur_ax.set_ylabel(f"{plt_type}")
+
+            elif plt_type == "model_distr":
+                cur_ax.plot(range(tot_epochs), plot_dict[plt_type])
+                cur_ax.set_ylabel(f"{plt_type}")
+
+            else:
+                raise ValueError(f"Unknown plt_type ({plt_type})")
+
+            cur_ax.set_xlabel("Epochs")
+
+        # hide unused plots
+        n_blank_axs = self.n_cols - len(plot_dict) % self.n_cols
+
+        for i in range(1, n_blank_axs + 1):
+            axs[-1][-i].axis('off')
+
+        self.fig = fig
+
+        return self.fig
 
     """
         Show the resulting plots
@@ -344,7 +529,7 @@ class Plotter:
 
     """
         Save generated figure
-        
+
         Parameters:
             -path: path where to save the figure
     """
@@ -355,125 +540,3 @@ class Plotter:
 
         self.fig.savefig(path)
         plt.close(self.fig)
-
-    """
-        For each requested plot in results_dict, build the figure. Returns the figure
-    """
-    def build_plot(self):
-
-        if self.fig is not None:
-            return self.fig
-
-        if self.results_dict == {}:
-            raise RuntimeError("plotter: no results to plot")
-
-        self.order_plots()
-
-        stats_dict = {}
-        # substitute lists of list with their average row-wise
-        model_distr = self.compute_stats_plotlines(self.results_dict, stats_dict)
-
-        if self.n_models > 0:
-            stats_dict["model_distr"] = model_distr
-
-        plot_dim = (len(stats_dict) // self.n_cols + 1, self.n_cols)
-        fig_dim = (15, 10)
-        fig, axs = plt.subplots(*plot_dim, squeeze=False, figsize=fig_dim)
-        tot_epochs = len(model_distr)
-
-        # used to avoid log(0) problem
-        log_eps = 10 ** -6
-
-        for i, plt_type in enumerate(stats_dict):
-
-            cur_row = i // self.n_cols
-            cur_col = i % self.n_cols
-            cur_ax = axs[cur_row][cur_col]
-
-            # needed to handle matrix of values in these plots
-            if plt_type in ["grad_norm", "act_val"]:
-
-                for n_layer, val in stats_dict[plt_type].items():
-                    cur_ax.errorbar(range(tot_epochs), val["avg"], val["std"],
-                                    label=f"Layer {n_layer}", linestyle="None",
-                                    marker=".", alpha=0.6)
-                cur_ax.legend()
-                cur_ax.set_ylabel(f"{plt_type}")
-
-            elif plt_type == "delta_weights":
-
-                # compute the log of the delta_weights
-                for n_layer, val in stats_dict[plt_type].items():
-                    log_delta_avg = np.log(val["avg"] + log_eps)
-                    log_delta_std = np.log(val["std"] + log_eps)
-
-                    cur_ax.errorbar(range(tot_epochs), log_delta_avg, log_delta_std,
-                                    label=f"Layer {n_layer}", linestyle="None",
-                                    marker=".", alpha=0.6, zorder=2)
-
-                log_delta_eps = np.log(self.param_dict["delta_eps"] + log_eps)
-                cur_ax.plot(range(tot_epochs), [log_delta_eps] * tot_epochs, zorder=3,
-                            label="Delta eps", linestyle="dashed", color="black")
-                cur_ax.legend()
-                cur_ax.set_ylabel("log(delta_weights)")
-
-            elif "lr_curve" in plt_type:
-
-                lr_stats = stats_dict[plt_type]
-
-                if "log_lr_curve" in self.type_plots and "lr_curve" in self.type_plots:
-                    raise ValueError("build_plot: only one between " +
-                                     "lr_curve and log_lr_curve supported at the same time")
-
-                if "log_lr_curve" in self.type_plots:
-                    # Plot all individual lines
-                    for line in self.results_dict[plt_type]:
-                        line_len = len(line)
-                        cur_ax.plot(range(line_len), np.log(np.add(line, log_eps)),
-                                    alpha=0.1, color="gray")
-
-                    cur_ax.plot(range(tot_epochs), np.log(lr_stats["avg"] + log_eps),
-                                label="Avg score")
-                    cur_ax.plot(range(tot_epochs),
-                                [np.log(lr_stats["avg_final"] + log_eps)] * tot_epochs,
-                                label="Avg final", linestyle="dashed")
-
-                    cur_ax.set_ylabel(f"log_{plt_type}")
-
-                else:
-                    # plot all individual lines
-                    for line in self.results_dict[plt_type]:
-                        line_len = len(line)
-                        cur_ax.plot(range(line_len), line, alpha=0.1, color="gray")
-
-                    cur_ax.plot(range(tot_epochs), lr_stats["avg"], label="Avg score")
-                    cur_ax.plot(range(tot_epochs), [lr_stats["avg_final"]] * tot_epochs,
-                                label="Avg final", linestyle="dashed")
-
-                    cur_ax.set_ylabel(f"{plt_type}")
-
-                cur_ax.legend()
-
-            elif plt_type in ["lr"]:
-                cur_ax.plot(range(tot_epochs),
-                            np.around(stats_dict[plt_type]["avg"], decimals=5))
-                cur_ax.set_ylabel(f"{plt_type}")
-
-            elif plt_type == "model_distr":
-                cur_ax.plot(range(tot_epochs), stats_dict[plt_type])
-                cur_ax.set_ylabel(f"{plt_type}")
-
-            else:
-                raise ValueError(f"Unknown plt_type ({plt_type})")
-
-            cur_ax.set_xlabel("Epochs")
-
-        # hide unused plots
-        n_blank_axs = self.n_cols - len(stats_dict) % self.n_cols
-
-        for i in range(1, n_blank_axs + 1):
-            axs[-1][-i].axis('off')
-
-        self.fig = fig
-
-        return self.fig
