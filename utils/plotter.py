@@ -500,7 +500,7 @@ class Plotter:
 
         # The subplots are dynamically generated step by step
         fig_dim = (15, 5)
-        plot_dim = (len(self.lr_metric_list), self.n_cols)
+        plot_dim = (1, len(self.lr_metric_list))
         fig, axs = plt.subplots(*plot_dim, squeeze=False, figsize=fig_dim)
 
         for i, lr_metric in enumerate(self.lr_metric_list):
