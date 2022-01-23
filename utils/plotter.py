@@ -493,6 +493,42 @@ class Plotter:
 
         return self.fig
 
+
+    def save_lr_curves(self, path):
+
+        plot_dict = self.build_plot_dict()
+
+        # The subplots are dynamically generated step by step
+        fig_dim = (15, 5)
+        plot_dim = (len(self.lr_metric_list), self.n_cols)
+        fig, axs = plt.subplots(*plot_dim, squeeze=False, figsize=fig_dim)
+
+        for i, lr_metric in enumerate(self.lr_metric_list):
+
+            lr_type = lr_metric.name
+
+            for plt_type in plot_dict:
+
+                if "lr_curve" not in plt_type or lr_type not in plt_type:
+                    continue
+
+                lr_stats = plot_dict[plt_type]
+
+                if "tr" in plt_type:
+                    axs[0][i].plot(range(len(lr_stats["avg"])), lr_stats["avg"],
+                                   label="Avg score (train)")
+
+                if "val" in plt_type:
+                    axs[0][i].plot(range(len(lr_stats["avg"])), lr_stats["avg"],
+                                   label="Avg score (test)", linestyle="dashed")
+
+                axs[0][i].set_ylabel(lr_type)
+                axs[0][i].set_xlabel("Epochs")
+                axs[0][i].legend()
+
+        fig.savefig(path)
+        plt.close(fig)
+
     """
         Show the resulting plots
     """
