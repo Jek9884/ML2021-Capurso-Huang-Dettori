@@ -36,7 +36,7 @@ class GradientDescent:
     def __init__(self, lr, batch_size, reg_val=0, reg_type=2, momentum_val=0,
                  nesterov=False, lim_epochs=10 ** 4, lr_decay_type=None,
                  lr_dec_lin_tau=None, lr_dec_exp_k=None, stop_crit_type='fixed',
-                 epsilon=None, patient=5, norm_clipping=0, check_gradient=False):
+                 epsilon=None, patient=10, norm_clipping=0, check_gradient=False):
 
         if lr <= 0 or lr > 1:
             raise ValueError('lr should be a value between 0 and 1')

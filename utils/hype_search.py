@@ -278,11 +278,11 @@ def compare_results(results, metric, topk=None):
 
     # check if the validation score was computed, and use median to sort the results
     if results[0].last_results['score_val'] is not None:
-        results = sorted(results, key=lambda ev: ev.last_results['score_val']["perc_50"],
+        results = sorted(results, key=lambda ev: ev.last_results['score_val']["avg"],
                          reverse=(metric.aim == 'max'))
     # else sort by training score median
     else:
-        results = sorted(results, key=lambda ev: ev.last_results['score_tr']["perc_50"],
+        results = sorted(results, key=lambda ev: ev.last_results['score_tr']["avg"],
                          reverse=(metric.aim == 'max'))
 
     if topk is not None:

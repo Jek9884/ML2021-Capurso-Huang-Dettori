@@ -301,24 +301,6 @@ class Plotter:
                 # return only data from masked array
                 out_dict[k] = {"avg": ma_average.data, "std": ma_std.data}
 
-                # compute the avg of all the model's final prediction
-                # reminder: not all models terminate at the same epoch
-                if isinstance(k, str) and "lr_curve" in k:
-                    ma_elem_len = len(ma_matrix[0])
-                    # take the last non-masked element of each row
-                    last_ma_idx = np.ma.notmasked_edges(ma_matrix, axis=1)[1][1]
-                    # each idx is repeated for each element in the matrix cell
-                    last_ma_idx = last_ma_idx[::ma_elem_len]
-                    # generate list of position in the matrix to compute average
-                    final_pred_idx = (range(len(last_ma_idx)), last_ma_idx)
-
-                    final_average = np.average(ma_matrix[final_pred_idx])
-
-                    if log_bool:
-                        final_average = np.log(final_average + log_eps)
-
-                    out_dict[k]["avg_final"] = final_average
-
     """
         Recursively compute the number of models still active per epoch
         
@@ -484,9 +466,6 @@ class Plotter:
                         cur_ax.plot(range(line_len), line, alpha=0.1, color="gray")
 
                 cur_ax.plot(range(tot_epochs), lr_stats["avg"], label="Avg score")
-                cur_ax.plot(range(tot_epochs), [lr_stats["avg_final"]] * tot_epochs,
-                            label="Avg final", linestyle="dashed")
-
                 cur_ax.set_ylabel(plt_type)
                 cur_ax.legend()
 
