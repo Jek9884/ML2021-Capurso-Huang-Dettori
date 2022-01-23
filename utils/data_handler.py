@@ -42,14 +42,14 @@ class DataHandler:
 
         self.data_x, self.avg_x, self.std_x = normalise_data(self.data_x)
 
-    def denormalise_x(self):
+    def denormalise_x(self, data_x):
 
         if self.avg_x is None or self.std_x is None:
             raise ValueError("denormalise_x: data is not normalised")
 
-        self.data_x = self.data_x * self.std_x + self.avg_x
-        self.avg_x = None
-        self.std_x = None
+        data_x = data_x * self.std_x + self.avg_x
+
+        return data_x
 
     def normalise_y(self):
 
@@ -58,14 +58,14 @@ class DataHandler:
 
         self.data_y, self.avg_y, self.std_y = normalise_data(self.data_y)
 
-    def denormalise_y(self):
+    def denormalise_y(self, data_y):
 
         if self.avg_y is None or self.std_y is None:
             raise ValueError("denormalise_y: data is not normalised")
 
-        self.data_y = self.data_y * self.std_y + self.avg_y
-        self.avg_y = None
-        self.std_y = None
+        data_y = data_y * self.std_y + self.avg_y
+
+        return data_y
 
     """
         Sample a minibatch list

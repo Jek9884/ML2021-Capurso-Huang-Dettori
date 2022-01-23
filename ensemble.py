@@ -1,12 +1,14 @@
 import numpy as np
 from network import Network
 from optimizer import GradientDescent
+from utils.data_handler import DataHandler
 
 """
     Ensemble
     
     Parameters:
-        -combo: tuple of network and optimizer combo
+        -combo_net: dictionary of network combo
+        -combo_opt: dictionary of optimizer combo
         -agg_func: aggregation function the result of the ensemble
         -n_models: number of models to train
         -bagging: boolean value to apply bagging ensemble method
@@ -19,8 +21,9 @@ from optimizer import GradientDescent
 
 class Ensemble:
 
-    def __init__(self, combo, agg_func='mode', n_models=100, bagging=False):
-        self.combo = combo
+    def __init__(self, combo_net, combo_opt, agg_func='mode', n_models=5, bagging=False):
+        self.combo_net = combo_net
+        self.combo_opt = combo_opt
         self.agg_func = agg_func
         self.net_vec = []
         self.opt_vec = []
@@ -28,8 +31,8 @@ class Ensemble:
         self.bagging = bagging
 
         for i in range(self.n_models):
-            net = Network(**self.combo['combo_net'])
-            opt = GradientDescent(**self.combo['combo_opt'])
+            net = Network(**self.combo_net)
+            opt = GradientDescent(**self.combo_opt)
 
             self.net_vec.append(net)
             self.opt_vec.append(opt)
@@ -99,8 +102,10 @@ class Ensemble:
             net = self.net_vec[i]
             opt = self.opt_vec[i]
 
-            opt.train(net, data_x, data_y)
+            train_handler = DataHandler(data_x, data_y)
 
+            opt.train(net, train_handler)
+            print(f"Model {i} trained")
 
 """
     Generate a subset of a train_x set with replacement

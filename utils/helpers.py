@@ -300,3 +300,17 @@ def delete_combos(combos, target_idx, target_val, *dupl_fields_idx):
         selected_combos.append(combo)
 
     return np.array(selected_combos)
+
+
+def save_cup_predictions(pred, path, sep=","):
+
+    string = "# Alessandro Capurso\tAntonello Dettori\tYang Huang\n"
+    string += "# ML-Enjoyers\n"
+    string += "# ML-CUP21\n"
+    string += "# 23/01/2022\n"
+
+    for i, vec in enumerate(pred):
+        string += str(i+1) + sep + str(vec[0]) + sep + str(vec[1]) + '\n'
+
+    with open(path, 'w') as file:
+        file.write(string)
